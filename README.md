@@ -15,3 +15,5 @@
 - Tooltip
 - Line selection
 - Switch series
+- Material design 
+- Day/night switch
