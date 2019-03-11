@@ -15,13 +15,14 @@ var TeleChart = function (ctxId) {
         CONST_MAX_SAFE_INTEGER = Math.pow(2, 53) - 1,
         CONST_MIN_SAFE_INTEGER = -(Math.pow(2, 53) - 1);
 
+
     var parseInt = window.parseInt;
 
     var container = document.getElementById(ctxId),
         totalWidth = container.offsetWidth,
         totalHeight = container.offsetHeight,
         navigationHeight = parseInt(totalWidth * CONST_NAVIGATION_HEIGHT_PERCENT / 100),
-        selectionHeight = totalWidth - navigationHeight - CONST_PADDING * 2,
+        selectionHeight = totalWidth - navigationHeight - navigationHeight,
         navigationTop = totalHeight - navigationHeight,
         needRedraw = true,
         mainCanvas = createCanvas(totalWidth, totalHeight, "m_" + ctxId),
@@ -42,9 +43,11 @@ var TeleChart = function (ctxId) {
         selectionFactorX = 0,
         selectionFactorY = 0,
         selectionMinY = 0,
+        selectionMaxY = 0,
         navigationFactorX = 0,
         navigationFactorY = 0,
-        navigationMinY = 0;
+        navigationMinY = 0,
+        minIsZero = true;
 
     container.appendChild(mainCanvas);
 
@@ -104,7 +107,7 @@ var TeleChart = function (ctxId) {
 
     function moveHoveredElement() {
         var _proposedX = mouseX / navigationFactorX;
-        var _maxProposedX = xAxisDataRef.data.length - 1;
+        var _maxProposedX = xAxisDataRef.data.length - 2;
         if (_proposedX < 0) {
             _proposedX = 0;
         } else if (_proposedX > _maxProposedX) {
@@ -212,10 +215,10 @@ var TeleChart = function (ctxId) {
             var _startZoom = ( zoomStart) * navigationFactorX;
             var _endZoom = ( zoomEnd) * navigationFactorX;
 
-            _frameContext.fillStyle = "#9f9f9f"; //todo config and redesign
+            _frameContext.fillStyle = "rgba(0, 0, 0, 0.3)"; //todo config and redesign
             _frameContext.fillRect(_startZoom, navigationTop, _endZoom - _startZoom, navigationHeight);
             _frameContext.fillStyle = "#ffffff"; //todo config
-            _frameContext.fillRect(_startZoom + CONST_PADDING, navigationTop + CONST_PADDING, _endZoom - _startZoom - CONST_PADDING * 2, navigationHeight - CONST_PADDING * 2); //todo optimize
+            _frameContext.fillRect(_startZoom + CONST_PADDING, navigationTop + CONST_PADDING/2, _endZoom - _startZoom - CONST_PADDING * 2, navigationHeight - CONST_PADDING ); //todo optimize
 
             var _columnsLen = yAxisDataRef.length;
 
@@ -254,12 +257,12 @@ var TeleChart = function (ctxId) {
             }
 
             //Draw navigation
-            _frameContext.fillStyle = "rgba(241, 245, 248, 0.6)"; //todo config
+            _frameContext.fillStyle = "rgba(245, 241, 240, 0.6)"; //todo config
             _frameContext.fillRect(0, navigationTop, _startZoom, navigationHeight);
             _frameContext.fillRect(_endZoom, navigationTop, totalWidth - _endZoom, navigationHeight);
 
             //todo debug need remove
-            _frameContext.fillStyle = "#222222";
+            _frameContext.fillStyle = "rgba(0, 0, 0, 0.2)"; //todo config
             _frameContext.fillText("selectionStartIndex " + selectionStartIndex, 10, 50);
             _frameContext.fillText("selectionEndIndex " + selectionEndIndex, 10, 70);
             _frameContext.fillText("selectionFactorX " + selectionFactorX, 10, 90);
@@ -267,8 +270,8 @@ var TeleChart = function (ctxId) {
     }
 
     function calcNavigationFactors() {
-        navigationFactorX = totalWidth / (xAxisDataRef.data.length - 2);
-        var _max = CONST_MIN_SAFE_INTEGER;
+        navigationFactorX = (totalWidth) / (xAxisDataRef.data.length - 2);
+        var _max = minIsZero ? 0 : CONST_MIN_SAFE_INTEGER;
         var _min = CONST_MAX_SAFE_INTEGER;
         for (var _i = 0; _i < yAxisDataRef.length; _i++) {
             var _axisY = yAxisDataRef[_i];
@@ -288,10 +291,10 @@ var TeleChart = function (ctxId) {
 
     function calcSelectionFactors() {
         selectionStartIndex = parseInt(zoomStart + 1);
-        selectionEndIndex = parseInt(zoomEnd);
+        selectionEndIndex = parseInt(zoomEnd + 1);
         selectionFactorX = totalWidth / (selectionEndIndex - selectionStartIndex);
         var _max = CONST_MIN_SAFE_INTEGER;
-        var _min = CONST_MAX_SAFE_INTEGER;
+        var _min = minIsZero ? 0 : CONST_MAX_SAFE_INTEGER;
         for (var _i = 0; _i < yAxisDataRef.length; _i++) {
             var _axisY = yAxisDataRef[_i];
             if (!_axisY.enabled) {
@@ -308,7 +311,8 @@ var TeleChart = function (ctxId) {
             }
         }
         selectionFactorY = -(selectionHeight - 2) / (_max - _min);
-        selectionMinY = _min + 1;
+        selectionMinY = _min ;
+        selectionMaxY = _max;
     }
 
     function prepareCaches(src) {
@@ -339,7 +343,7 @@ var TeleChart = function (ctxId) {
                         min: _min,
                         max: _max
                     };
-                    zoomEnd = (_dataLen - 1);
+                    zoomEnd = (_dataLen - 2);
                     zoomStart = zoomEnd - (zoomEnd) * CONST_NAVIGATION_WIDTH_PERCENT / 100;
                 } else {
                     yAxisDataRef.push(

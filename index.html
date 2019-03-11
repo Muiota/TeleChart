@@ -2,13 +2,44 @@
 <html>
 <head>
     <title>Tele Chart</title>
-    <link rel="stylesheet" href="demo.css" type="text/css" media="screen"/>
+    <style>
+        body {
+            font: 13px/18px Tahoma, sans-serif, Arial, Helvetica;
+        }
+        body.dark {
+            background: #242f3e;
+        }
+        .im_dialog_peer {
+            color: #222;
+            font-weight: 700;
+            margin-top: 2px;
+            margin-bottom: 2px;
+            padding-left: 5px;
+        }
+
+        .dark .im_dialog_peer {
+            color: #ffffff;
+        }
+
+        .settings_panel {
+            float: right;
+        }
+
+        .settings_panel input {
+            vertical-align: top;
+        }
+
+    </style>
     <script src="src/telechart.js"></script>
 </head>
 <body>
+<div class="settings_panel">
+    <input type="checkbox" name="dark_mode" id="dark_mode" value="dark">Dark mode<br>
+</div>
 <span class="im_dialog_peer">Followers</span>
 <div id="charts_container">
 </div>
+
 <script>
 
     function getJSONP(url, callbackName, callback) {
@@ -46,6 +77,16 @@
             }
         }
     });
+
+    var _checkbox = document.getElementById("dark_mode");
+    _checkbox.addEventListener("change", function () {
+        if (this.checked) {
+            document.body.classList.add("dark");
+        } else {
+            document.body.classList.remove("dark");
+        }
+    });
+
 </script>
 </body>
 </html>
