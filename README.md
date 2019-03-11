@@ -4,13 +4,13 @@
 ### Features:
  - Advanced zoom
  - Advanced navigation
+ - Vertical auto zoom
 ````
     //
 ````
   
 ### Roadmap:
 - Smooth animation
-- Vertical auto zoom
 - Scales
 - Tooltip
 - Line selection

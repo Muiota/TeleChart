@@ -11,7 +11,9 @@ var TeleChart = function (ctxId) {
         CONST_NAVIGATOR = 1,
         CONST_START_SELECTION = 2,
         CONST_END_SELECTION = 3,
-        CONST_IN_FRAME_SELECTION = 4;
+        CONST_IN_FRAME_SELECTION = 4,
+        CONST_MAX_SAFE_INTEGER = Math.pow(2, 53) - 1,
+        CONST_MIN_SAFE_INTEGER = -(Math.pow(2, 53) - 1);
 
     var parseInt = window.parseInt;
 
@@ -19,6 +21,7 @@ var TeleChart = function (ctxId) {
         totalWidth = container.offsetWidth,
         totalHeight = container.offsetHeight,
         navigationHeight = parseInt(totalWidth * CONST_NAVIGATION_HEIGHT_PERCENT / 100),
+        selectionHeight = totalWidth - navigationHeight - CONST_PADDING * 2,
         navigationTop = totalHeight - navigationHeight,
         needRedraw = true,
         mainCanvas = createCanvas(totalWidth, totalHeight, "m_" + ctxId),
@@ -37,6 +40,8 @@ var TeleChart = function (ctxId) {
         selectionStartIndex = 0,
         selectionEndIndex = 0,
         selectionFactorX = 0,
+        selectionFactorY = 0,
+        selectionMinY = 0,
         navigationFactorX = 0,
         navigationFactorY = 0,
         navigationMinY = 0;
@@ -52,6 +57,10 @@ var TeleChart = function (ctxId) {
     }
 
     mainCanvas.style.border = "1px solid"; //todo remove
+
+    function setCursor(cursor) {
+        mainCanvas.style.cursor = cursor;
+    }
 
     function setHoveredElement() {
         var result = null;
@@ -73,17 +82,16 @@ var TeleChart = function (ctxId) {
         }
         if (mouseHovered !== result) {
             mouseHovered = result;
-            var style = mainCanvas.style;
             switch (mouseHovered) {
                 case CONST_START_SELECTION:
                 case CONST_END_SELECTION:
-                    style.cursor = "col-resize";
+                    setCursor("col-resize");
                     break;
                 case CONST_IN_FRAME_SELECTION:
-                    style.cursor = "grab";
+                    setCursor("pointer");
                     break;
                 default:
-                    style.cursor = "inherit";
+                    setCursor("inherit");
                     break;
             }
         }
@@ -92,12 +100,6 @@ var TeleChart = function (ctxId) {
     function stopPropagation(e) {
         e.preventDefault();
         e.stopPropagation();
-    }
-
-    function setSelectionRange() {
-        selectionStartIndex = parseInt(zoomStart + 1);
-        selectionEndIndex = parseInt(zoomEnd);
-        selectionFactorX = totalWidth / (selectionEndIndex - selectionStartIndex);
     }
 
     function moveHoveredElement() {
@@ -114,13 +116,13 @@ var TeleChart = function (ctxId) {
                 if (zoomEnd - _proposedX > threshold) {
                     zoomStart = _proposedX;
                 }
-                setSelectionRange();
+                calcSelectionFactors();
                 break;
             case CONST_END_SELECTION:
                 if (_proposedX - zoomStart > threshold) {
                     zoomEnd = _proposedX;
                 }
-                setSelectionRange();
+                calcSelectionFactors();
                 break;
             case CONST_IN_FRAME_SELECTION:
                 var start = _proposedX + mouseFrame.start;
@@ -136,7 +138,7 @@ var TeleChart = function (ctxId) {
 
                 zoomStart = start;
                 zoomEnd = end;
-                setSelectionRange();
+                calcSelectionFactors();
                 break;
         }
     }
@@ -191,17 +193,29 @@ var TeleChart = function (ctxId) {
         reOffset(); //todo resize
     });
 
-    function redrawFrame(ctx) {
-        ctx.clearRect(0, 0, totalWidth, totalHeight);
+    function beginPath() {
+        _frameContext.beginPath();
+    }
+
+    function setLineWidth(width) {
+        _frameContext.lineWidth = width;
+    }
+
+    function endPath() {
+        _frameContext.stroke();
+    }
+
+    function redrawFrame() {
+        _frameContext.clearRect(0, 0, totalWidth, totalHeight);
         if (xAxisDataRef && yAxisDataRef && yAxisDataRef.length) {
             var _axisX = xAxisDataRef;
             var _startZoom = ( zoomStart) * navigationFactorX;
             var _endZoom = ( zoomEnd) * navigationFactorX;
 
-            ctx.fillStyle = "#9f9f9f"; //todo config and redesign
-            ctx.fillRect(_startZoom, navigationTop, _endZoom - _startZoom, navigationHeight);
-            ctx.fillStyle = "#ffffff"; //todo config
-            ctx.fillRect(_startZoom + CONST_PADDING, navigationTop + CONST_PADDING, _endZoom - _startZoom - CONST_PADDING * 2, navigationHeight - CONST_PADDING * 2); //todo optimize
+            _frameContext.fillStyle = "#9f9f9f"; //todo config and redesign
+            _frameContext.fillRect(_startZoom, navigationTop, _endZoom - _startZoom, navigationHeight);
+            _frameContext.fillStyle = "#ffffff"; //todo config
+            _frameContext.fillRect(_startZoom + CONST_PADDING, navigationTop + CONST_PADDING, _endZoom - _startZoom - CONST_PADDING * 2, navigationHeight - CONST_PADDING * 2); //todo optimize
 
             var _columnsLen = yAxisDataRef.length;
 
@@ -209,55 +223,58 @@ var TeleChart = function (ctxId) {
                 var _axisY = yAxisDataRef[_i];
 
                 //navigator series
-                ctx.beginPath();
-                ctx.lineWidth = 1;
-                ctx.strokeStyle = _axisY.color;
+                beginPath();
+                setLineWidth(1);
+                _frameContext.strokeStyle = _axisY.color;
                 var _length = _axisX.data.length;
                 for (var _k = 1; _k < _length; _k++) {
                     var _xValue = (_k - 1) * navigationFactorX;
                     var _yValue = totalHeight + (_axisY.data[_k] - navigationMinY) * navigationFactorY;
                     if (_k === 1) {
-                        ctx.moveTo(_xValue, _yValue);
+                        _frameContext.moveTo(_xValue, _yValue);
                     } else {
-                        ctx.lineTo(_xValue, _yValue);
+                        _frameContext.lineTo(_xValue, _yValue);
                     }
                 }
-                ctx.stroke();
+                endPath();
 
                 //selection series
-                ctx.beginPath();
-                ctx.lineWidth = 2;
+                beginPath()
+                setLineWidth(2);
                 for (var _j = selectionStartIndex; _j <= selectionEndIndex; _j++) {
                     var _selValueX = (_j - selectionStartIndex) * selectionFactorX;
-                    var _selValueY = navigationHeight + (_axisY.data[_j] - navigationFactorY) * navigationFactorY;
+                    var _selValueY = selectionHeight + (_axisY.data[_j] - selectionMinY) * selectionFactorY;
                     if (_k === selectionStartIndex) {
-                        ctx.moveTo(_selValueX, _selValueY);
+                        _frameContext.moveTo(_selValueX, _selValueY);
                     } else {
-                        ctx.lineTo(_selValueX, _selValueY);
+                        _frameContext.lineTo(_selValueX, _selValueY);
                     }
                 }
-                ctx.stroke();
+                endPath();
             }
 
             //Draw navigation
-            ctx.fillStyle = "rgba(241, 245, 248, 0.6)"; //todo config
-            ctx.fillRect(0, navigationTop, _startZoom, navigationHeight);
-            ctx.fillRect(_endZoom, navigationTop, totalWidth - _endZoom, navigationHeight);
+            _frameContext.fillStyle = "rgba(241, 245, 248, 0.6)"; //todo config
+            _frameContext.fillRect(0, navigationTop, _startZoom, navigationHeight);
+            _frameContext.fillRect(_endZoom, navigationTop, totalWidth - _endZoom, navigationHeight);
 
             //todo debug need remove
-            ctx.fillStyle = "#222222";
-            ctx.fillText("selectionStartIndex " + selectionStartIndex, 10, 50);
-            ctx.fillText("selectionEndIndex " + selectionEndIndex, 10, 70);
-            ctx.fillText("selectionFactorX " + selectionFactorX, 10, 90);
+            _frameContext.fillStyle = "#222222";
+            _frameContext.fillText("selectionStartIndex " + selectionStartIndex, 10, 50);
+            _frameContext.fillText("selectionEndIndex " + selectionEndIndex, 10, 70);
+            _frameContext.fillText("selectionFactorX " + selectionFactorX, 10, 90);
         }
     }
 
     function calcNavigationFactors() {
-        navigationFactorX = totalWidth / (xAxisDataRef.data.length - 1);
-        var _max = Number.MIN_SAFE_INTEGER;
-        var _min = Number.MAX_SAFE_INTEGER;
+        navigationFactorX = totalWidth / (xAxisDataRef.data.length - 2);
+        var _max = CONST_MIN_SAFE_INTEGER;
+        var _min = CONST_MAX_SAFE_INTEGER;
         for (var _i = 0; _i < yAxisDataRef.length; _i++) {
             var _axisY = yAxisDataRef[_i];
+            if (!_axisY.enabled) {
+                continue;
+            }
             if (_axisY.max > _max) {
                 _max = _axisY.max;
             }
@@ -265,8 +282,33 @@ var TeleChart = function (ctxId) {
                 _min = _axisY.min;
             }
         }
-        navigationFactorY =  -navigationHeight / (_max - _min);
-        navigationMinY = _min;
+        navigationFactorY = -(navigationHeight - 2) / (_max - _min);
+        navigationMinY = _min + 1;
+    }
+
+    function calcSelectionFactors() {
+        selectionStartIndex = parseInt(zoomStart + 1);
+        selectionEndIndex = parseInt(zoomEnd);
+        selectionFactorX = totalWidth / (selectionEndIndex - selectionStartIndex);
+        var _max = CONST_MIN_SAFE_INTEGER;
+        var _min = CONST_MAX_SAFE_INTEGER;
+        for (var _i = 0; _i < yAxisDataRef.length; _i++) {
+            var _axisY = yAxisDataRef[_i];
+            if (!_axisY.enabled) {
+                continue;
+            }
+            for (var _j = selectionStartIndex; _j <= selectionEndIndex; _j++) {
+                var _value = _axisY.data[_j];
+                if (_value > _max) {
+                    _max = _value;
+                }
+                if (_value < _min) {
+                    _min = _value;
+                }
+            }
+        }
+        selectionFactorY = -(selectionHeight - 2) / (_max - _min);
+        selectionMinY = _min + 1;
     }
 
     function prepareCaches(src) {
@@ -279,8 +321,8 @@ var TeleChart = function (ctxId) {
             for (var i = 0; i < _columnsLen; i++) {
                 var _column = columns[i];
                 var _dataLen = _column.length;
-                var _max = Number.MIN_SAFE_INTEGER;
-                var _min = Number.MAX_SAFE_INTEGER;
+                var _max = CONST_MIN_SAFE_INTEGER;
+                var _min = CONST_MAX_SAFE_INTEGER;
                 for (var k = 1; k < _dataLen; k++) {
                     var _elementVal = _column[k];
                     if (_elementVal > _max) {
@@ -299,7 +341,6 @@ var TeleChart = function (ctxId) {
                     };
                     zoomEnd = (_dataLen - 1);
                     zoomStart = zoomEnd - (zoomEnd) * CONST_NAVIGATION_WIDTH_PERCENT / 100;
-                    setSelectionRange();
                 } else {
                     yAxisDataRef.push(
                         {
@@ -309,11 +350,13 @@ var TeleChart = function (ctxId) {
                             type: CONST_DEFAULT_TYPE,
                             name: _column[0],
                             min: _min,
-                            max: _max
+                            max: _max,
+                            enabled: true
                         });
                 }
             }
             calcNavigationFactors();
+            calcSelectionFactors();
         }
 
         function assignAxisProperty(source, field) {
@@ -352,7 +395,7 @@ var TeleChart = function (ctxId) {
     function render() {
         if (needRedraw) {
             needRedraw = false;
-            redrawFrame(_frameContext);
+            redrawFrame();
         }
         _mainCtx.clearRect(0, 0, totalWidth, totalHeight);
         _mainCtx.drawImage(frameCanvas, 0, 0, totalWidth, totalHeight);
