@@ -47,6 +47,7 @@ var TeleChart = function (ctxId) {
         navigationFactorX = 0,
         navigationFactorY = 0,
         navigationMinY = 0,
+        scaleIntervalY = 0,
         minIsZero = true;
 
     container.appendChild(mainCanvas);
@@ -222,6 +223,22 @@ var TeleChart = function (ctxId) {
 
             var _columnsLen = yAxisDataRef.length;
 
+            var nextScale = selectionHeight;
+            beginPath();
+            _frameContext.strokeStyle = "rgba(0, 0, 0, 0.5)";
+            _frameContext.strokeWidth = 0.5;
+            _frameContext.fillStyle = "rgba(0, 0, 0, 0.7)"; //todo config
+            setLineWidth(0.5);
+            var nextScaleValue = 0;
+            while (nextScale > navigationHeight) {
+                var y = parseInt(nextScale);
+                _frameContext.moveTo(0, y);
+                _frameContext.lineTo(totalWidth, y);
+                _frameContext.fillText(nextScaleValue.toString(), CONST_PADDING, y - CONST_PADDING);
+                nextScaleValue = parseInt(nextScaleValue + scaleIntervalY);
+                nextScale = nextScale + scaleIntervalY * selectionFactorY;
+            }
+            endPath();
             for (var _i = 0; _i < _columnsLen; _i++) {
                 var _axisY = yAxisDataRef[_i];
 
@@ -263,9 +280,9 @@ var TeleChart = function (ctxId) {
 
             //todo debug need remove
             _frameContext.fillStyle = "rgba(0, 0, 0, 0.2)"; //todo config
-            _frameContext.fillText("selectionStartIndex " + selectionStartIndex, 10, 50);
-            _frameContext.fillText("selectionEndIndex " + selectionEndIndex, 10, 70);
-            _frameContext.fillText("selectionFactorX " + selectionFactorX, 10, 90);
+          //  _frameContext.fillText("selectionStartIndex " + selectionStartIndex, 10, 50);
+         //   _frameContext.fillText("selectionEndIndex " + selectionEndIndex, 10, 70);
+        //    _frameContext.fillText("selectionFactorX " + selectionFactorX, 10, 90);
         }
     }
 
@@ -311,8 +328,10 @@ var TeleChart = function (ctxId) {
             }
         }
         selectionFactorY = -(selectionHeight - 2) / (_max - _min);
-        selectionMinY = _min ;
+        selectionMinY = _min;
         selectionMaxY = _max;
+        var _scaleIntervalY = parseInt((_max - _min) / 6); //todo smart
+        scaleIntervalY = _scaleIntervalY;
     }
 
     function prepareCaches(src) {

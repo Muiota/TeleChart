@@ -5,15 +5,17 @@
  - Advanced zoom
  - Advanced navigation
  - Vertical auto zoom
+ - Scales
 ````
     //
 ````
   
 ### Roadmap:
 - Smooth animation
-- Scales
 - Tooltip
 - Line selection
 - Switch series
 - Material design 
 - Day/night switch
+- Smart scales
+- High resolution
