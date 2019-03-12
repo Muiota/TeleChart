@@ -21,4 +21,4 @@
 - Smart scales
 
 
-![Screenshot](//i.imgur.com/K5Xqs5c.png)
+![Screenshot](https://i.imgur.com/K5Xqs5c.png)
