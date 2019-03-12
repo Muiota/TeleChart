@@ -13,7 +13,10 @@ var TeleChart = function (ctxId) {
         CONST_END_SELECTION = 3,
         CONST_IN_FRAME_SELECTION = 4,
         CONST_MAX_SAFE_INTEGER = Math.pow(2, 53) - 1,
-        CONST_MIN_SAFE_INTEGER = -(Math.pow(2, 53) - 1);
+        CONST_MIN_SAFE_INTEGER = -(Math.pow(2, 53) - 1),
+        CONST_HUMAN_SACLES = [2, 5, 10],
+        CONST_MONTH_NAMES_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        CONST_DAY_NAMES_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 
     var parseInt = window.parseInt;
@@ -22,11 +25,14 @@ var TeleChart = function (ctxId) {
         totalWidth = container.offsetWidth,
         totalHeight = container.offsetHeight,
         navigationHeight = parseInt(totalWidth * CONST_NAVIGATION_HEIGHT_PERCENT / 100),
-        selectionHeight = totalWidth - navigationHeight - navigationHeight,
+        selectionHeight = totalWidth - navigationHeight - navigationHeight*2 ,
+        selectionUpSpace = navigationHeight / 2,
         navigationTop = totalHeight - navigationHeight,
         needRedraw = true,
         mainCanvas = createCanvas(totalWidth, totalHeight, "m_" + ctxId),
         frameCanvas = createCanvas(totalWidth, totalHeight, "f_" + ctxId),
+        mainCtx = mainCanvas.getContext("2d"),
+        frameContext = frameCanvas.getContext("2d"),
         xAxisDataRef = null,
         yAxisDataRef = [],
         mouseX = 0,
@@ -50,7 +56,23 @@ var TeleChart = function (ctxId) {
         scaleIntervalY = 0,
         minIsZero = true;
 
+    function clear() {
+        xAxisDataRef = null;
+        yAxisDataRef = [];
+        invalidate();
+    }
+
+    // mainCanvas.style.width = (totalWidth/2) +"px"; //todo retina
+    // mainCanvas.style.height = (totalHeight/2) +"px";
+
     container.appendChild(mainCanvas);
+
+    function getBodyStyle(styleProp) {
+        var el = document.body;
+        if (el.currentStyle)
+            return el.currentStyle[styleProp];
+        return document.defaultView.getComputedStyle(el, null)[styleProp];
+    }
 
     function createCanvas(width, height, postfix) {
         var canvas = document.createElement("canvas");
@@ -60,7 +82,12 @@ var TeleChart = function (ctxId) {
         return canvas;
     }
 
-    mainCanvas.style.border = "1px solid"; //todo remove
+    function formatDate(timestamp) {  //Jan 29
+        var date = new Date(timestamp);
+        var day = date.getDate();
+        var monthIndex = date.getMonth();
+        return CONST_MONTH_NAMES_SHORT[monthIndex] + " " + day;
+    }
 
     function setCursor(cursor) {
         mainCanvas.style.cursor = cursor;
@@ -191,98 +218,163 @@ var TeleChart = function (ctxId) {
         mouseOffsetY = _bb.top;
         invalidate();
     }
-
-    reOffset();
-    window.addEventListener('scroll', function (e) {
-        reOffset(); //todo resize
+    window.addEventListener("scroll", function (e) {
+        reOffset();
     });
+    window.addEventListener("resize", function (e) {
+        reOffset();
+    });
+    reOffset();
 
     function beginPath() {
-        _frameContext.beginPath();
+        frameContext.beginPath();
     }
 
     function setLineWidth(width) {
-        _frameContext.lineWidth = width;
+        frameContext.lineWidth = width;
     }
 
     function endPath() {
-        _frameContext.stroke();
+        frameContext.stroke();
+    }
+
+    function getRGBA(color, opacity) {
+        if (color.indexOf("#") !== -1) {
+            var regExp = color.length === 7 ?
+                /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i :
+                /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+            var result = regExp.exec(color);
+            color = "rgb(" + parseInt(result[1], 16) + "," + parseInt(result[2], 16) + "," + parseInt(result[3], 16) + ")";
+        }
+        if (color.indexOf("a") === -1) {
+            return color.replace(")", ", "+opacity+")").replace("rgb", "rgba");
+        } return color;
+    }
+
+    function drawScales(color) {
+        var _selectionAxis = selectionHeight + selectionUpSpace;
+        beginPath();
+        frameContext.strokeStyle = getRGBA(color, 0.4);
+        setLineWidth(0.5);
+        frameContext.fillStyle = getRGBA(color, 0.6);
+        var nextScale = _selectionAxis;
+        while (nextScale > selectionUpSpace) {
+            var _y = parseInt(nextScale) + 0.5;
+            moveOrLine(true, 0, _y);
+            moveOrLine(false, totalWidth, _y);
+            nextScale = nextScale + scaleIntervalY * selectionFactorY;
+        }
+        endPath();
+        return nextScale;
+    }
+
+    function drawScaleLabels(color, background) {
+
+        var _selectionAxis = selectionHeight + selectionUpSpace;
+        var nextScaleValue = 0;
+        var nextScale = _selectionAxis;
+        var _bg = getRGBA(background, 0.7);
+        var _c = getRGBA(color, 0.6);
+        while (nextScale > selectionUpSpace) {
+            var _y = parseInt(nextScale) + 0.5 - CONST_PADDING;
+            var _text = nextScaleValue.toString();
+            var _measure = frameContext.measureText(_text);
+            frameContext.fillStyle =  _bg;
+            frameContext.fillRect(CONST_PADDING - CONST_PADDING, _y - CONST_PADDING * 1.6, _measure.width + CONST_PADDING * 2, CONST_PADDING * 2.2); //todo
+            frameContext.fillStyle =  _c;
+            frameContext.fillText(_text, CONST_PADDING, _y);
+            nextScaleValue = parseInt(nextScaleValue + scaleIntervalY);
+            nextScale = nextScale + scaleIntervalY * selectionFactorY;
+        }
+    }
+
+    function moveOrLine(isMove, x, y) {
+        if (isMove) {
+            frameContext.moveTo(x, y);
+        } else {
+            frameContext.lineTo(x, y);
+        }
     }
 
     function redrawFrame() {
-        _frameContext.clearRect(0, 0, totalWidth, totalHeight);
+        frameContext.clearRect(0, 0, totalWidth, totalHeight);
         if (xAxisDataRef && yAxisDataRef && yAxisDataRef.length) {
             var _axisX = xAxisDataRef;
             var _startZoom = ( zoomStart) * navigationFactorX;
             var _endZoom = ( zoomEnd) * navigationFactorX;
-
-            _frameContext.fillStyle = "rgba(0, 0, 0, 0.3)"; //todo config and redesign
-            _frameContext.fillRect(_startZoom, navigationTop, _endZoom - _startZoom, navigationHeight);
-            _frameContext.fillStyle = "#ffffff"; //todo config
-            _frameContext.fillRect(_startZoom + CONST_PADDING, navigationTop + CONST_PADDING/2, _endZoom - _startZoom - CONST_PADDING * 2, navigationHeight - CONST_PADDING ); //todo optimize
+            var _envColor = getBodyStyle("color");
+            var _envBgColor = getBodyStyle("background-color");
+            frameContext.fillStyle = getRGBA(_envColor, 0.4);
+            frameContext.fillRect(_startZoom, navigationTop, _endZoom - _startZoom, navigationHeight);
+            frameContext.fillStyle = _envBgColor;
+            frameContext.fillRect(_startZoom + CONST_PADDING, navigationTop + CONST_PADDING/2, _endZoom - _startZoom - CONST_PADDING * 2, navigationHeight - CONST_PADDING ); //todo optimize
 
             var _columnsLen = yAxisDataRef.length;
+            frameContext.lineJoin = "round";
+            //            frameContext.translate(0.5,0.5);
 
-            var nextScale = selectionHeight;
-            beginPath();
-            _frameContext.strokeStyle = "rgba(0, 0, 0, 0.5)";
-            _frameContext.strokeWidth = 0.5;
-            _frameContext.fillStyle = "rgba(0, 0, 0, 0.7)"; //todo config
-            setLineWidth(0.5);
-            var nextScaleValue = 0;
-            while (nextScale > navigationHeight) {
-                var y = parseInt(nextScale);
-                _frameContext.moveTo(0, y);
-                _frameContext.lineTo(totalWidth, y);
-                _frameContext.fillText(nextScaleValue.toString(), CONST_PADDING, y - CONST_PADDING);
-                nextScaleValue = parseInt(nextScaleValue + scaleIntervalY);
-                nextScale = nextScale + scaleIntervalY * selectionFactorY;
-            }
-            endPath();
+            //frameContext.lineCap = "square"; //butt  round
+            /*
+            ctx.lineJoin = "bevel";
+            ctx.lineJoin = "round";
+            ctx.lineJoin = "miter";
+            * */
+            drawScales(_envColor);
+            var _selectionAxis = selectionHeight + selectionUpSpace;
             for (var _i = 0; _i < _columnsLen; _i++) {
                 var _axisY = yAxisDataRef[_i];
 
                 //navigator series
                 beginPath();
                 setLineWidth(1);
-                _frameContext.strokeStyle = _axisY.color;
+                frameContext.strokeStyle = _axisY.color;
                 var _length = _axisX.data.length;
                 for (var _k = 1; _k < _length; _k++) {
                     var _xValue = (_k - 1) * navigationFactorX;
                     var _yValue = totalHeight + (_axisY.data[_k] - navigationMinY) * navigationFactorY;
-                    if (_k === 1) {
-                        _frameContext.moveTo(_xValue, _yValue);
-                    } else {
-                        _frameContext.lineTo(_xValue, _yValue);
-                    }
+                    moveOrLine(_k === 1, _xValue, _yValue);
                 }
                 endPath();
 
                 //selection series
-                beginPath()
+                beginPath();
                 setLineWidth(2);
                 for (var _j = selectionStartIndex; _j <= selectionEndIndex; _j++) {
                     var _selValueX = (_j - selectionStartIndex) * selectionFactorX;
-                    var _selValueY = selectionHeight + (_axisY.data[_j] - selectionMinY) * selectionFactorY;
-                    if (_k === selectionStartIndex) {
-                        _frameContext.moveTo(_selValueX, _selValueY);
-                    } else {
-                        _frameContext.lineTo(_selValueX, _selValueY);
-                    }
+                    var _selValueY = _selectionAxis + (_axisY.data[_j] - selectionMinY) * selectionFactorY;
+                    moveOrLine(_j === selectionStartIndex, _selValueX, _selValueY);
                 }
                 endPath();
+
+                //X-axis labels
+                setLineWidth(1);
+                frameContext.fillStyle = getRGBA(_envColor, 0.6);
+                for (var _l = selectionStartIndex; _l <= selectionEndIndex; _l++) {
+                    var _labelX = (_l - selectionStartIndex) * selectionFactorX;
+                    if (_l === selectionStartIndex) {
+                        var _label = formatDate(_axisX.data[_l]);
+                        frameContext.fillText(_label, _labelX, _selectionAxis + CONST_PADDING * 4);
+                    }
+                }
             }
 
             //Draw navigation
-            _frameContext.fillStyle = "rgba(245, 241, 240, 0.6)"; //todo config
-            _frameContext.fillRect(0, navigationTop, _startZoom, navigationHeight);
-            _frameContext.fillRect(_endZoom, navigationTop, totalWidth - _endZoom, navigationHeight);
+
+
+            frameContext.fillStyle = getRGBA(_envColor, 0.1);
+            frameContext.fillRect(0, navigationTop, _startZoom, navigationHeight);
+            frameContext.fillRect(_endZoom, navigationTop, totalWidth - _endZoom, navigationHeight);
+
+            frameContext.fillStyle = getRGBA(_envBgColor, 0.5);
+            frameContext.fillRect(0, navigationTop, _startZoom, navigationHeight);
+            frameContext.fillRect(_endZoom, navigationTop, totalWidth - _endZoom, navigationHeight);
+            drawScaleLabels(_envColor, _envBgColor);
 
             //todo debug need remove
-            _frameContext.fillStyle = "rgba(0, 0, 0, 0.2)"; //todo config
-          //  _frameContext.fillText("selectionStartIndex " + selectionStartIndex, 10, 50);
-         //   _frameContext.fillText("selectionEndIndex " + selectionEndIndex, 10, 70);
-        //    _frameContext.fillText("selectionFactorX " + selectionFactorX, 10, 90);
+            //  frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
+            //  _frameContext.fillText("selectionStartIndex " + selectionStartIndex, 10, 50);
+            //   _frameContext.fillText("selectionEndIndex " + selectionEndIndex, 10, 70);
+            //    _frameContext.fillText("selectionFactorX " + selectionFactorX, 10, 90);
         }
     }
 
@@ -304,6 +396,26 @@ var TeleChart = function (ctxId) {
         }
         navigationFactorY = -(navigationHeight - 2) / (_max - _min);
         navigationMinY = _min + 1;
+    }
+
+    function calcSmartScale() {
+        var _prevProposed = Math.ceil((selectionMaxY - selectionMinY) / 6),
+            _threshold = _prevProposed / 25,
+            _i = 0,
+            _factor = 1,
+            _newProposed,
+            _divider;
+
+        do {
+            if (_i >= CONST_HUMAN_SACLES.length) {
+                _i = 0;
+                _factor = _factor * 10;
+            }
+            _divider = CONST_HUMAN_SACLES[_i] * _factor;
+            _newProposed = Math.ceil(_prevProposed / _divider) * _divider;
+            _i++;
+        } while (_newProposed - _prevProposed < _threshold);
+        scaleIntervalY = _newProposed;
     }
 
     function calcSelectionFactors() {
@@ -330,8 +442,7 @@ var TeleChart = function (ctxId) {
         selectionFactorY = -(selectionHeight - 2) / (_max - _min);
         selectionMinY = _min;
         selectionMaxY = _max;
-        var _scaleIntervalY = parseInt((_max - _min) / 6); //todo smart
-        scaleIntervalY = _scaleIntervalY;
+        calcSmartScale();
     }
 
     function prepareCaches(src) {
@@ -341,13 +452,13 @@ var TeleChart = function (ctxId) {
         var columns = src.columns;
         if (columns) {
             var _columnsLen = columns.length;
-            for (var i = 0; i < _columnsLen; i++) {
-                var _column = columns[i];
+            for (var _i = 0; _i < _columnsLen; _i++) {
+                var _column = columns[_i];
                 var _dataLen = _column.length;
                 var _max = CONST_MIN_SAFE_INTEGER;
                 var _min = CONST_MAX_SAFE_INTEGER;
-                for (var k = 1; k < _dataLen; k++) {
-                    var _elementVal = _column[k];
+                for (var _k = 1; _k < _dataLen; _k++) {
+                    var _elementVal = _column[_k];
                     if (_elementVal > _max) {
                         _max = _elementVal;
                     }
@@ -411,26 +522,24 @@ var TeleChart = function (ctxId) {
         }
     }
 
-    var _mainCtx = mainCanvas.getContext("2d"),
-        _frameContext = frameCanvas.getContext("2d");
-
     //var nextFrame = 0;
     function render() {
         if (needRedraw) {
             needRedraw = false;
             redrawFrame();
         }
-        _mainCtx.clearRect(0, 0, totalWidth, totalHeight);
-        _mainCtx.drawImage(frameCanvas, 0, 0, totalWidth, totalHeight);
+        mainCtx.clearRect(0, 0, totalWidth, totalHeight);
+        mainCtx.drawImage(frameCanvas, 0, 0, totalWidth, totalHeight);
         requestAnimationFrame(render);
-        //   var next = performance.now();  //todo need remove
+        var next = performance.now();  //todo need remove
 //        console.log(1000/ (next - nextFrame));
         //      nextFrame = next;
     }
 
     render();
-    return {
-        draw: draw
+    return  {
+        draw: draw,
+        invalidate: invalidate,
+        clear: clear
     };
 };
-

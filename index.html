@@ -6,19 +6,20 @@
         body {
             font: 13px/18px Tahoma, sans-serif, Arial, Helvetica;
         }
+        body {
+            color: #222222;
+            background: #ffffff;
+        }
+
         body.dark {
             background: #242f3e;
+            color: #ffffff;
         }
         .im_dialog_peer {
-            color: #222;
             font-weight: 700;
             margin-top: 2px;
             margin-bottom: 2px;
-            padding-left: 5px;
-        }
-
-        .dark .im_dialog_peer {
-            color: #ffffff;
+            padding-left: 15px;
         }
 
         .settings_panel {
@@ -42,6 +43,8 @@
 
 <script>
 
+    var instances = [];
+
     function getJSONP(url, callbackName, callback) {
         var ud = '_' + +new Date,
             script = document.createElement('script'),
@@ -61,7 +64,7 @@
     getJSONP("data.json", "_data", function (data) {
         var _container = document.getElementById("charts_container");
         if (Array.isArray(data)) {
-
+            instances = [];
             var length = data.length;
 
             for (var k = 0; k < length; k++) {
@@ -70,10 +73,11 @@
                 innerContainer.style.display = "inline-block";
                 innerContainer.style.width = "300px";
                 innerContainer.style.height = "300px";
-                innerContainer.style.margin = "5px";
+                innerContainer.style.margin = "15px";
                 _container.appendChild(innerContainer);
                 var tc = new TeleChart(innerContainer.id);
                 tc.draw(data[k]);
+                instances.push(tc);
             }
         }
     });
@@ -85,6 +89,10 @@
         } else {
             document.body.classList.remove("dark");
         }
+        for (var k = 0; k < instances.length; k++) {
+            instances[k].invalidate();
+        }
+
     });
 
 </script>

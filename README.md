@@ -6,6 +6,7 @@
  - Advanced navigation
  - Vertical auto zoom
  - Scales
+ - Day/night switch
 ````
     //
 ````
@@ -16,6 +17,5 @@
 - Line selection
 - Switch series
 - Material design 
-- Day/night switch
 - Smart scales
-- High resolution
+- High resolution (fix blur, retina support)
