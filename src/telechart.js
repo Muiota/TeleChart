@@ -9,6 +9,7 @@ var TeleChart = function (ctxId) {
         CONST_NAVIGATION_WIDTH_PERCENT = 25,
         CONST_PADDING = 5,
         CONST_NAVIGATOR = 1,
+        CONST_DISPLAY_SCALE_FACTOR = 1.5,
         CONST_START_SELECTION = 2,
         CONST_END_SELECTION = 3,
         CONST_IN_FRAME_SELECTION = 4,
@@ -22,8 +23,8 @@ var TeleChart = function (ctxId) {
     var parseInt = window.parseInt;
 
     var container = document.getElementById(ctxId),
-        totalWidth = container.offsetWidth,
-        totalHeight = container.offsetHeight,
+        totalWidth = container.offsetWidth * CONST_DISPLAY_SCALE_FACTOR,
+        totalHeight = container.offsetHeight *CONST_DISPLAY_SCALE_FACTOR,
         navigationHeight = parseInt(totalWidth * CONST_NAVIGATION_HEIGHT_PERCENT / 100),
         selectionHeight = totalWidth - navigationHeight - navigationHeight*2 ,
         selectionUpSpace = navigationHeight / 2,
@@ -56,21 +57,24 @@ var TeleChart = function (ctxId) {
         scaleIntervalY = 0,
         minIsZero = true;
 
+    frameContext.lineJoin = "round";
+
     function clear() {
         xAxisDataRef = null;
         yAxisDataRef = [];
         invalidate();
     }
 
-    // mainCanvas.style.width = (totalWidth/2) +"px"; //todo retina
-    // mainCanvas.style.height = (totalHeight/2) +"px";
+    mainCanvas.style.width = parseInt(totalWidth /CONST_DISPLAY_SCALE_FACTOR) + "px"; //todo retina
+    mainCanvas.style.height = parseInt(totalHeight/CONST_DISPLAY_SCALE_FACTOR) + "px";
 
     container.appendChild(mainCanvas);
 
     function getBodyStyle(styleProp) {
         var el = document.body;
-        if (el.currentStyle)
+        if (el.currentStyle) {
             return el.currentStyle[styleProp];
+        }
         return document.defaultView.getComputedStyle(el, null)[styleProp];
     }
 
@@ -180,8 +184,8 @@ var TeleChart = function (ctxId) {
             mousePressed = false;
         }
 
-        mouseX = parseInt(e.clientX - mouseOffsetX);
-        mouseY = parseInt(e.clientY - mouseOffsetY);
+        mouseX = parseInt((e.clientX - mouseOffsetX)* CONST_DISPLAY_SCALE_FACTOR);
+        mouseY = parseInt((e.clientY - mouseOffsetY)* CONST_DISPLAY_SCALE_FACTOR);
         if (!mousePressed) {
             setHoveredElement();
         } else {
@@ -251,16 +255,17 @@ var TeleChart = function (ctxId) {
         } return color;
     }
 
-    function drawScales(color) {
+    function drawHorizontalScales(color) {
         var _selectionAxis = selectionHeight + selectionUpSpace;
         beginPath();
-        frameContext.strokeStyle = getRGBA(color, 0.4);
-        setLineWidth(0.5);
+        frameContext.strokeStyle = getRGBA(color, 0.15);
+        setLineWidth(1);
         frameContext.fillStyle = getRGBA(color, 0.6);
         var nextScale = _selectionAxis;
         while (nextScale > selectionUpSpace) {
             var _y = parseInt(nextScale) + 0.5;
             moveOrLine(true, 0, _y);
+            frameContext.fillText(_y.toString(), CONST_PADDING*10, _y); //todo
             moveOrLine(false, totalWidth, _y);
             nextScale = nextScale + scaleIntervalY * selectionFactorY;
         }
@@ -307,10 +312,10 @@ var TeleChart = function (ctxId) {
             frameContext.fillStyle = getRGBA(_envColor, 0.4);
             frameContext.fillRect(_startZoom, navigationTop, _endZoom - _startZoom, navigationHeight);
             frameContext.fillStyle = _envBgColor;
-            frameContext.fillRect(_startZoom + CONST_PADDING, navigationTop + CONST_PADDING/2, _endZoom - _startZoom - CONST_PADDING * 2, navigationHeight - CONST_PADDING ); //todo optimize
+            frameContext.fillRect(_startZoom + CONST_PADDING*2, navigationTop + CONST_PADDING/2, _endZoom - _startZoom - CONST_PADDING * 4, navigationHeight - CONST_PADDING ); //todo optimize
 
             var _columnsLen = yAxisDataRef.length;
-            frameContext.lineJoin = "round";
+
             //            frameContext.translate(0.5,0.5);
 
             //frameContext.lineCap = "square"; //butt  round
@@ -319,14 +324,14 @@ var TeleChart = function (ctxId) {
             ctx.lineJoin = "round";
             ctx.lineJoin = "miter";
             * */
-            drawScales(_envColor);
+            drawHorizontalScales(_envColor);
             var _selectionAxis = selectionHeight + selectionUpSpace;
             for (var _i = 0; _i < _columnsLen; _i++) {
                 var _axisY = yAxisDataRef[_i];
 
                 //navigator series
                 beginPath();
-                setLineWidth(1);
+                setLineWidth(2);
                 frameContext.strokeStyle = _axisY.color;
                 var _length = _axisX.data.length;
                 for (var _k = 1; _k < _length; _k++) {
@@ -338,7 +343,7 @@ var TeleChart = function (ctxId) {
 
                 //selection series
                 beginPath();
-                setLineWidth(2);
+                setLineWidth(4);
                 for (var _j = selectionStartIndex; _j <= selectionEndIndex; _j++) {
                     var _selValueX = (_j - selectionStartIndex) * selectionFactorX;
                     var _selValueY = _selectionAxis + (_axisY.data[_j] - selectionMinY) * selectionFactorY;
@@ -347,7 +352,7 @@ var TeleChart = function (ctxId) {
                 endPath();
 
                 //X-axis labels
-                setLineWidth(1);
+                setLineWidth(2);
                 frameContext.fillStyle = getRGBA(_envColor, 0.6);
                 for (var _l = selectionStartIndex; _l <= selectionEndIndex; _l++) {
                     var _labelX = (_l - selectionStartIndex) * selectionFactorX;
@@ -372,8 +377,8 @@ var TeleChart = function (ctxId) {
 
             //todo debug need remove
             //  frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
-            //  _frameContext.fillText("selectionStartIndex " + selectionStartIndex, 10, 50);
-            //   _frameContext.fillText("selectionEndIndex " + selectionEndIndex, 10, 70);
+            frameContext.fillText("mouseX " + mouseX, 10, 50);
+            frameContext.fillText("mouseY " + mouseY, 10, 70);
             //    _frameContext.fillText("selectionFactorX " + selectionFactorX, 10, 90);
         }
     }

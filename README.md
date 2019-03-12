@@ -7,6 +7,7 @@
  - Vertical auto zoom
  - Scales
  - Day/night switch
+ - High resolution (fix blur, retina support)
 ````
     //
 ````
@@ -18,4 +19,3 @@
 - Switch series
 - Material design 
 - Smart scales
-- High resolution (fix blur, retina support)
