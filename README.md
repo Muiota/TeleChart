@@ -13,10 +13,10 @@
 
   
 ### Roadmap:
-- Tooltip
 - Line selection
+- Tooltip
 - Material design 
-- Smart scales
+- Smart X-axis labels
 - Performance, minimize & fixes
 
 
