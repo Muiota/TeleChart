@@ -8,6 +8,7 @@
  - Scales
  - Day/night switch
  - High resolution (fix blur, retina support)
+ - Switch series
 ````
     //
 ````
@@ -16,10 +17,9 @@
 - Smooth animation
 - Tooltip
 - Line selection
-- Switch series
 - Material design 
 - Smart scales
 - Performance & fixes
 
 
-![Screenshot](https://i.imgur.com/K5Xqs5c.png)
+![Screenshot](https://i.imgur.com/335U1a7.png)

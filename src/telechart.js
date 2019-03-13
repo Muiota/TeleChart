@@ -6,22 +6,22 @@ var TeleChart = function (ctxId) {
     var CONST_DEFAULT_TYPE = "line",
         CONST_NAVIGATION_HEIGHT_PERCENT = 12,
         CONST_NAVIGATION_WIDTH_PERCENT = 25,
-        CONST_NAVIGATOR = 1,
         CONST_DISPLAY_SCALE_FACTOR = 1.5,
         CONST_PADDING = 5,
-        CONST_START_SELECTION = 2,
-        CONST_END_SELECTION = 3,
-        CONST_IN_FRAME_SELECTION = 4,
+        ENUM_NAVIGATOR_HOVER = 1,
+        ENUM_START_SELECTION_HOVER = 2,
+        ENUM_END_SELECTION_HOVER = 3,
+        ENUM_IN_FRAME_SELECTION_HOVER = 4,
+        ENUM_BUTTON_HOVER = 5,
         CONST_MAX_SAFE_INTEGER = Math.pow(2, 53) - 1,
         CONST_MIN_SAFE_INTEGER = -(Math.pow(2, 53) - 1),
         CONST_HUMAN_SCALES = [2, 5, 10],
         CONST_MONTH_NAMES_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-        CONST_DAY_NAMES_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-
-    var parseInt = window.parseInt;
+        CONST_DAY_NAMES_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        CONST_TWO_PI = 2 * Math.PI;
 
     var container = document.getElementById(ctxId),
+        parseInt = window.parseInt,
         totalWidth = container.offsetWidth * CONST_DISPLAY_SCALE_FACTOR,
         totalHeight = container.offsetHeight * CONST_DISPLAY_SCALE_FACTOR,
         navigationHeight = parseInt(totalWidth * CONST_NAVIGATION_HEIGHT_PERCENT / 100),
@@ -35,6 +35,7 @@ var TeleChart = function (ctxId) {
         frameContext = frameCanvas.getContext("2d"),
         xAxisDataRef = null,
         yAxisDataRef = [],
+        animations = {},
         mouseX,
         mouseY,
         mouseOffsetX,
@@ -59,7 +60,6 @@ var TeleChart = function (ctxId) {
         minIsZero = true;
 
     function init() {
-
         var _size = getBodyStyle("font-size"),
             _canvasStyle = mainCanvas.style;
         frameContext.lineJoin = "round";
@@ -67,11 +67,19 @@ var TeleChart = function (ctxId) {
         _size = textHeight + "px";
         frameContext.font = _size + " " + getBodyStyle("font-family");
         xScaleTextWidth = getTextWidth("XXX XX");
-        _canvasStyle.width = parseInt(totalWidth / CONST_DISPLAY_SCALE_FACTOR) + "px"; //todo retina
+        _canvasStyle.width = parseInt(totalWidth / CONST_DISPLAY_SCALE_FACTOR) + "px";
         _canvasStyle.height = parseInt(totalHeight / CONST_DISPLAY_SCALE_FACTOR) + "px";
     }
 
     init();
+
+    function setSelectionFactorY(val) {
+        selectionFactorY = val;
+    }
+
+    function setNavigationFactorY(val) {
+        navigationFactorY = val;
+    }
 
     function clear() {
         xAxisDataRef = null;
@@ -110,33 +118,49 @@ var TeleChart = function (ctxId) {
 
     function setHoveredElement() {
         var result = null;
-        if (mouseY > navigationTop && mouseY < navigationTop + navigationHeight) {
-            result = CONST_NAVIGATOR;
+        if (mouseY > navigationTop) {
+            result = ENUM_NAVIGATOR_HOVER;
             var _startZoom = ( zoomStart) * navigationFactorX;
             var _endZoom = ( zoomEnd) * navigationFactorX;
             var startZShift = _startZoom - mouseX;
             var endZShift = _endZoom - mouseX;
             if (Math.abs(startZShift + CONST_PADDING) < CONST_PADDING) {
-                result = CONST_START_SELECTION;
+                result = ENUM_START_SELECTION_HOVER;
             } else if (Math.abs(endZShift - CONST_PADDING) < CONST_PADDING) {
-                result = CONST_END_SELECTION;
+                result = ENUM_END_SELECTION_HOVER;
             } else if (mouseX > _startZoom && mouseX < _endZoom) {
                 mouseFrame.start = startZShift / navigationFactorX;
                 mouseFrame.end = endZShift / navigationFactorX;
-                result = CONST_IN_FRAME_SELECTION;
+                result = ENUM_IN_FRAME_SELECTION_HOVER;
+            } else if (mouseY > navigationTop + navigationHeight) {
+                for (var _i = 0; _i < yAxisDataRef.length; _i++) {
+                    var _axis = yAxisDataRef[_i];
+                    _axis.hovered = false;
+                    if (mouseX > _axis.bX && mouseX < _axis.bX + _axis.bW &&
+                        mouseY > _axis.bY && mouseY < _axis.bY + _axis.bH) {
+                        _axis.hovered = true;
+                        result = ENUM_BUTTON_HOVER;
+                        break;
+                    }
+                }
             }
         }
         if (mouseHovered !== result) {
             mouseHovered = result;
             switch (mouseHovered) {
-                case CONST_START_SELECTION:
-                case CONST_END_SELECTION:
+                case ENUM_START_SELECTION_HOVER:
+                case ENUM_END_SELECTION_HOVER:
                     setCursor("col-resize");
                     break;
-                case CONST_IN_FRAME_SELECTION:
+                case ENUM_IN_FRAME_SELECTION_HOVER:
+                case ENUM_BUTTON_HOVER:
                     setCursor("pointer");
                     break;
                 default:
+                    //reset all hovered once
+                    for (var _j = 0; _j < yAxisDataRef.length; _j++) {
+                        yAxisDataRef[_j].hovered = false;
+                    }
                     setCursor("inherit");
                     break;
             }
@@ -158,19 +182,19 @@ var TeleChart = function (ctxId) {
         }
         var threshold = 30 / navigationFactorX;
         switch (mouseHovered) {
-            case CONST_START_SELECTION:
+            case ENUM_START_SELECTION_HOVER:
                 if (zoomEnd - _proposedX > threshold) {
                     zoomStart = _proposedX;
                 }
                 calcSelectionFactors();
                 break;
-            case CONST_END_SELECTION:
+            case ENUM_END_SELECTION_HOVER:
                 if (_proposedX - zoomStart > threshold) {
                     zoomEnd = _proposedX;
                 }
                 calcSelectionFactors();
                 break;
-            case CONST_IN_FRAME_SELECTION:
+            case ENUM_IN_FRAME_SELECTION_HOVER:
                 var start = _proposedX + mouseFrame.start;
                 var end = _proposedX + mouseFrame.end;
                 if (start < 0) {
@@ -208,6 +232,20 @@ var TeleChart = function (ctxId) {
     function handleMouseClick(e, pressed) {
         stopPropagation(e);
         mousePressed = pressed;
+        if (pressed)
+        {
+            switch (mouseHovered) {
+                case ENUM_BUTTON_HOVER:
+                    for (var _j = 0; _j < yAxisDataRef.length; _j++) {
+                        if (yAxisDataRef[_j].hovered) {
+                            yAxisDataRef[_j].enabled = !yAxisDataRef[_j].enabled;
+                            calcNavigationFactors();
+                            calcSelectionFactors();
+                        }
+                    }
+                    break;
+            }
+        }
         invalidate();
     }
 
@@ -258,10 +296,10 @@ var TeleChart = function (ctxId) {
         return frameContext.measureText(text).width;
     }
 
-    function fillText(text, x, y, maxWidth) {
-        frameContext.fillText(text, x, y, maxWidth);
+    function fillText(text, x, y) {
+        frameContext.fillText(text, x, y);
     }
-    
+
     function getRGBA(color, opacity) {
         if (color.indexOf("#") !== -1) {
             var regExp = color.length === 7 ?
@@ -363,7 +401,11 @@ var TeleChart = function (ctxId) {
         frameContext.fillStyle = fillStyle;
     }
 
-    function drawButton(x, y, width,_height, envColor, color, name) {
+    function translate(x, y) {
+        frameContext.translate(x, y);
+    }
+
+    function drawButton(x, y, width, height, envColor, envBgColor, color, name, enabled) { //todo optimize
         beginPath();
         setStrokeStyle(getRGBA(envColor, 0.2));
         setLineWidth(1);
@@ -371,36 +413,45 @@ var TeleChart = function (ctxId) {
         moveOrLine(true, x + _radius, y);
         moveOrLine(false, x + width - _radius, y);
         quadraticCurveTo(x + width, y, x + width, y + _radius);
-        quadraticCurveTo(x + width, y + _height, x + width - _radius, y + _height);
-        moveOrLine(false, x + _radius, y + _height);
-        quadraticCurveTo(x, y + _height, x, y + _height - _radius);
+        quadraticCurveTo(x + width, y + height, x + width - _radius, y + height);
+        moveOrLine(false, x + _radius, y + height);
+        quadraticCurveTo(x, y + height, x, y + height - _radius);
         quadraticCurveTo(x, y, x + _radius, y);
         closePath();
         endPath();
         setFillStyle(color);
         beginPath();
-        arc(x + _radius, y + _radius, 14, 0, 2 * Math.PI);
+
+        arc(x + _radius, y + _radius, 14, 0, CONST_TWO_PI);
         fill();
+
+        setStrokeStyle(envBgColor);
+        setLineWidth(4);
+        beginPath();
+        translate(-2, 4);
+        moveOrLine(true, x + _radius - CONST_PADDING, y + _radius - CONST_PADDING);
+        moveOrLine(false, x + _radius, y + _radius);
+        moveOrLine(false, x + _radius + CONST_PADDING * 1.8, y + _radius - CONST_PADDING * 1.8);
+        translate(2, -4);
+        endPath();
+
+        //todo animation circle
+
+        if (!enabled) {
+            beginPath();
+            setFillStyle(envBgColor);
+            arc(x + _radius, y + _radius, 12, 0, CONST_TWO_PI);
+            fill();
+        }
+
         setFillStyle(envColor);
         fillText(name, x + _radius * 2 + CONST_PADDING, y + _radius + textHeight / 2 - CONST_PADDING + 2);
     }
 
-    function drawButtons(envColor) {
-        var _x = CONST_PADDING,
-            _y = navigationTop + navigationHeight + CONST_PADDING * 6,
-            _height = 40;
-
+    function drawButtons(envColor, envBgColor) {
         for (var _i = 0; _i < yAxisDataRef.length; _i++) {
-            var _axis = yAxisDataRef[_i],
-                _width = 40 + CONST_PADDING * 4 + getTextWidth(_axis.name);
-
-            if (_x + _width > totalWidth) {
-                _x = CONST_PADDING;
-                _y = _y + _height + CONST_PADDING * 3;
-            }
-
-            drawButton(_x, _y, _width,_height, envColor, _axis.color, _axis.name);
-            _x = _x + _width + CONST_PADDING * 3;
+            var _axis = yAxisDataRef[_i];
+            drawButton(_axis.bX, _axis.bY, _axis.bW,_axis.bH, envColor,envBgColor, _axis.color, _axis.name, _axis.enabled); //todo object ref
         }
     }
 
@@ -410,8 +461,9 @@ var TeleChart = function (ctxId) {
             var _axisX = xAxisDataRef;
             var _startZoom = ( zoomStart) * navigationFactorX;
             var _endZoom = ( zoomEnd) * navigationFactorX;
-            var _envColor = getBodyStyle("color");
+            var _envColor = getBodyStyle("color"); //todo global params & optimize
             var _envBgColor = getBodyStyle("background-color");
+            var _existVisible = false;
             setFillStyle(getRGBA(_envColor, 0.3));
             fillRect(_startZoom, navigationTop, _endZoom - _startZoom, navigationHeight);
             setFillStyle(_envBgColor);
@@ -420,6 +472,10 @@ var TeleChart = function (ctxId) {
             var _selectionAxis = selectionHeight + selectionUpSpace;
             for (var _i = 0; _i < yAxisDataRef.length; _i++) {
                 var _axisY = yAxisDataRef[_i];
+
+                if (!_axisY.enabled) {
+                    continue;
+                }
 
                 //navigator series
                 beginPath();
@@ -442,6 +498,7 @@ var TeleChart = function (ctxId) {
                     moveOrLine(_j === selectionStartIndex, _selValueX, _selValueY);
                 }
                 endPath();
+                _existVisible = true;
             }
 
             //Draw navigation frame
@@ -453,20 +510,29 @@ var TeleChart = function (ctxId) {
             fillRect(0, navigationTop, _startZoom, navigationHeight);
             fillRect(_endZoom, navigationTop, totalWidth - _endZoom, navigationHeight);
 
-            //Draw scales
-            drawScaleLabels(_envColor, _envBgColor);
-
-            drawButtons(_envColor);
+            if (_existVisible) {
+                drawScaleLabels(_envColor, _envBgColor);
+            }
+            drawButtons(_envColor, _envBgColor);
 
 
             //todo debug need remove
             //  frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
-            //  frameContext.fillText("font-size " + getBodyStyle("font-size"), 10, 50);
-            //   frameContext.fillText("font-family " + getBodyStyle("font-family"), 10, 70);
+            //   frameContext.fillText("mouseX " + mouseX, 10, 50);
+            //    frameContext.fillText("mouseY " + mouseY, 10, 70);
             //    _frameContext.fillText("selectionFactorX " + selectionFactorX, 10, 90);
             mainCtx.clearRect(0, 0, totalWidth, totalHeight);
             mainCtx.drawImage(frameCanvas, 0, 0, totalWidth, totalHeight);
         }
+    }
+
+    function animate(f ,c, p, s) {
+        animations[c.name] = {
+            f: f,       //first
+            c: c,       //callback
+            p: p,       //proposed
+            s: s || 5   //speed
+        };
     }
 
     function calcNavigationFactors() {
@@ -478,15 +544,15 @@ var TeleChart = function (ctxId) {
             if (!_axisY.enabled) {
                 continue;
             }
-            if (_axisY.max > _max) {
+            if (_axisY.max > _max) { //todo function
                 _max = _axisY.max;
             }
             if (_axisY.min < _min) {
                 _min = _axisY.min;
             }
         }
-        navigationFactorY = -(navigationHeight - 2) / (_max - _min);
         navigationMinY = _min + 1;
+        animate(navigationFactorY, setNavigationFactorY, -(navigationHeight - 2) / (_max - _min));
     }
 
     function calcSmartScale() {
@@ -530,10 +596,32 @@ var TeleChart = function (ctxId) {
                 }
             }
         }
-        selectionFactorY = -(selectionHeight - 2) / (_max - _min);
         selectionMinY = _min;
         selectionMaxY = _max;
+        animate(selectionFactorY, setSelectionFactorY, -(selectionHeight - 2) / (_max - _min));
         calcSmartScale();
+    }
+
+    function calcButtonsParams() {
+        var _x = CONST_PADDING,
+            _y = navigationTop + navigationHeight + CONST_PADDING * 6,
+            _height = 40;
+
+        for (var _i = 0; _i < yAxisDataRef.length; _i++) {
+            var _axis = yAxisDataRef[_i],
+                _width = 40 + CONST_PADDING * 4 + getTextWidth(_axis.name);
+
+            if (_x + _width > totalWidth) {
+                _x = CONST_PADDING;
+                _y = _y + _height + CONST_PADDING * 3;
+            }
+            _axis.bX = _x;
+            _axis.bY = _y;
+            _axis.bW = _width;
+            _axis.bH = _height;
+            console.log(_axis)
+            _x = _x + _width + CONST_PADDING * 3;
+        }
     }
 
     function prepareCaches(src) {
@@ -580,6 +668,7 @@ var TeleChart = function (ctxId) {
             }
             calcNavigationFactors();
             calcSelectionFactors();
+            calcButtonsParams();
         }
 
         function assignAxisProperty(source, field) {
@@ -610,8 +699,31 @@ var TeleChart = function (ctxId) {
         }
     }
 
-    //var nextFrame = 0;
+    function handleAnimations() {
+        for (var key in animations) {
+            if (animations.hasOwnProperty(key)) {
+                var _animation = animations[key];
+                if (_animation) {
+                    if (!_animation.factor) {
+                        _animation.factor = (_animation.p - _animation.f) / _animation.s;
+                    }
+                    _animation.f = _animation.f + _animation.factor;
+                    if (_animation.factor !== 0 && Math.abs(_animation.f - _animation.p) > Math.abs(_animation.factor * 2)) {
+                        _animation.c(_animation.f);
+                        invalidate();
+                    } else {
+                        _animation.c(_animation.p);
+                        delete animations[key];
+                        invalidate();
+                    }
+                }
+            }
+        }
+    }
+
+//var nextFrame = 0;
     function render() {
+        handleAnimations();
         if (needRedraw) {
             needRedraw = false;
             redrawFrame();
