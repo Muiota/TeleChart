@@ -9,17 +9,15 @@
  - Day/night switch
  - High resolution (fix blur, retina support)
  - Switch series
-````
-    //
-````
+ - Smooth animation
+
   
 ### Roadmap:
-- Smooth animation
 - Tooltip
 - Line selection
 - Material design 
 - Smart scales
-- Performance & fixes
+- Performance, minimize & fixes
 
 
 ![Screenshot](https://i.imgur.com/335U1a7.png)
