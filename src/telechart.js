@@ -57,7 +57,10 @@ var TeleChart = function (ctxId) {
         scaleIntervalY,
         xScaleTextWidth,
         textHeight,
-        minIsZero = true;
+        needUpdateSelectionFactor = false,
+        minIsZero = true,
+        envColor,
+        envBgColor;
 
     function init() {
         var _size = getBodyStyle("font-size"),
@@ -79,6 +82,16 @@ var TeleChart = function (ctxId) {
 
     function setNavigationFactorY(val) {
         navigationFactorY = val;
+    }
+
+    function setZoomStart(val) {
+        zoomStart = val;
+        needUpdateSelectionFactor = true;
+    }
+
+    function setZoomEnd(val) {
+        zoomEnd = val;
+        needUpdateSelectionFactor = true;
     }
 
     function clear() {
@@ -118,7 +131,7 @@ var TeleChart = function (ctxId) {
 
     function setHoveredElement() {
         var result = null;
-        if (mouseY > navigationTop) {
+        if (mouseY > navigationTop && mouseY < navigationTop + navigationHeight) {
             result = ENUM_NAVIGATOR_HOVER;
             var _startZoom = ( zoomStart) * navigationFactorX;
             var _endZoom = ( zoomEnd) * navigationFactorX;
@@ -132,16 +145,16 @@ var TeleChart = function (ctxId) {
                 mouseFrame.start = startZShift / navigationFactorX;
                 mouseFrame.end = endZShift / navigationFactorX;
                 result = ENUM_IN_FRAME_SELECTION_HOVER;
-            } else if (mouseY > navigationTop + navigationHeight) {
-                for (var _i = 0; _i < yAxisDataRef.length; _i++) {
-                    var _axis = yAxisDataRef[_i];
-                    _axis.hovered = false;
-                    if (mouseX > _axis.bX && mouseX < _axis.bX + _axis.bW &&
-                        mouseY > _axis.bY && mouseY < _axis.bY + _axis.bH) {
-                        _axis.hovered = true;
-                        result = ENUM_BUTTON_HOVER;
-                        break;
-                    }
+            }
+        } else if (mouseY > navigationTop + navigationHeight) {
+            for (var _i = 0; _i < yAxisDataRef.length; _i++) {
+                var _axis = yAxisDataRef[_i];
+                _axis.hovered = false;
+                if (mouseX > _axis.bX && mouseX < _axis.bX + _axis.bW &&
+                    mouseY > _axis.bY && mouseY < _axis.bY + _axis.bH) {
+                    _axis.hovered = true;
+                    result = ENUM_BUTTON_HOVER;
+                    break;
                 }
             }
         }
@@ -184,31 +197,29 @@ var TeleChart = function (ctxId) {
         switch (mouseHovered) {
             case ENUM_START_SELECTION_HOVER:
                 if (zoomEnd - _proposedX > threshold) {
-                    zoomStart = _proposedX;
+                    animate(zoomStart, setZoomStart, _proposedX, 2);
                 }
-                calcSelectionFactors();
                 break;
             case ENUM_END_SELECTION_HOVER:
                 if (_proposedX - zoomStart > threshold) {
                     zoomEnd = _proposedX;
+                    animate(zoomEnd, setZoomEnd, _proposedX, 2);
                 }
-                calcSelectionFactors();
                 break;
             case ENUM_IN_FRAME_SELECTION_HOVER:
-                var start = _proposedX + mouseFrame.start;
-                var end = _proposedX + mouseFrame.end;
-                if (start < 0) {
-                    start = 0;
-                    end = mouseFrame.end - mouseFrame.start;
+                var _start = _proposedX + mouseFrame.start;
+                var _end = _proposedX + mouseFrame.end;
+                if (_start < 0) {
+                    _start = 0;
+                    _end = mouseFrame.end - mouseFrame.start;
                 }
-                if (end > _maxProposedX) {
-                    end = _maxProposedX;
-                    start = _maxProposedX - mouseFrame.end + mouseFrame.start;
+                if (_end > _maxProposedX) {
+                    _end = _maxProposedX;
+                    _start = _maxProposedX - mouseFrame.end + mouseFrame.start;
                 }
 
-                zoomStart = start;
-                zoomEnd = end;
-                calcSelectionFactors();
+                animate(zoomStart, setZoomStart, _start, 2);
+                animate(zoomEnd, setZoomEnd, _end, 2);
                 break;
         }
     }
@@ -262,6 +273,8 @@ var TeleChart = function (ctxId) {
     };
 
     function invalidate() {
+        envColor = getBodyStyle("color");
+        envBgColor = getBodyStyle("background-color");
         needRedraw = true;
     }
 
@@ -314,10 +327,10 @@ var TeleChart = function (ctxId) {
         return color;
     }
 
-    function drawHorizontalScales(color) {
+    function drawHorizontalScales() {
         var _selectionAxis = selectionHeight + selectionUpSpace;
         beginPath();
-        setStrokeStyle(getRGBA(color, 0.1));
+        setStrokeStyle(getRGBA(envColor, 0.1));
         setLineWidth(1);
         var nextScale = _selectionAxis;
         while (nextScale > selectionUpSpace) {
@@ -330,9 +343,9 @@ var TeleChart = function (ctxId) {
         return nextScale;
     }
 
-    function drawScaleLabels(color, background) { //todo need optimize
+    function drawScaleLabels() { //todo need optimize
         var _selectionAxis = selectionHeight + selectionUpSpace;
-        var _c = getRGBA(color, 0.4);
+        var _c = getRGBA(envColor, 0.4);
 
         //X-axis labels
         setLineWidth(1);
@@ -351,7 +364,7 @@ var TeleChart = function (ctxId) {
         //Y-axis labels
         var nextScaleValue = 0;
         var nextScale = _selectionAxis;
-        var _bg = getRGBA(background, 0.7);
+        var _bg = getRGBA(envBgColor, 0.7);
 
         while (nextScale > selectionUpSpace) {
             var _y = parseInt(nextScale) + 0.5 - CONST_PADDING;
@@ -405,53 +418,61 @@ var TeleChart = function (ctxId) {
         frameContext.translate(x, y);
     }
 
-    function drawButton(x, y, width, height, envColor, envBgColor, color, name, enabled) { //todo optimize
+    function drawButton(axis) { //todo optimize
+        var _x = axis.bX,
+            _y = axis.bY,
+            _width = axis.bW,
+            _height = axis.bH,
+            _color = axis.color,
+            _name = axis.name,
+            _enabled = axis.enabled;
+
         beginPath();
         setStrokeStyle(getRGBA(envColor, 0.2));
         setLineWidth(1);
         var _radius = 20;
-        moveOrLine(true, x + _radius, y);
-        moveOrLine(false, x + width - _radius, y);
-        quadraticCurveTo(x + width, y, x + width, y + _radius);
-        quadraticCurveTo(x + width, y + height, x + width - _radius, y + height);
-        moveOrLine(false, x + _radius, y + height);
-        quadraticCurveTo(x, y + height, x, y + height - _radius);
-        quadraticCurveTo(x, y, x + _radius, y);
+        moveOrLine(true, _x + _radius, _y);
+        moveOrLine(false, _x + _width - _radius, _y);
+        quadraticCurveTo(_x + _width, _y, _x + _width, _y + _radius);
+        quadraticCurveTo(_x + _width, _y + _height, _x + _width - _radius, _y + _height);
+        moveOrLine(false, _x + _radius, _y + _height);
+        quadraticCurveTo(_x, _y + _height, _x, _y + _height - _radius);
+        quadraticCurveTo(_x, _y, _x + _radius, _y);
         closePath();
         endPath();
-        setFillStyle(color);
+        setFillStyle(_color);
         beginPath();
 
-        arc(x + _radius, y + _radius, 14, 0, CONST_TWO_PI);
+        arc(_x + _radius, _y + _radius, 14, 0, CONST_TWO_PI);
         fill();
 
         setStrokeStyle(envBgColor);
         setLineWidth(4);
         beginPath();
         translate(-2, 4);
-        moveOrLine(true, x + _radius - CONST_PADDING, y + _radius - CONST_PADDING);
-        moveOrLine(false, x + _radius, y + _radius);
-        moveOrLine(false, x + _radius + CONST_PADDING * 1.8, y + _radius - CONST_PADDING * 1.8);
+        moveOrLine(true, _x + _radius - CONST_PADDING, _y + _radius - CONST_PADDING);
+        moveOrLine(false, _x + _radius, _y + _radius);
+        moveOrLine(false, _x + _radius + CONST_PADDING * 1.8, _y + _radius - CONST_PADDING * 1.8);
         translate(2, -4);
         endPath();
 
         //todo animation circle
 
-        if (!enabled) {
+        if (!_enabled) {
             beginPath();
             setFillStyle(envBgColor);
-            arc(x + _radius, y + _radius, 12, 0, CONST_TWO_PI);
+            arc(_x + _radius, _y + _radius, 12, 0, CONST_TWO_PI);
             fill();
         }
 
         setFillStyle(envColor);
-        fillText(name, x + _radius * 2 + CONST_PADDING, y + _radius + textHeight / 2 - CONST_PADDING + 2);
+        fillText(_name, _x + _radius * 2 + CONST_PADDING, _y + _radius + textHeight / 2 - CONST_PADDING + 2);
     }
 
-    function drawButtons(envColor, envBgColor) {
+    function drawButtons() {
         for (var _i = 0; _i < yAxisDataRef.length; _i++) {
             var _axis = yAxisDataRef[_i];
-            drawButton(_axis.bX, _axis.bY, _axis.bW,_axis.bH, envColor,envBgColor, _axis.color, _axis.name, _axis.enabled); //todo object ref
+            drawButton(_axis);
         }
     }
 
@@ -461,14 +482,13 @@ var TeleChart = function (ctxId) {
             var _axisX = xAxisDataRef;
             var _startZoom = ( zoomStart) * navigationFactorX;
             var _endZoom = ( zoomEnd) * navigationFactorX;
-            var _envColor = getBodyStyle("color"); //todo global params & optimize
-            var _envBgColor = getBodyStyle("background-color");
+
             var _existVisible = false;
-            setFillStyle(getRGBA(_envColor, 0.3));
+            setFillStyle(getRGBA(envColor, 0.3));
             fillRect(_startZoom, navigationTop, _endZoom - _startZoom, navigationHeight);
-            setFillStyle(_envBgColor);
+            setFillStyle(envBgColor);
             fillRect(_startZoom + CONST_PADDING * 2, navigationTop + CONST_PADDING / 2, _endZoom - _startZoom - CONST_PADDING * 4, navigationHeight - CONST_PADDING); //todo optimize
-            drawHorizontalScales(_envColor);
+            drawHorizontalScales();
             var _selectionAxis = selectionHeight + selectionUpSpace;
             for (var _i = 0; _i < yAxisDataRef.length; _i++) {
                 var _axisY = yAxisDataRef[_i];
@@ -502,18 +522,18 @@ var TeleChart = function (ctxId) {
             }
 
             //Draw navigation frame
-            setFillStyle(getRGBA(_envColor, 0.1));
+            setFillStyle(getRGBA(envColor, 0.1));
             fillRect(0, navigationTop, _startZoom, navigationHeight);
             fillRect(_endZoom, navigationTop, totalWidth - _endZoom, navigationHeight);
 
-            setFillStyle(getRGBA(_envBgColor, 0.5));
+            setFillStyle(getRGBA(envBgColor, 0.5));
             fillRect(0, navigationTop, _startZoom, navigationHeight);
             fillRect(_endZoom, navigationTop, totalWidth - _endZoom, navigationHeight);
 
             if (_existVisible) {
-                drawScaleLabels(_envColor, _envBgColor);
+                drawScaleLabels();
             }
-            drawButtons(_envColor, _envBgColor);
+            drawButtons();
 
 
             //todo debug need remove
@@ -527,11 +547,15 @@ var TeleChart = function (ctxId) {
     }
 
     function animate(f ,c, p, s) {
-        animations[c.name] = {
+        var name = c.name;
+        if (!name) {
+            name = c.toString().match(/^function\s*([^\s(]+)/)[1];
+        }
+        animations[name] = {
             f: f,       //first
             c: c,       //callback
             p: p,       //proposed
-            s: s || 5   //speed
+            s: s || (mouseY < navigationTop + navigationHeight ? 5 : 15)    //speed
         };
     }
 
@@ -551,8 +575,10 @@ var TeleChart = function (ctxId) {
                 _min = _axisY.min;
             }
         }
-        navigationMinY = _min + 1;
-        animate(navigationFactorY, setNavigationFactorY, -(navigationHeight - 2) / (_max - _min));
+        if (_min < _max) {
+            navigationMinY = _min + 1;
+            animate(navigationFactorY, setNavigationFactorY, -(navigationHeight - 2) / (_max - _min));
+        }
     }
 
     function calcSmartScale() {
@@ -578,7 +604,6 @@ var TeleChart = function (ctxId) {
     function calcSelectionFactors() {
         selectionStartIndex = parseInt(zoomStart + 1);
         selectionEndIndex = parseInt(zoomEnd + 1);
-        selectionFactorX = totalWidth / (selectionEndIndex - selectionStartIndex);
         var _max = CONST_MIN_SAFE_INTEGER;
         var _min = minIsZero ? 0 : CONST_MAX_SAFE_INTEGER;
         for (var _i = 0; _i < yAxisDataRef.length; _i++) {
@@ -596,10 +621,15 @@ var TeleChart = function (ctxId) {
                 }
             }
         }
-        selectionMinY = _min;
-        selectionMaxY = _max;
-        animate(selectionFactorY, setSelectionFactorY, -(selectionHeight - 2) / (_max - _min));
-        calcSmartScale();
+        if (_min < _max) {
+            selectionStartIndex = parseInt(zoomStart + 1);
+            selectionEndIndex = parseInt(zoomEnd + 1);
+            selectionFactorX = totalWidth / (selectionEndIndex - selectionStartIndex);
+            selectionMinY = _min;
+            selectionMaxY = _max;
+            animate(selectionFactorY, setSelectionFactorY, -(selectionHeight - 2) / (_max - _min));
+            calcSmartScale();
+        }
     }
 
     function calcButtonsParams() {
@@ -619,7 +649,6 @@ var TeleChart = function (ctxId) {
             _axis.bY = _y;
             _axis.bW = _width;
             _axis.bH = _height;
-            console.log(_axis)
             _x = _x + _width + CONST_PADDING * 3;
         }
     }
@@ -651,8 +680,8 @@ var TeleChart = function (ctxId) {
                         min: _min,
                         max: _max
                     };
-                    zoomEnd = (_dataLen - 2);
-                    zoomStart = zoomEnd - (zoomEnd) * CONST_NAVIGATION_WIDTH_PERCENT / 100;
+                    setZoomEnd(_dataLen - 2);
+                    setZoomStart( zoomEnd - (zoomEnd) * CONST_NAVIGATION_WIDTH_PERCENT / 100);
                 } else {
                     yAxisDataRef.push(
                         {
@@ -667,7 +696,6 @@ var TeleChart = function (ctxId) {
                 }
             }
             calcNavigationFactors();
-            calcSelectionFactors();
             calcButtonsParams();
         }
 
@@ -724,6 +752,11 @@ var TeleChart = function (ctxId) {
 //var nextFrame = 0;
     function render() {
         handleAnimations();
+        if (needUpdateSelectionFactor) {
+            needUpdateSelectionFactor = false;
+            calcSelectionFactors();
+        }
+
         if (needRedraw) {
             needRedraw = false;
             redrawFrame();
@@ -736,6 +769,7 @@ var TeleChart = function (ctxId) {
     }
 
     render();
+    invalidate();
     return {
         draw: draw,
         invalidate: invalidate,
