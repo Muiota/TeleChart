@@ -1111,10 +1111,10 @@ var TeleChart = function (ctxId) {
     function animationComplete(animationKey) {
         switch (animationKey) {
             case CONST_SELECTION_CURRENT_INDEX_ANIMATION_KEY:
-                animate(legendTextOpacity, setLegendTextOpacity, 1);
+                animate(legendTextOpacity, setLegendTextOpacity, 1, 5);
                 break;
             case CONST_SETSELECTION_FACTOR_Y_ANIMATION_KEY:
-                animate(axisYLabelOpacity, setAxisYLabelOpacity, 1);
+                animate(axisYLabelOpacity, setAxisYLabelOpacity, 1, 10);
                 break;
         }
     }
