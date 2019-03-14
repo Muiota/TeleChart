@@ -36,7 +36,7 @@ var TeleChart = function (ctxId) {
         CONST_TWO_PI = 2 * Math.PI,
         CONST_PIXEL = "px",
         CONST_SELECTION_CURRENT_INDEX_ANIMATION_KEY = getFunctionName(setSelectionCurrentIndexFloat),
-        CONST_SETSELECTION_FACTOR_Y_ANIMATION_KEY = getFunctionName(setSelectionFactorY);
+        CONST_SELECTION_FACTOR_Y_ANIMATION_KEY = getFunctionName(setSelectionFactorY);
 
     /**
      * Global members
@@ -82,6 +82,7 @@ var TeleChart = function (ctxId) {
         selectionMaxY,
 
         smartAxisStart,
+        smartAxisRange,
 
         navigatorFactorX,
         navigatorFactorY,
@@ -631,25 +632,36 @@ var TeleChart = function (ctxId) {
             _needCalc = !smartAxisStart || !mousePressed;
         if (_needCalc) {
             smartAxisStart = selectionStartIndexInt;
+            smartAxisRange =  fParseInt(fMathCeil((selectionEndIndexFloat - selectionStartIndexFloat) / 6));
         }
 
 
         setFillStyle(envBgColor);
         fillRect(0, navigatorTop- navigatorHeight, totalWidth, navigatorHeight);
+
         //X-axis labels
         setLineWidth(1);
         setFillStyle(_c);
-        var _range = fParseInt(fMathCeil((selectionEndIndexFloat - selectionStartIndexFloat) / 6)),
-            _nextItem = smartAxisStart;
-        while (!_needCalc && _nextItem >= selectionStartIndexFloat - _range+ CONST_PADDING) {
-            _nextItem = _nextItem - _range;
+        var _nextItem = smartAxisStart;
+       // while (!_needCalc && (_nextItem - smartAxisRange - selectionStartIndexFloat ) * selectionFactorX > -axisXLabelWidth) {
+      //      _nextItem = _nextItem - smartAxisRange;
+    //    }
+        if (!_needCalc) {
+            while (_nextItem - smartAxisRange >= selectionStartIndexInt) {
+                _nextItem = _nextItem - smartAxisRange;
+            }
+          //  _nextItem = _nextItem - smartAxisRange;
+            while (_nextItem < selectionStartIndexInt) {
+                _nextItem = _nextItem + smartAxisRange;
+            }
         }
+
         for (var _l = selectionStartIndexInt; _l <= selectionEndIndexInt; _l++) {
             var _labelX = (_l - selectionStartIndexFloat ) * selectionFactorX;
             if (_nextItem <= _l) {
                 var _label = formatDate(xAxisDataRef.data[_l]);
                 fillText(_label, _labelX, _selectionAxis + CONST_PADDING * 5);
-                _nextItem = _nextItem + _range;
+                _nextItem = _nextItem + smartAxisRange;
             }
         }
 
@@ -1113,7 +1125,7 @@ var TeleChart = function (ctxId) {
             case CONST_SELECTION_CURRENT_INDEX_ANIMATION_KEY:
                 animate(legendTextOpacity, setLegendTextOpacity, 1, 5);
                 break;
-            case CONST_SETSELECTION_FACTOR_Y_ANIMATION_KEY:
+            case CONST_SELECTION_FACTOR_Y_ANIMATION_KEY:
                 animate(axisYLabelOpacity, setAxisYLabelOpacity, 1, 10);
                 break;
         }
