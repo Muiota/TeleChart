@@ -31,7 +31,7 @@
         }
 
     </style>
-    <script src="src/telechart.js"></script>
+    <script src="src/telechart.min.js"></script>
 </head>
 <body>
 <div class="settings_panel">
@@ -61,10 +61,32 @@
         head.appendChild(script);
     }
 
-    getJSONP("data.json", "_data", function (data) {
+    function getJSON(url, callback) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'json';
+        xhr.onload = function () {
+            var status = xhr.status;
+            if (status === 200) {
+                callback(true, xhr.response);
+            } else {
+                callback(status, xhr.response);
+            }
+        };
+        xhr.send();
+    };
+
+    function createCharts (data) {
         var _container = document.getElementById("charts_container");
-        if (Array.isArray(data)) {
-            instances = [];
+        instances = [];
+        if (!data) {
+            return;
+        }
+
+        if (!Array.isArray(data)) {
+            data = JSON.parse(data);
+        }
+
             var length = data.length;
 
             for (var k = 0; k < length; k++) {
@@ -79,8 +101,19 @@
                 tc.draw(data[k]);
                 instances.push(tc);
             }
-        }
+
+    }
+
+    getJSON("https://api.jsonbin.io/b/5c8ab661bb08b22a756b7af7", function (success, resp) {
+       if (success)
+       {
+           createCharts(resp);
+       } else {
+           getJSONP("data.jsonp", "_data", createCharts);
+       }
     });
+
+
 
     var _checkbox = document.getElementById("dark_mode");
     _checkbox.addEventListener("change", function () {
