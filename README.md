@@ -32,6 +32,7 @@ Demo: https://muiota.github.io/TeleChart/
  - Date format config
  - Mobile touch for resize zoom problem
  - Scroll chart in selection window
+ - Clip navigator drawing
 ````
 
 ![Screenshot](https://i.imgur.com/IkHg18g.png)

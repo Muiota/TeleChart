@@ -10,6 +10,7 @@ var TeleChart = function (ctxId) {
         fMathAbs = Math.abs,
         fMathCeil = Math.ceil,
         fMathFloor = Math.floor,
+        fMathRound = Math.round,
         vDocument = document,
         vUndefined = undefined,
         vTrue = true,
@@ -105,8 +106,8 @@ var TeleChart = function (ctxId) {
         envNormalTextHeight,
         needUpdateSelectionFactor,
         minValueAxisY = 0, //todo config (if not assigned then auto scale)
-        envColor,
-        envBgColor,
+        envColorGrad = [],
+        envBgColorGrad = [],
         envRegularSmallFont,
         envBoldSmallFont,
         envBoldNormalFont,
@@ -211,7 +212,7 @@ var TeleChart = function (ctxId) {
     function clear() {
         xAxisDataRef = null;
         yAxisDataRefs = [];
-        invalidate();
+        invalidateInner();
     }
 
     /**
@@ -224,8 +225,24 @@ var TeleChart = function (ctxId) {
     /**
      * Invalidates the canvas
      */
-    function invalidate() {
+    function invalidateInner() {
         needRedraw = vTrue;
+    }
+
+    /**
+     * Invalidates the canvas & prepare environment colors
+     */
+    function invalidate() {
+        var _envColor = getBodyStyle("color"),
+            _envBgColor = getBodyStyle("background-color"),
+            _opacity,
+            _i;
+        for (_i = 0; _i <= 10; _i++) {
+            _opacity = _i / 10;
+            envColorGrad[_i] = getRGBA(_envColor, _opacity);
+            envBgColorGrad[_i] = getRGBA(_envBgColor, _opacity);
+        }
+        invalidateInner();
     }
 
     /**
@@ -235,7 +252,7 @@ var TeleChart = function (ctxId) {
     function draw(data) {
         if (data) {
             prepareCaches(data);
-            invalidate();
+            invalidateInner();
         }
     }
 
@@ -304,12 +321,12 @@ var TeleChart = function (ctxId) {
             _i;
 
         if (mouseY < navigatorTop && mouseX > 0 && mouseX < totalWidth) {
-            var _proposed = Math.round(mouseX / selectionFactorX + selectionStartIndexFloat);
+            var _proposed = fMathRound(mouseX / selectionFactorX + selectionStartIndexFloat);
             if (animate(selectionCurrentIndexFloat, setSelectionCurrentIndexFloat, _proposed)) {
                 animate(legendTextOpacity, setLegendTextOpacity, 0);
             }
             _result = ENUM_SELECTION_HOVER;
-            invalidate();
+            invalidateInner();
         } else if (mouseY > navigatorTop && mouseY < navigatorBottom) {
             _result = ENUM_NAVIGATOR_HOVER;
             var _startZoom = ( zoomStartSmooth) * navigatorFactorX,
@@ -456,7 +473,7 @@ var TeleChart = function (ctxId) {
             } else {
                 moveHoveredElement();
             }
-            invalidate();
+            invalidateInner();
         }
     }
 
@@ -497,7 +514,7 @@ var TeleChart = function (ctxId) {
         {
             animate(navigatorPressed, setNavigatorPressed, 0, 15);
         }
-        invalidate();
+        invalidateInner();
     }
 
     /**
@@ -508,7 +525,7 @@ var TeleChart = function (ctxId) {
         var _bb = mainCanvas.getBoundingClientRect();
         mouseOffsetX = _bb.left;
         mouseOffsetY = _bb.top;
-        invalidate();
+        invalidateInner();
     }
 
     /**
@@ -518,6 +535,9 @@ var TeleChart = function (ctxId) {
      * @returns {String} color in rgba
      */
     function getRGBA(color, opacity) {
+        if (opacity === 1) {
+            return color;
+        }
         if (color.indexOf("#") !== -1) {
             var regExp = color.length === 7 ?
                 /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i :
@@ -671,7 +691,7 @@ var TeleChart = function (ctxId) {
     function drawHorizontalGrid() {
         var _selectionAxis = selectionHeight + selectionUpSpace;
         beginPath();
-        setStrokeStyle(getRGBA(envColor, 0.1));
+        setStrokeStyle(envColorGrad[1]);
         setLineWidth(1);
         var nextScale = _selectionAxis;
         while (nextScale > selectionUpSpace) {
@@ -688,7 +708,7 @@ var TeleChart = function (ctxId) {
      */
     function drawAxisLabels() { //todo need optimize & fixes
         var _selectionAxis = selectionHeight + selectionUpSpace,
-            _c = getRGBA(envColor, 0.4),
+            _c = envColorGrad[4],
             _needCalc = !smartAxisStart || !mousePressed,
             _l;
         if (_needCalc) {
@@ -697,7 +717,7 @@ var TeleChart = function (ctxId) {
         }
 
 
-        setFillStyle(envBgColor);
+        setFillStyle(envBgColorGrad[10]);
         fillRect(0, navigatorTop- navigatorHeight+CONST_PADDING*2, totalWidth, navigatorHeight-CONST_PADDING*2);
         //X-axis labels
         setLineWidth(1);
@@ -725,8 +745,9 @@ var TeleChart = function (ctxId) {
         //Y-axis labels
         var _nextScaleValue = 0,
             _nextScale = _selectionAxis,
-            _bg = getRGBA(envBgColor, 0.7* axisYLabelOpacity);
-        _c = getRGBA(envColor, 0.4* axisYLabelOpacity);
+            _bg = envBgColorGrad[fParseInt(7 * axisYLabelOpacity)];
+
+        _c = envColorGrad[fParseInt(4 * axisYLabelOpacity)];
         while (_nextScale > selectionUpSpace) {
             var _y = fParseInt(_nextScale) + 0.5 - CONST_PADDING;
             var _text = _nextScaleValue.toString();
@@ -743,8 +764,8 @@ var TeleChart = function (ctxId) {
 
     function drawBalloon(x, y, width, height, hovered, opacity) {
         beginPath();
-        setStrokeStyle(getRGBA(envColor, (hovered ? 0.4 : 0.2) * opacity));
-        setFillStyle(getRGBA(envBgColor, 0.3 + 0.6 * opacity));
+        setStrokeStyle(envColorGrad[fParseInt((hovered ? 4 : 2) * opacity)]);
+        setFillStyle(envBgColorGrad[fParseInt(3 + 6 * opacity)]);
         setLineWidth(1);
         moveOrLine(vTrue, x + CONST_BTN_RADIUS, y);
         moveOrLine(vFalse, x + width - CONST_BTN_RADIUS, y);
@@ -767,7 +788,7 @@ var TeleChart = function (ctxId) {
     function drawButton(axis) { //todo optimize
         var _x = axis.bX,
             _y = axis.bY,
-            _color = axis.sC,
+            _color = axis.color,
             _name = axis.name;
 
         drawBalloon(_x, _y, axis.bW, axis.bH, axis.bO, 1);
@@ -778,7 +799,7 @@ var TeleChart = function (ctxId) {
         circle(_x + CONST_BTN_RADIUS, _y + CONST_BTN_RADIUS, CONST_BTN_RADIUS - CONST_PADDING );
         fill();
 
-        setStrokeStyle(envBgColor);
+        setStrokeStyle(envBgColorGrad[10]);
         setLineWidth(4);
         beginPath();
         translate(-2, 4);
@@ -789,17 +810,17 @@ var TeleChart = function (ctxId) {
         endPath();
 
         beginPath();
-        setFillStyle(envBgColor);
+        setFillStyle(envBgColorGrad[10]);
         circle(_x + CONST_BTN_RADIUS, _y + CONST_BTN_RADIUS, 12 - axis.sOp * 12);
         fill();
 
-        setFillStyle(envColor);
+        setFillStyle(envColorGrad[10]);
         setFont(envRegularNormalFont);
         fillText(_name, _x + CONST_BTN_RADIUS * 2 + CONST_PADDING+1, _y + CONST_BTN_RADIUS + envSmallTextHeight / 2 - CONST_PADDING + 2);
         setFont(envRegularSmallFont);
 
         beginPath();
-        setStrokeStyle(getRGBA(envColor, (1 - axis.bPulse) * 0.4));
+        setStrokeStyle(envColorGrad[fParseInt((1 - axis.bPulse) * 4)]);
         setLineWidth(10);
         circle(_x + CONST_BTN_RADIUS, _y + CONST_BTN_RADIUS, axis.bPulse * 30);
         endPath();
@@ -824,10 +845,10 @@ var TeleChart = function (ctxId) {
             _selectionAxis = selectionHeight + selectionUpSpace,
             _i,
             _k,
-            _j;
+            _j,
+            _axisY;
         for (_i in yAxisDataRefs) {
-            var _axisY = yAxisDataRefs[_i],
-                _seriesColor = _axisY.sC;
+            _axisY = yAxisDataRefs[_i];
             if (_axisY.bOn) {
                 _existVisible = vTrue;
             }
@@ -836,7 +857,7 @@ var TeleChart = function (ctxId) {
             beginPath();
             setLineWidth(2);
 
-            setStrokeStyle(getRGBA(_seriesColor, _axisY.sOp));
+            setStrokeStyle(_axisY.sCg[fParseInt(10*_axisY.sOp)]);
             var _length = xAxisDataRef.data.length;
             for (_k = 1; _k < _length; _k++) {
                 var _xValue = (_k - 1) * navigatorFactorX,
@@ -866,19 +887,19 @@ var TeleChart = function (ctxId) {
             _sValueX = (selectionCurrentIndexFloat - selectionStartIndexFloat  ) * selectionFactorX,
             _from = fMathFloor(selectionCurrentIndexFloat),
             _to = _from + 1,
-            _i;
+            _i,
+            _axisY;
 
         beginPath();
-        setStrokeStyle(getRGBA(envColor, 0.4 * legendBoxOpacity));
+        setStrokeStyle(envColorGrad[fParseInt(4 * legendBoxOpacity)]);
         setLineWidth(1);
         moveOrLine(vTrue, _sValueX, 0);
         moveOrLine(vFalse, _sValueX, selectionHeight + selectionUpSpace);
         endPath();
         setLineWidth(3);
         for (_i in yAxisDataRefs) {
-            var _axisY = yAxisDataRefs[_i],
-                _color = _axisY.sC,
-                _sValueYFrom = _selectionAxis + (_axisY.data[_from] - selectionMinY) * selectionFactorY,
+             _axisY = yAxisDataRefs[_i];
+              var _sValueYFrom = _selectionAxis + (_axisY.data[_from] - selectionMinY) * selectionFactorY,
                 _sValueY,
                 _opacity = _axisY.sOp;
             if (_from === selectionCurrentIndexFloat || _to >= selectionEndIndexFloat) {
@@ -889,37 +910,36 @@ var TeleChart = function (ctxId) {
             }
 
             beginPath();
-            setFillStyle(getRGBA(envBgColor, _opacity* legendBoxOpacity));
+            setFillStyle(envBgColorGrad[fParseInt(10* _opacity* legendBoxOpacity)]);
             circle(_sValueX, _sValueY, 3);
             fill();
 
             beginPath();
-            setStrokeStyle(getRGBA(_color, _opacity* legendBoxOpacity));
+            setStrokeStyle(_axisY.sCg[fParseInt(10*_opacity* legendBoxOpacity)]);
 
             circle(_sValueX, _sValueY, 5);
             endPath();
         }
         drawBalloon(_sValueX - 25.5, CONST_BTN_RADIUS + 0.5, legendWidth, legendHeight, vTrue, legendBoxOpacity);
         setFont(envBoldSmallFont);
-        setFillStyle(getRGBA(envColor, legendBoxOpacity * legendTextOpacity));
+        setFillStyle(envColorGrad[fParseInt(10* legendBoxOpacity * legendTextOpacity)]);
         fillText(legendDateText, _sValueX - 25 + CONST_PADDING*3, CONST_BTN_RADIUS + CONST_PADDING*3 + envSmallTextHeight+ 0.5);
 
 
         var _currentY = CONST_BTN_RADIUS + CONST_PADDING*5 + envSmallTextHeight+ 0.5 + envNormalTextHeight;
         for (_i in yAxisDataRefs) {
-            var _axisRefY = yAxisDataRefs[_i],
-                _colorT = _axisRefY.sC,
-                _value = _axisRefY.data[_from];
-            if (!_axisRefY.bOn) {
+               _axisY = yAxisDataRefs[_i];
+                var _value = _axisY.data[_from];
+            if (!_axisY.bOn) {
                 continue;
             }
 
-            setFillStyle(getRGBA(_colorT, legendBoxOpacity * legendTextOpacity));
+            setFillStyle(_axisY.sCg[fParseInt(10* legendBoxOpacity * legendTextOpacity)]);
             setFont(envBoldNormalFont);
             fillText(_value, _sValueX - 25 + CONST_PADDING*3, _currentY);
             _currentY= _currentY+ envNormalTextHeight+ CONST_PADDING;
             setFont(envRegularSmallFont);
-            fillText(_axisRefY.name, _sValueX - 25 + CONST_PADDING*3, _currentY);
+            fillText(_axisY.name, _sValueX - 25 + CONST_PADDING*3, _currentY);
             _currentY= _currentY+ envNormalTextHeight+ CONST_PADDING*2;
             //todo calculate once in cache before show
         }
@@ -940,7 +960,7 @@ var TeleChart = function (ctxId) {
             }
 
             beginPath();
-            setFillStyle(getRGBA(envColor, (navigatorPressed) * 0.1));
+            setFillStyle(envColorGrad[fParseInt(navigatorPressed)]);
 
             circle(_x, navigatorTop + navigatorHeight / 2, navigatorPressed * 40);
             fill();
@@ -955,25 +975,23 @@ var TeleChart = function (ctxId) {
         //fillRect(0,0, totalWidth, totalHeight); //todo debug
         if (xAxisDataRef && yAxisDataRefs && yAxisDataRefs.length) {
             setFont(envRegularSmallFont);
-            envColor = getBodyStyle("color");
-            envBgColor = getBodyStyle("background-color");
 
-            var _startZoom = ( zoomStartHard) * navigatorFactorX,
-                _endZoom = ( zoomEndHard) * navigatorFactorX;
+            var _startZoom = zoomStartHard * navigatorFactorX,
+                _endZoom = zoomEndHard * navigatorFactorX;
 
-            setFillStyle(getRGBA(envColor, 0.3));
+            setFillStyle(envColorGrad[3]);
             fillRect(_startZoom, navigatorTop, _endZoom - _startZoom, navigatorHeight);
-            setFillStyle(envBgColor);
+            setFillStyle(envBgColorGrad[10]);
             fillRect(_startZoom + CONST_PADDING * 2, navigatorTop + CONST_PADDING / 2, _endZoom - _startZoom - CONST_PADDING * 4, navigatorHeight - CONST_PADDING); //todo optimize
             drawHorizontalGrid();
             var _existVisible = drawSeries();
 
             //Draw navigation frame  //todo function
-            setFillStyle(getRGBA(envColor, 0.1));
+            setFillStyle(envColorGrad[1]);
             fillRect(0, navigatorTop, _startZoom, navigatorHeight);
             fillRect(_endZoom, navigatorTop, totalWidth - _endZoom, navigatorHeight);
 
-            setFillStyle(getRGBA(envBgColor, 0.5));
+            setFillStyle(envBgColorGrad[5]);
             fillRect(0, navigatorTop, _startZoom, navigatorHeight);
             fillRect(_endZoom, navigatorTop, totalWidth - _endZoom, navigatorHeight);
 
@@ -1083,7 +1101,8 @@ var TeleChart = function (ctxId) {
         var _x = CONST_PADDING,
             _y = navigatorTop + navigatorHeight + CONST_PADDING * 6,
             _height = 40,
-            _i;
+            _i,
+            _j;
         setFont(envRegularNormalFont);
         for (_i in yAxisDataRefs) {
             var _axis = yAxisDataRefs[_i],
@@ -1097,7 +1116,11 @@ var TeleChart = function (ctxId) {
             _axis.bY = _y;
             _axis.bW = _width;
             _axis.bH = _height;
+            _axis.sCg = [];
             _x = _x + _width + CONST_PADDING * 3;
+            for (_j = 0; _j <= 10; _j++) {
+                _axis.sCg[_j] = getRGBA(_axis.color, _j / 10);
+            }
         }
         setFont(envRegularSmallFont);
     }
@@ -1112,7 +1135,9 @@ var TeleChart = function (ctxId) {
         }
         var columns = src.columns,
             _i;
-        if (columns) {
+        if (!columns) {
+            return;
+        }
             for (_i in columns) {
                 var _column = columns[_i],
                     _dataLen = _column.length,
@@ -1148,17 +1173,15 @@ var TeleChart = function (ctxId) {
                         });
                 }
             }
-            calcNavigatorFactors();
-            calcButtonsParams();
-        }
+
 
         function assignAxisProperty(source, field) {
             if (source) {
-                for (var axis in source) {
-                    var _type = source[axis];
+                for (var _axis in source) {
+                    var _type = source[_axis];
                     for (var _i = 0; _i < yAxisDataRefs.length; _i++) { //todo iterator function where not closures
                         var _yAxisRef = yAxisDataRefs[_i];
-                        if (_yAxisRef.alias === axis) {
+                        if (_yAxisRef.alias === _axis) {
                             _yAxisRef[field] = _type;
                         }
                     }
@@ -1167,8 +1190,11 @@ var TeleChart = function (ctxId) {
         }
 
         assignAxisProperty(src.types, "type");
-        assignAxisProperty(src.colors, "sC");
+        assignAxisProperty(src.colors, "color");
         // assignAxisProperty(src.names, "name"); //todo need revert debug
+
+        calcNavigatorFactors();
+        calcButtonsParams();
     }
 
     /**
@@ -1228,7 +1254,7 @@ var TeleChart = function (ctxId) {
                         delete animations[key];
                         animationComplete(key);
                     }
-                    invalidate();
+                    invalidateInner();
                 }
             }
         }
