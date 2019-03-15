@@ -15,12 +15,11 @@ Demo: https://muiota.github.io/TeleChart/
  - Smooth animation
  - Smart X-axis labels
  - Mobile resolution (Touches support)
-
+ - Material design animations
   
-### Roadmap:
+### Road map:
 - Line selection
 - Tooltip legend
-- Material design 
 - Resize container support 
 - Area type of series 
 - Performance, minimize & fixes
