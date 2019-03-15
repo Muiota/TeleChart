@@ -1,5 +1,6 @@
 ﻿Tele chart
 ====================
+Demo: https://muiota.github.io/TeleChart/
 
 ### Features:
  - Pure js (without css)
@@ -32,4 +33,4 @@
  - Date format config
 ````
 
-![Screenshot](https://i.imgur.com/335U1a7.png)
+![Screenshot](https://i.imgur.com/IkHg18g.png)
