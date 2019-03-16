@@ -853,7 +853,7 @@ var TeleChart = function (ctxId) {
 
         setFillStyle(envColorGrad[10]);
         setFont(envRegularNormalFont);
-        fillText(_name, _x + CONST_BTN_RADIUS * 2 + CONST_PADDING + 1, _y + CONST_BTN_RADIUS + envSmallTextHeight / 2 - CONST_PADDING + 2);
+        fillText(_name, _x + CONST_BTN_RADIUS * 2 + CONST_PADDING + 1, _y + CONST_BTN_RADIUS + envSmallTextHeight / 2 - CONST_PADDING + 4);
         setFont(envRegularSmallFont);
 
         beginPath();
@@ -1064,8 +1064,9 @@ var TeleChart = function (ctxId) {
             setFillStyle(envBgColorGrad[10]);
             fillRect(_startZoom + CONST_PADDING_2, navigatorTop + CONST_PADDING_HALF, _endZoom - _startZoom - CONST_PADDING_4, navigatorHeight - CONST_PADDING); //todo optimize
             drawHorizontalGrid();
-            var _existVisible = drawSeries();
             assign("middle");
+            var _existVisible = drawSeries();
+
             //Draw navigation frame  //todo function
             setFillStyle(envColorGrad[1]);
             fillRect(0, navigatorTop, _startZoom, navigatorHeight);
@@ -1090,8 +1091,8 @@ var TeleChart = function (ctxId) {
             //  frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
             //   frameContext.fillText("mouseX " + mouseX, 10, 50);
             //    frameContext.fillText("mouseY " + mouseY, 10, 70);
-             frameContext.fillText("performance=" +_perfResult.end, 10, 30);
-            frameContext.fillText("performance=" +_perfResult.middle, 10, 50);
+             frameContext.fillText("end=" +_perfResult.end, 10, 30);
+            frameContext.fillText("middle=" +_perfResult.middle, 10, 50);
             mainCtx.clearRect(0, 0, totalWidth, totalHeight);
             mainCtx.drawImage(frameCanvas, 0, 0);
             assign("end");
