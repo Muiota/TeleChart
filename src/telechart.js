@@ -329,8 +329,6 @@ var TeleChart = function (ctxId) {
             return;
         }
 
-
-
         if (mouseY < navigatorTop && mouseX > 0 && mouseX < totalWidth) {
             var _proposed = fMathRound(mouseX / selectionFactorX + selectionStartIndexFloat);
             if (animate(selectionCurrentIndexFloat, setSelectionCurrentIndexFloat, _proposed)) {
@@ -511,8 +509,8 @@ var TeleChart = function (ctxId) {
         stopPropagation(e);
         handleMouseMove(e);
         mousePressed = pressed;
+        calcHoveredElement(vTrue);
         if (pressed) {
-            calcHoveredElement(vTrue);
             switch (mouseHovered) {
                 case ENUM_ZOOM_HOVER:
                 case ENUM_START_SELECTION_HOVER:
