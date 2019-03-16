@@ -46,12 +46,12 @@ var TeleChart = function (ctxId) {
      */
     var container = vDocument.getElementById(ctxId),
         totalWidth = container.offsetWidth * CONST_DISPLAY_SCALE_FACTOR,
-        totalHeight = totalWidth * CONST_DISPLAY_SCALE_FACTOR,
         navigatorHeight = fParseInt(totalWidth * CONST_NAVIGATOR_HEIGHT_PERCENT / 100),
         selectionHeight = totalWidth - navigatorHeight - navigatorHeight * 2,
         selectionUpSpace = navigatorHeight / 2,
         navigatorTop = selectionHeight + navigatorHeight + CONST_PADDING * 4,
         navigatorBottom = navigatorTop + navigatorHeight,
+        totalHeight = navigatorBottom + CONST_PADDING *10 + CONST_BTN_RADIUS * 4,
         needRedraw,
         mainCanvas = createCanvas(totalWidth, totalHeight, "m_" + ctxId),
         frameCanvas = createCanvas(totalWidth, totalHeight, "f_" + ctxId),
@@ -1123,8 +1123,8 @@ var TeleChart = function (ctxId) {
      */
     function calcButtonsParams() {
         var _x = CONST_PADDING,
-            _y = navigatorTop + navigatorHeight + CONST_PADDING * 6,
-            _height = 40,
+            _y = navigatorBottom + CONST_PADDING * 6,
+            _height = CONST_BTN_RADIUS* 2,
             _i,
             _j;
         setFont(envRegularNormalFont);
