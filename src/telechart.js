@@ -1091,7 +1091,7 @@ var TeleChart = function (ctxId) {
             //   frameContext.fillText("mouseX " + mouseX, 10, 50);
             //    frameContext.fillText("mouseY " + mouseY, 10, 70);
              frameContext.fillText("performance=" +_perfResult.end, 10, 30);
-            frameContext.fillText("performance=" +_perfResult.middle, 20, 30);
+            frameContext.fillText("performance=" +_perfResult.middle, 10, 50);
             mainCtx.clearRect(0, 0, totalWidth, totalHeight);
             mainCtx.drawImage(frameCanvas, 0, 0);
             assign("end");
