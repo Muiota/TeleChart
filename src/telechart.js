@@ -98,8 +98,12 @@ var TeleChart = function (ctxId) {
         axisYLabelOpacity = 1,
 
         legendDateText,
-        legendWidth = 120.5,
-        legendHeight = 100, //todo calc only
+        legendWidth,
+        legendHeight,
+        legendTop,
+        legendLeft,
+        legendDateLeft,
+        legendDateTop,
         legendTextOpacity = 0,
         legendBoxOpacity = 0,
 
@@ -886,7 +890,10 @@ var TeleChart = function (ctxId) {
             for (_k = 1; _k < _length; _k++) {
                 var _xValue = (_k - 1) * navigatorFactorX,
                     _yValue = navigatorTop + navigatorHeight + (_axisY.data[_k] - navigatorMinY) * navigatorFactorY;
-                moveOrLine(_k === 1 || _yValue < navigatorTop- CONST_PADDING, _xValue, _yValue);
+                if (_yValue < navigatorTop) {
+                    _yValue = navigatorTop;
+                }
+                moveOrLine(_k === 1 , _xValue, _yValue);
             }
             endPath();
             setRound(true);
@@ -913,7 +920,8 @@ var TeleChart = function (ctxId) {
             _from = fMathFloor(selectionCurrentIndexFloat),
             _to = _from + 1,
             _i,
-            _axisY;
+            _axisY,
+            _legendBoxOpacity = 10 * legendBoxOpacity;
 
         beginPath();
         setStrokeStyle(envColorGrad[fParseInt(4 * legendBoxOpacity)]);
@@ -922,6 +930,7 @@ var TeleChart = function (ctxId) {
         moveOrLine(vFalse, _sValueX, selectionHeight + selectionUpSpace);
         endPath();
         setLineWidth(3);
+
         for (_i in yAxisDataRefs) {
             _axisY = yAxisDataRefs[_i];
             var _sValueYFrom = _selectionAxis + (_axisY.data[_from] - selectionMinY) * selectionFactorY,
@@ -935,40 +944,35 @@ var TeleChart = function (ctxId) {
             }
 
             beginPath();
-            setFillStyle(envBgColorGrad[fParseInt(10 * _opacity * legendBoxOpacity)]);
+            setFillStyle(envBgColorGrad[fParseInt(_legendBoxOpacity * _opacity)]);
             circle(_sValueX, _sValueY, 3);
             fill();
 
             beginPath();
-            setStrokeStyle(_axisY.sCg[fParseInt(10 * _opacity * legendBoxOpacity)]);
+            setStrokeStyle(_axisY.sCg[fParseInt(_legendBoxOpacity * _opacity)]);
 
             circle(_sValueX, _sValueY, 5);
             endPath();
         }
-        drawBalloon(_sValueX - 25.5, CONST_BTN_RADIUS + 0.5, legendWidth, legendHeight, vTrue, legendBoxOpacity);
+        drawBalloon(_sValueX + legendLeft, legendTop,
+            legendWidth, legendHeight, vTrue, legendBoxOpacity);
         setFont(envBoldSmallFont);
-        setFillStyle(envColorGrad[fParseInt(10 * legendBoxOpacity * legendTextOpacity)]);
-        fillText(legendDateText, _sValueX - 25 + CONST_PADDING * 3, CONST_BTN_RADIUS + CONST_PADDING * 3 + envSmallTextHeight + 0.5);
+        setFillStyle(envColorGrad[fParseInt(_legendBoxOpacity * legendTextOpacity)]);
+        fillText(legendDateText, _sValueX + legendDateLeft, legendDateTop);
 
-
-        var _currentY = CONST_BTN_RADIUS + CONST_PADDING * 5 + envSmallTextHeight + 0.5 + envNormalTextHeight;
         for (_i in yAxisDataRefs) {
             _axisY = yAxisDataRefs[_i];
             var _value = _axisY.data[_from];
             if (!_axisY.bOn) {
                 continue;
             }
-
-            setFillStyle(_axisY.sCg[fParseInt(10 * legendBoxOpacity * legendTextOpacity)]);
+            setFillStyle(_axisY.sCg[fParseInt(_legendBoxOpacity * legendTextOpacity)]);
             setFont(envBoldNormalFont);
-            fillText(_value, _sValueX - 25 + CONST_PADDING * 3, _currentY);
-            _currentY = _currentY + envNormalTextHeight + CONST_PADDING;
+            fillText(_value, _sValueX + _axisY.lx, _axisY.ly);
             setFont(envRegularSmallFont);
-            fillText(_axisY.name, _sValueX - 25 + CONST_PADDING * 3, _currentY);
-            _currentY = _currentY + envNormalTextHeight + CONST_PADDING * 2;
-            //todo calculate once in cache before show
+            fillText(_axisY.name, _sValueX + _axisY.lx,
+                _axisY.ly + envNormalTextHeight + CONST_PADDING);
         }
-
     }
 
     function drawPressHighlight(start, end) {
@@ -1288,14 +1292,37 @@ var TeleChart = function (ctxId) {
         }
     }
 
+    function calcLegendPosition() {
+        legendWidth = 120.5;
+        legendHeight = 100; //todo calc only
+        legendTop = CONST_BTN_RADIUS + 0.5;
+        legendLeft = -25.5;
+        legendDateLeft = - 25 + CONST_PADDING * 3;
+        legendDateTop = CONST_BTN_RADIUS + CONST_PADDING * 3 + envSmallTextHeight + 0.5;
+        legendDateText = formatDate(xAxisDataRef.data[fMathFloor(selectionCurrentIndexFloat)], vTrue);
+        var _currentY = CONST_BTN_RADIUS + CONST_PADDING * 5 + envSmallTextHeight + 0.5 + envNormalTextHeight;
+        for (var _i in yAxisDataRefs) {
+            var _axisY = yAxisDataRefs[_i];
+            if (!_axisY.bOn) {
+                continue;
+            }
+            _axisY.lx = - 25 + CONST_PADDING * 3;
+            _axisY.ly = _currentY;
+            _currentY+= (envNormalTextHeight + CONST_PADDING)*2;
+            //todo calculate once in cache before show
+        }
+
+
+        animate(legendTextOpacity, setLegendTextOpacity, 1, 5);
+    }
+
     /**
      * Animation complete event
      * @param animationKey {String} callback function name
      */
     function animationComplete(animationKey) {
         if (animationKey === CONST_SELECTION_CURRENT_INDEX_ANIMATION_KEY) {
-            legendDateText = formatDate(xAxisDataRef.data[fMathFloor(selectionCurrentIndexFloat)], vTrue);
-            animate(legendTextOpacity, setLegendTextOpacity, 1, 5);
+            calcLegendPosition();
         }
         else if (animationKey === CONST_SELECTION_FACTOR_Y_ANIMATION_KEY) {
             animate(axisYLabelOpacity, setAxisYLabelOpacity, 1, 10);
@@ -1340,4 +1367,5 @@ var TeleChart = function (ctxId) {
         destroy: destroy
     };
 };
+
 
