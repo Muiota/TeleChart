@@ -67,7 +67,7 @@ var TeleChart = function (ctxId) {
         mouseOffsetY,
         mouseHovered,
         mousePressed,
-        mouseFrame = {s: 0, e: 0},
+        mouseFrame = {},
 
         zoomStartSmooth,
         zoomEndSmooth,
@@ -325,11 +325,20 @@ var TeleChart = function (ctxId) {
         var _result = null,
             _i;
 
+        if (!selectionFactorX || !navigatorFactorX) {
+            return;
+        }
+
+
+
         if (mouseY < navigatorTop && mouseX > 0 && mouseX < totalWidth) {
             var _proposed = fMathRound(mouseX / selectionFactorX + selectionStartIndexFloat);
             if (animate(selectionCurrentIndexFloat, setSelectionCurrentIndexFloat, _proposed)) {
                 animate(legendTextOpacity, setLegendTextOpacity, 0);
             }
+            mouseFrame.nS = zoomStartSmooth;
+            mouseFrame.nE = zoomEndSmooth ;
+            mouseFrame.tF = selectionStartIndexFloat;
             _result = ENUM_SELECTION_HOVER;
             invalidateInner();
         } else if (mouseY > navigatorTop && mouseY < navigatorBottom) {
@@ -338,13 +347,14 @@ var TeleChart = function (ctxId) {
                 _endZoom = ( zoomEndSmooth) * navigatorFactorX,
                 _startZShift = _startZoom - mouseX,
                 _endZShift = _endZoom - mouseX;
-            if (fMathAbs(_startZShift + CONST_PADDING) < CONST_PADDING) {
+
+            if (fMathAbs(_startZShift + CONST_PADDING) < CONST_PADDING*2) {
                 _result = ENUM_START_SELECTION_HOVER;
-            } else if (fMathAbs(_endZShift - CONST_PADDING) < CONST_PADDING) {
+            } else if (fMathAbs(_endZShift - CONST_PADDING) < CONST_PADDING*2) {
                 _result = ENUM_END_SELECTION_HOVER;
             } else if (mouseX > _startZoom && mouseX < _endZoom) {
-                mouseFrame.s = _startZShift / navigatorFactorX;
-                mouseFrame.e = _endZShift / navigatorFactorX;
+                mouseFrame.nS = _startZShift / navigatorFactorX;
+                mouseFrame.nE = _endZShift / navigatorFactorX;
                 _result = ENUM_ZOOM_HOVER;
             }
         } else if (mouseY > navigatorBottom) {
@@ -409,13 +419,22 @@ var TeleChart = function (ctxId) {
         animate(zoomEndSmooth, setZoomEnd, val);
     }
 
-    /**
-     * Moves a hovered element
-     */
-    function moveHoveredElement() {
-        if (!xAxisDataRef) {
-            return;
+    function moveChartCore(_proposedX, _maxProposedX) {
+        var _start = _proposedX + mouseFrame.nS,
+            _end = _proposedX + mouseFrame.nE;
+        if (_start < 0) {
+            _start = 0;
+            _end = mouseFrame.nE - mouseFrame.nS;
         }
+        if (_end > _maxProposedX) {
+            _end = _maxProposedX;
+            _start = _maxProposedX - mouseFrame.nE + mouseFrame.nS;
+        }
+        associateZoomStart(_start);
+        associateZoomEnd(_end);
+    }
+
+    function moveChart() {
         var _proposedX = mouseX / navigatorFactorX,
             _maxProposedX = xAxisDataRef.data.length - 2;
         if (_proposedX < 0) {
@@ -424,6 +443,8 @@ var TeleChart = function (ctxId) {
             _proposedX = _maxProposedX;
         }
         var threshold = 30 / navigatorFactorX;
+
+
         switch (mouseHovered) {
             case ENUM_START_SELECTION_HOVER:
                 if (zoomEndSmooth - _proposedX > threshold) {
@@ -436,19 +457,25 @@ var TeleChart = function (ctxId) {
                 }
                 break;
             case ENUM_ZOOM_HOVER:
-                var _start = _proposedX + mouseFrame.s,
-                    _end = _proposedX + mouseFrame.e;
-                if (_start < 0) {
-                    _start = 0;
-                    _end = mouseFrame.e - mouseFrame.s;
-                }
-                if (_end > _maxProposedX) {
-                    _end = _maxProposedX;
-                    _start = _maxProposedX - mouseFrame.e + mouseFrame.s;
-                }
-                associateZoomStart(_start);
-                associateZoomEnd(_end);
+                moveChartCore(_proposedX, _maxProposedX);
                 break;
+        }
+    }
+
+    /**
+     * Moves a hovered element
+     */
+    function moveHoveredElement() {
+        if (!xAxisDataRef) {
+            return;
+        }
+        if (ENUM_SELECTION_HOVER === mouseHovered) {
+            var _proposed = mouseX / selectionFactorX + mouseFrame.tF;
+            var _interval = selectionCurrentIndexFloat - _proposed;
+            var _maxProposedX = xAxisDataRef.data.length - 2;
+            moveChartCore(_interval, _maxProposedX);
+        } else {
+            moveChart();
         }
     }
 
@@ -953,9 +980,9 @@ var TeleChart = function (ctxId) {
             }
 
             beginPath();
-            setFillStyle(envColorGrad[fParseInt(navigatorPressed)]);
+            setFillStyle(envColorGrad[fParseInt(navigatorPressed*2)]);
 
-            circle(_x, navigatorTop + navigatorHeight / 2, navigatorPressed * 40);
+            circle(_x, navigatorTop + navigatorHeight / 2, navigatorPressed * 35);
             fill();
         }
     }
@@ -1003,7 +1030,7 @@ var TeleChart = function (ctxId) {
             //  frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
             //   frameContext.fillText("mouseX " + mouseX, 10, 50);
             //    frameContext.fillText("mouseY " + mouseY, 10, 70);
-            //    _frameContext.fillText("selectionFactorX " + selectionFactorX, 10, 90);
+           // frameContext.fillText("mouseFrame.tS=" +mouseFrame.tS, 10, 30);
             mainCtx.clearRect(0, 0, totalWidth, totalHeight);
             mainCtx.drawImage(frameCanvas, 0, 0, totalWidth, totalHeight);
         }
@@ -1271,7 +1298,7 @@ var TeleChart = function (ctxId) {
         }
     }
 
-    var lastCalledTime; //todo debug
+    //var lastCalledTime; //todo debug
     /**
      * Render cycle
      */
@@ -1287,10 +1314,10 @@ var TeleChart = function (ctxId) {
             redrawFrame();
 
             //todo======================== debug
-            var _performance = performance.now();
-            var _delta = (_performance - lastCalledTime) / 1000;
-            mainCtx.fillText("FPS " + fParseInt(1 / _delta), 10, 90);
-            lastCalledTime = _performance;
+           // var _performance = performance.now();
+          //  var _delta = (_performance - lastCalledTime) / 1000;
+          //  mainCtx.fillText("FPS " + fParseInt(1 / _delta), 10, 90);
+          //  lastCalledTime = _performance;
             //todo======================== debug
         }
 

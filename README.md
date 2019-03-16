@@ -14,7 +14,7 @@ Demo: https://muiota.github.io/TeleChart/
  - Switch series
  - Smooth animation
  - Smart X-axis labels
- - Mobile resolution (Touches support)
+ - Mobile high resolution & touches support
  - Material design animations
   
 ### Road map:
@@ -25,6 +25,7 @@ Demo: https://muiota.github.io/TeleChart/
 - Performance, minimize & fixes
 ````
  - Auto height not work
+ - Highlight when bounds
  - Smart X-axis labels overlay
  - Top navigator overlay
  - Opacity animation (buttons, series, legend) 
@@ -32,6 +33,7 @@ Demo: https://muiota.github.io/TeleChart/
  - Mobile touch for resize zoom problem
  - Scroll chart in selection window
  - Clip navigator drawing
+ - Cleanup code 
 ````
 
 ![Screenshot](https://i.imgur.com/IkHg18g.png)
