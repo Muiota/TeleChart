@@ -1065,7 +1065,7 @@ var TeleChart = function (ctxId) {
             fillRect(_startZoom + CONST_PADDING_2, navigatorTop + CONST_PADDING_HALF, _endZoom - _startZoom - CONST_PADDING_4, navigatorHeight - CONST_PADDING); //todo optimize
             drawHorizontalGrid();
             var _existVisible = drawSeries();
-
+            assign("middle");
             //Draw navigation frame  //todo function
             setFillStyle(envColorGrad[1]);
             fillRect(0, navigatorTop, _startZoom, navigatorHeight);
@@ -1090,7 +1090,8 @@ var TeleChart = function (ctxId) {
             //  frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
             //   frameContext.fillText("mouseX " + mouseX, 10, 50);
             //    frameContext.fillText("mouseY " + mouseY, 10, 70);
-             frameContext.fillText("performance=" +JSON.stringify(_perfResult, null, 2), 10, 30);
+             frameContext.fillText("performance=" +_perfResult.end, 10, 30);
+            frameContext.fillText("performance=" +_perfResult.middle, 20, 30);
             mainCtx.clearRect(0, 0, totalWidth, totalHeight);
             mainCtx.drawImage(frameCanvas, 0, 0);
             assign("end");
@@ -1100,7 +1101,7 @@ var TeleChart = function (ctxId) {
     /**
      * Calculates the navigator factors
      */
-    function calcNavigatorFactors() {
+    function calcNavigatorFactors(withoutAnimation) {
         navigatorFactorX = (totalWidth) / (xAxisDataRef.l - 2);
         var _max = vUndefined,
             _min = minValueAxisY,
@@ -1114,8 +1115,15 @@ var TeleChart = function (ctxId) {
         }
         if (_max) {
             navigatorMinY = _min + 1;
-            if (animate(navigatorFactorY, setNavigationFactorY, -(navigatorHeight - 2) / (_max - _min))) {
-                animate(axisYLabelOpacity, setAxisYLabelOpacity, 0, 2);
+            var _navigatorFactorY = -(navigatorHeight - 2) / (_max - _min);
+            if (withoutAnimation) {
+                setNavigationFactorY(_navigatorFactorY);
+                axisYLabelOpacity = 1;
+            }
+            else {
+                if (animate(navigatorFactorY, setNavigationFactorY, _navigatorFactorY)) {
+                    animate(axisYLabelOpacity, setAxisYLabelOpacity, 0, 2);
+                }
             }
         }
     }
@@ -1280,7 +1288,7 @@ var TeleChart = function (ctxId) {
         assignAxisProperty(src.colors, "color");
         assignAxisProperty(src.names, "name"); //todo need revert debug
 
-        calcNavigatorFactors();
+        calcNavigatorFactors(vTrue);
         calcButtonsParams();
     }
 
