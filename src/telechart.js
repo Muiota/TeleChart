@@ -18,7 +18,8 @@ var TeleChart = function (ctxId) {
     /**
      * Constants
      */
-    var CONST_DEFAULT_TYPE = "line",
+    var CONST_LINE_TYPE = "line",
+        CONST_AREA_TYPE = "area", //todo TBD
         CONST_NAVIGATOR_HEIGHT_PERCENT = 12,
         CONST_NAVIGATOR_WIDTH_PERCENT = 25,
         CONST_DISPLAY_SCALE_FACTOR = 1.5,
@@ -54,12 +55,10 @@ var TeleChart = function (ctxId) {
         selectionUpSpace = navigatorHeight / 2,
         navigatorTop = selectionHeight + navigatorHeight + CONST_PADDING_4,
         navigatorBottom = navigatorTop + navigatorHeight,
-        totalHeight = navigatorBottom + CONST_PADDING * 10 + CONST_PADDING_4,
+        totalHeight = navigatorBottom + CONST_PADDING * 10 + CONST_BTN_RADIUS*4,
         needRedraw,
         mainCanvas = createCanvas(totalWidth, totalHeight, "m_" + ctxId),
-       // frameCanvas = createCanvas(totalWidth, totalHeight, "f_" + ctxId),
         frameContext = mainCanvas.getContext("2d"),
-      //  frameContext = frameCanvas.getContext("2d"),
         xAxisDataRef,
         yAxisDataRefs = [],
         animations = {},
@@ -206,10 +205,6 @@ var TeleChart = function (ctxId) {
     function setLegendWidth(val) {
         legendWidth = val;
     }
-
-    /*function setLegendTextOpacity(val) {
-        legendTextOpacity = val;
-    }*/
 
     function setSeriesOpacity(val, series) {
         series.sOp = val;
@@ -1244,7 +1239,7 @@ var TeleChart = function (ctxId) {
                     {
                         alias: _alias,
                         data: _column, //without realloc mem
-                        type: CONST_DEFAULT_TYPE,
+                        type: CONST_LINE_TYPE,
                         name: _alias, //todo debug need remove + "etrewterter"
                         min: _min,
                         max: _max,
