@@ -336,7 +336,7 @@ var TeleChart = function (ctxId) {
             }
             mouseFrame.nS = zoomStartSmooth;
             mouseFrame.nE = zoomEndSmooth ;
-            mouseFrame.tF = selectionStartIndexFloat;
+            mouseFrame.tF = _proposed;
             _result = ENUM_SELECTION_HOVER;
             invalidateInner();
         } else if (mouseY > navigatorTop && mouseY < navigatorBottom) {
