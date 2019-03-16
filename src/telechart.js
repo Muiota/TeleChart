@@ -468,9 +468,12 @@ var TeleChart = function (ctxId) {
             return;
         }
         if (ENUM_SELECTION_HOVER === mouseHovered) {
-            var _proposed = ( mouseFrame.tF - mouseX ) / selectionFactorX;
-            var _maxProposedX = xAxisDataRef.data.length - 2;
-            moveChartCore(_proposed, _maxProposedX);
+            var _interval = ( mouseFrame.tF - mouseX ) / selectionFactorX;
+            if (_interval > CONST_PADDING || mouseFrame.tI) {
+                mouseFrame.tI = vTrue;
+                var _maxProposedX = xAxisDataRef.data.length - 2;
+                moveChartCore(_interval, _maxProposedX);
+            }
         } else {
             moveChart();
         }
@@ -532,8 +535,12 @@ var TeleChart = function (ctxId) {
                         }
                     }
                     break;
+                case ENUM_SELECTION_HOVER:
+                    mouseFrame.tI = vTrue;
+                    break;
             }
         } else {
+            mouseFrame.tI = false;
             animate(navigatorPressed, setNavigatorPressed, 0, 15);
         }
         invalidateInner();
