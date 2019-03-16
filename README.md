@@ -15,6 +15,7 @@ Demo: https://muiota.github.io/TeleChart/
  - Mobile high resolution & touches support
  - Material design animations
  - Tooltip legend
+ - Transparent background for wallpapers
   
 ### Road map:
 
@@ -24,6 +25,7 @@ Demo: https://muiota.github.io/TeleChart/
 ```` 
  - Highlight when bounds
  - Smart X-axis labels overlay  
+ - Balloon width optimize 
  - Date format config
  - Mobile touch for resize zoom problem
  - Zoom chart in selection window for mobile 

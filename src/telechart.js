@@ -1053,6 +1053,7 @@ var TeleChart = function (ctxId) {
         frameContext.clearRect(0, 0, totalWidth, totalHeight);
         //fillRect(0,0, totalWidth, totalHeight); //todo debug
         if (xAxisDataRef && yAxisDataRefs && yAxisDataRefs.length) {
+            assign("other");
             setFont(envRegularSmallFont);
 
             var _startZoom = zoomStartHard * navigatorFactorX,
@@ -1063,7 +1064,7 @@ var TeleChart = function (ctxId) {
             setFillStyle(envBgColorGrad[10]);
             fillRect(_startZoom + CONST_PADDING_2, navigatorTop + CONST_PADDING_HALF, _endZoom - _startZoom - CONST_PADDING_4, navigatorHeight - CONST_PADDING); //todo optimize
             drawHorizontalGrid();
-            assign("other");
+            assign("start");
             var _existVisible = drawSeries();
             assign("series");
             //Draw navigation frame  //todo function
@@ -1074,24 +1075,30 @@ var TeleChart = function (ctxId) {
             setFillStyle(envBgColorGrad[5]);
             fillRect(0, navigatorTop, _startZoom, navigatorHeight);
             fillRect(_endZoom, navigatorTop, totalWidth - _endZoom, navigatorHeight);
-
+            assign("navi");
 
             if (_existVisible) {
                 drawAxisLabels();
             }
-
+            assign("axes");
             if (_existVisible && legendBoxOpacity > 0) {
                 drawSeriesLegend();
             }
-
+            assign("legend");
             drawButtons();
             drawPressHighlight(_startZoom, _endZoom);
+            assign("buttons");
             //todo debug need remove
             //  frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
             //   frameContext.fillText("mouseX " + mouseX, 10, 50);
             //    frameContext.fillText("mouseY " + mouseY, 10, 70);
-             frameContext.fillText("other=" +_perfResult.other, 10, 30);
-            frameContext.fillText("series=" +_perfResult.series, 10, 50);
+            frameContext.fillText("start=" + fParseInt(_perfResult.start), 10, 20);
+            frameContext.fillText("other=" + fParseInt(_perfResult.other), 10, 40);
+            frameContext.fillText("series=" + fParseInt(_perfResult.series), 10, 60);
+            frameContext.fillText("navi=" + fParseInt(_perfResult.navi), 10, 80);
+            frameContext.fillText("axes=" + fParseInt(_perfResult.axes), 10, 100);
+            frameContext.fillText("legend=" + fParseInt(_perfResult.legend), 10, 120);
+            frameContext.fillText("buttons=" + fParseInt(_perfResult.buttons), 10, 140);
             mainCtx.clearRect(0, 0, totalWidth, totalHeight);
             mainCtx.drawImage(frameCanvas, 0, 0);
 
@@ -1435,5 +1442,6 @@ var TeleChart = function (ctxId) {
         destroy: destroy
     };
 };
+
 
 
