@@ -57,9 +57,9 @@ var TeleChart = function (ctxId) {
         totalHeight = navigatorBottom + CONST_PADDING * 10 + CONST_PADDING_4,
         needRedraw,
         mainCanvas = createCanvas(totalWidth, totalHeight, "m_" + ctxId),
-        frameCanvas = createCanvas(totalWidth, totalHeight, "f_" + ctxId),
-        mainCtx = mainCanvas.getContext("2d"),
-        frameContext = frameCanvas.getContext("2d"),
+       // frameCanvas = createCanvas(totalWidth, totalHeight, "f_" + ctxId),
+        frameContext = mainCanvas.getContext("2d"),
+      //  frameContext = frameCanvas.getContext("2d"),
         xAxisDataRef,
         yAxisDataRefs = [],
         animations = {},
@@ -108,7 +108,7 @@ var TeleChart = function (ctxId) {
         legendTextLeft,
         legendTextLeftEx,
         legendDateTop,
-        legendTextOpacity = 0,
+        legendTextOpacity = 1,
         legendBoxOpacity = 0,
 
         envSmallTextHeight,
@@ -207,9 +207,9 @@ var TeleChart = function (ctxId) {
         legendWidth = val;
     }
 
-    function setLegendTextOpacity(val) {
+    /*function setLegendTextOpacity(val) {
         legendTextOpacity = val;
-    }
+    }*/
 
     function setSeriesOpacity(val, series) {
         series.sOp = val;
@@ -345,7 +345,7 @@ var TeleChart = function (ctxId) {
             var _proposed = fMathRound(mouseX / selectionFactorX + selectionStartIndexFloat);
             calcLegendPosition(_proposed);
             if (animate(selectionCurrentIndexFloat, setSelectionCurrentIndexFloat, _proposed)) {
-                animate(legendTextOpacity, setLegendTextOpacity, 0);
+          //      animate(legendTextOpacity, setLegendTextOpacity, 0.5);
             }
             mouseFrame.tS = zoomStartSmooth;
             mouseFrame.tE = zoomEndSmooth;
@@ -747,19 +747,18 @@ var TeleChart = function (ctxId) {
         var _selectionAxis = selectionHeight + selectionUpSpace,
             _c = envColorGrad[4],
             _needCalc = !smartAxisStart || !mousePressed,
-            _l;
+            _l,
+            _nextItem,
+            _labelX,
+            _labelY;
         if (_needCalc) {
             smartAxisStart = selectionStartIndexInt;
             smartAxisRange = fParseInt(fMathCeil((selectionEndIndexFloat - selectionStartIndexFloat) / 6));
         }
 
-
-        //setFillStyle(envBgColorGrad[10]);
-        //fillRect(0, navigatorTop - navigatorHeight + CONST_PADDING * 2, totalWidth, navigatorHeight - CONST_PADDING * 2);
-        //X-axis labels
         setLineWidth(1);
         setFillStyle(_c);
-        var _nextItem = smartAxisStart;
+        _nextItem = smartAxisStart;
 
         if (!_needCalc) {
             while (_nextItem - smartAxisRange >= selectionStartIndexInt) {
@@ -769,32 +768,29 @@ var TeleChart = function (ctxId) {
                 _nextItem = _nextItem + smartAxisRange;
             }
         }
-
+        _labelY = _selectionAxis + CONST_PADDING * 5;
         for (_l = selectionStartIndexInt; _l <= selectionEndIndexInt; _l++) {
-            var _labelX = (_l - selectionStartIndexFloat ) * selectionFactorX;
+            _labelX = (_l - selectionStartIndexFloat ) * selectionFactorX;
             if (_nextItem <= _l) {
-                var _label = formatDate(xAxisDataRef.data[_l]);
-                fillText(_label, _labelX, _selectionAxis + CONST_PADDING * 5);
+                fillText(formatDate(xAxisDataRef.data[_l]), _labelX, _labelY);
                 _nextItem = _nextItem + smartAxisRange;
             }
         }
 
         //Y-axis labels
         var _nextScaleValue = 0,
-            _nextScale = _selectionAxis,
             _bg = envBgColorGrad[fParseInt(7 * axisYLabelOpacity)];
 
         _c = envColorGrad[fParseInt(4 * axisYLabelOpacity)];
-        while (_nextScale > selectionUpSpace) {
-            var _y = fParseInt(_nextScale) + 0.5 - CONST_PADDING;
-            var _text = _nextScaleValue.toString();
-            var _textWidth = getTextWidth(_text);
+        while (_selectionAxis > selectionUpSpace) {
+            _labelY = fParseInt(_selectionAxis) + 0.5 - CONST_PADDING;
+            var _textWidth = getTextWidth(_nextScaleValue);
             setFillStyle(_bg);
-            fillRect(CONST_PADDING_HALF, _y - envSmallTextHeight + 2, _textWidth + CONST_PADDING_2, envSmallTextHeight); //todo
+            fillRect(CONST_PADDING_HALF, _labelY - envSmallTextHeight + 2, _textWidth + CONST_PADDING_2, envSmallTextHeight); //todo
             setFillStyle(_c);
-            fillText(_text, CONST_PADDING, _y);
+            fillText(_nextScaleValue, CONST_PADDING, _labelY);
             _nextScaleValue = fParseInt(_nextScaleValue + scaleIntervalY);
-            _nextScale = _nextScale + scaleIntervalY * selectionFactorY;
+            _selectionAxis = _selectionAxis + scaleIntervalY * selectionFactorY;
         }
     }
 
@@ -1014,7 +1010,7 @@ var TeleChart = function (ctxId) {
     }
 
     function drawPressHighlight(start, end) {
-        if (navigatorPressed) {
+        if (navigatorPressed > 0) {
             var _x;
 
             if (navigatorPressedSide === ENUM_START_SELECTION_HOVER) {
@@ -1029,22 +1025,10 @@ var TeleChart = function (ctxId) {
             beginPath();
             setFillStyle(envColorGrad[fParseInt(navigatorPressed * 2)]);
 
-            circle(_x, navigatorTop + navigatorHeight / 2, navigatorPressed * 35);
+            circle(_x, navigatorTop + selectionUpSpace, navigatorPressed * 35);
             fill();
         }
     }
-
-    var _lastPerformance,
-    _perfResult = {};
-
-    //todo performance meter
-    function assign(name) {
-        var _p = performance.now();
-        var _diff = _p - (_lastPerformance || _p);
-        _lastPerformance = _p;
-        _perfResult[name] = _diff;
-    }
-    
 
     /**
      * Draws a frame on canvas
@@ -1053,7 +1037,6 @@ var TeleChart = function (ctxId) {
         frameContext.clearRect(0, 0, totalWidth, totalHeight);
         //fillRect(0,0, totalWidth, totalHeight); //todo debug
         if (xAxisDataRef && yAxisDataRefs && yAxisDataRefs.length) {
-            assign("other");
             setFont(envRegularSmallFont);
 
             var _startZoom = zoomStartHard * navigatorFactorX,
@@ -1064,9 +1047,8 @@ var TeleChart = function (ctxId) {
             setFillStyle(envBgColorGrad[10]);
             fillRect(_startZoom + CONST_PADDING_2, navigatorTop + CONST_PADDING_HALF, _endZoom - _startZoom - CONST_PADDING_4, navigatorHeight - CONST_PADDING); //todo optimize
             drawHorizontalGrid();
-            assign("start");
+
             var _existVisible = drawSeries();
-            assign("series");
             //Draw navigation frame  //todo function
             setFillStyle(envColorGrad[1]);
             fillRect(0, navigatorTop, _startZoom, navigatorHeight);
@@ -1075,32 +1057,32 @@ var TeleChart = function (ctxId) {
             setFillStyle(envBgColorGrad[5]);
             fillRect(0, navigatorTop, _startZoom, navigatorHeight);
             fillRect(_endZoom, navigatorTop, totalWidth - _endZoom, navigatorHeight);
-            assign("navi");
+
 
             if (_existVisible) {
                 drawAxisLabels();
             }
-            assign("axes");
+
             if (_existVisible && legendBoxOpacity > 0) {
                 drawSeriesLegend();
             }
-            assign("legend");
+
             drawButtons();
             drawPressHighlight(_startZoom, _endZoom);
-            assign("buttons");
+
             //todo debug need remove
-            //  frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
-            //   frameContext.fillText("mouseX " + mouseX, 10, 50);
-            //    frameContext.fillText("mouseY " + mouseY, 10, 70);
+            /*  frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
+             frameContext.fillText("mouseX " + mouseX, 10, 50);
+               frameContext.fillText("mouseY " + mouseY, 10, 70);
             frameContext.fillText("start=" + fParseInt(_perfResult.start), 10, 20);
             frameContext.fillText("other=" + fParseInt(_perfResult.other), 10, 40);
             frameContext.fillText("series=" + fParseInt(_perfResult.series), 10, 60);
             frameContext.fillText("navi=" + fParseInt(_perfResult.navi), 10, 80);
             frameContext.fillText("axes=" + fParseInt(_perfResult.axes), 10, 100);
             frameContext.fillText("legend=" + fParseInt(_perfResult.legend), 10, 120);
-            frameContext.fillText("buttons=" + fParseInt(_perfResult.buttons), 10, 140);
-            mainCtx.clearRect(0, 0, totalWidth, totalHeight);
-            mainCtx.drawImage(frameCanvas, 0, 0);
+            frameContext.fillText("buttons=" + fParseInt(_perfResult.buttons), 10, 140); */
+            //mainCtx.clearRect(0, 0, totalWidth, totalHeight);
+            //mainCtx.drawImage(frameCanvas, 0, 0);
 
         }
     }
@@ -1406,7 +1388,7 @@ var TeleChart = function (ctxId) {
      */
     function animationComplete(animationKey) {
         if (animationKey === CONST_SELECTION_CURRENT_INDEX_ANIMATION_KEY) {
-            animate(legendTextOpacity, setLegendTextOpacity, 1, 5);
+       //     animate(legendTextOpacity, setLegendTextOpacity, 1, 5);
         }
         else if (animationKey === CONST_SELECTION_FACTOR_Y_ANIMATION_KEY) {
             animate(axisYLabelOpacity, setAxisYLabelOpacity, 1, 10);
