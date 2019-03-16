@@ -865,7 +865,7 @@ var TeleChart = function (ctxId) {
     }
 
     /**
-     * Draws the chart series
+     * Draws the chart series (Attention! Performance critical)
      * @returns {Boolean} exist visualise
      */
     function drawSeries() {
@@ -873,8 +873,9 @@ var TeleChart = function (ctxId) {
             _selectionAxis = selectionHeight + selectionUpSpace,
             _i,
             _k,
-            _j,
-            _axisY;
+            _axisY,
+            _xValue,
+            _yValue;
         for (_i in yAxisDataRefs) {
             _axisY = yAxisDataRefs[_i];
             if (_axisY.bOn) {
@@ -887,23 +888,24 @@ var TeleChart = function (ctxId) {
 
             setStrokeStyle(_axisY.sCg[fParseInt(10 * _axisY.sOp)]);
             var _length = xAxisDataRef.data.length;
-            for (_k = 1; _k < _length; _k++) {
-                var _xValue = (_k - 1) * navigatorFactorX,
-                    _yValue = navigatorTop + navigatorHeight + (_axisY.data[_k] - navigatorMinY) * navigatorFactorY;
+            _xValue = 0;
+            for (_k = 1; _k < _length;) {
+                _yValue = navigatorBottom + (_axisY.data[_k] - navigatorMinY) * navigatorFactorY;
                 if (_yValue < navigatorTop) {
                     _yValue = navigatorTop;
                 }
-                moveOrLine(_k === 1 , _xValue, _yValue);
+                moveOrLine(_k === 1, _xValue, _yValue);
+                _xValue = _k++ * navigatorFactorX;
             }
             endPath();
             setRound(true);
             //selection series
             beginPath();
             setLineWidth(3);
-            for (_j = selectionStartIndexInt; _j <= selectionEndIndexInt; _j++) {
-                var _selValueX = (_j - selectionStartIndexFloat) * selectionFactorX,
-                    _selValueY = _selectionAxis + (_axisY.data[_j] - selectionMinY) * selectionFactorY;
-                moveOrLine(_j === selectionStartIndexFloat, _selValueX, _selValueY);
+            for (_k = selectionStartIndexInt; _k <= selectionEndIndexInt;) {
+                _xValue = (_k - selectionStartIndexFloat) * selectionFactorX;
+                _yValue = _selectionAxis + (_axisY.data[_k] - selectionMinY) * selectionFactorY;
+                moveOrLine(_k++ === selectionStartIndexInt, _xValue, _yValue);
             }
             endPath();
             setRound(false);
