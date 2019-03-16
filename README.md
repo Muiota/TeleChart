@@ -14,9 +14,10 @@ Demo: https://muiota.github.io/TeleChart/
  - Smooth animation
  - Mobile high resolution & touches support
  - Material design animations
+ - Tooltip legend
   
 ### Road map:
-- Tooltip legend
+
 - Resize container support 
 - Area type of series 
 - Performance, minimize & fixes

@@ -103,6 +103,7 @@ var TeleChart = function (ctxId) {
         legendTop,
         legendLeft,
         legendDateLeft,
+        legendDateLeftEx,
         legendDateTop,
         legendTextOpacity = 0,
         legendBoxOpacity = 0,
@@ -197,6 +198,10 @@ var TeleChart = function (ctxId) {
 
     function setLegendOpacity(val) {
         legendBoxOpacity = val;
+    }
+
+    function setLegendWidth(val) {
+        legendWidth = val;
     }
 
     function setLegendTextOpacity(val) {
@@ -335,6 +340,7 @@ var TeleChart = function (ctxId) {
 
         if (mouseY < navigatorTop && mouseX > 0 && mouseX < totalWidth) {
             var _proposed = fMathRound(mouseX / selectionFactorX + selectionStartIndexFloat);
+            calcLegendPosition(_proposed);
             if (animate(selectionCurrentIndexFloat, setSelectionCurrentIndexFloat, _proposed)) {
                 animate(legendTextOpacity, setLegendTextOpacity, 0);
             }
@@ -961,19 +967,27 @@ var TeleChart = function (ctxId) {
         setFont(envBoldSmallFont);
         setFillStyle(envColorGrad[fParseInt(_legendBoxOpacity * legendTextOpacity)]);
         fillText(legendDateText, _sValueX + legendDateLeft, legendDateTop);
-
+        var _currentY = CONST_BTN_RADIUS + CONST_PADDING * 3 ;
+        var _qnt = 0;
         for (_i in yAxisDataRefs) {
             _axisY = yAxisDataRefs[_i];
             var _value = _axisY.data[_from];
             if (!_axisY.bOn) {
                 continue;
             }
+
+            var _isEven = (_qnt & 1);
+            var _shiftX = _isEven ? legendDateLeftEx : legendDateLeft;
+            if (!_isEven) {
+                _currentY += (envNormalTextHeight + CONST_PADDING) * 2;
+            }
             setFillStyle(_axisY.sCg[fParseInt(_legendBoxOpacity * legendTextOpacity)]);
             setFont(envBoldNormalFont);
-            fillText(_value, _sValueX + _axisY.lx, _axisY.ly);
+            fillText(_value, _sValueX + _shiftX, _currentY);
             setFont(envRegularSmallFont);
-            fillText(_axisY.name, _sValueX + _axisY.lx,
-                _axisY.ly + envNormalTextHeight + CONST_PADDING);
+            fillText(_axisY.name, _sValueX + _shiftX,
+                _currentY + envNormalTextHeight + CONST_PADDING);
+            _qnt++;
         }
     }
 
@@ -1195,7 +1209,7 @@ var TeleChart = function (ctxId) {
                         alias: _alias,
                         data: _column, //without realloc mem
                         type: CONST_DEFAULT_TYPE,
-                        name: _alias + "etrewterter", //todo debug need remove
+                        name: _alias , //todo debug need remove + "etrewterter"
                         min: _min,
                         max: _max,
                         bOn: vTrue,
@@ -1225,7 +1239,7 @@ var TeleChart = function (ctxId) {
 
         assignAxisProperty(src.types, "type");
         assignAxisProperty(src.colors, "color");
-        // assignAxisProperty(src.names, "name"); //todo need revert debug
+         assignAxisProperty(src.names, "name"); //todo need revert debug
 
         calcNavigatorFactors();
         calcButtonsParams();
@@ -1294,28 +1308,43 @@ var TeleChart = function (ctxId) {
         }
     }
 
-    function calcLegendPosition() {
-        legendWidth = 120.5;
-        legendHeight = 100; //todo calc only
+    /**
+     *  Calculate legend in cache once before show
+     */
+    function calcLegendPosition(pos) {
+
+
         legendTop = CONST_BTN_RADIUS + 0.5;
         legendLeft = -25.5;
         legendDateLeft = - 25 + CONST_PADDING * 3;
         legendDateTop = CONST_BTN_RADIUS + CONST_PADDING * 3 + envSmallTextHeight + 0.5;
-        legendDateText = formatDate(xAxisDataRef.data[fMathFloor(selectionCurrentIndexFloat)], vTrue);
-        var _currentY = CONST_BTN_RADIUS + CONST_PADDING * 5 + envSmallTextHeight + 0.5 + envNormalTextHeight;
+        var _dataIndex = fMathFloor(pos);
+        legendDateText = formatDate(xAxisDataRef.data[_dataIndex], vTrue);
+
+        var _width = CONST_PADDING;
+        var _qnt = 0;
         for (var _i in yAxisDataRefs) {
             var _axisY = yAxisDataRefs[_i];
             if (!_axisY.bOn) {
                 continue;
             }
-            _axisY.lx = - 25 + CONST_PADDING * 3;
-            _axisY.ly = _currentY;
-            _currentY+= (envNormalTextHeight + CONST_PADDING)*2;
-            //todo calculate once in cache before show
+            _qnt++;
+            var _value = _axisY.data[_dataIndex];
+            setFont(envBoldNormalFont);
+             _width = getMax(getTextWidth(_value) + CONST_PADDING, _width);
+            setFont(envRegularSmallFont);
+             _width = getMax(getTextWidth(_axisY.name) + CONST_PADDING, _width);
         }
 
-
-        animate(legendTextOpacity, setLegendTextOpacity, 1, 5);
+        legendDateLeftEx =_width;
+        var _proposedWidth = (_width + CONST_PADDING * 3);
+        if (_qnt> 1)
+        {
+            _proposedWidth*= 2;
+        }
+        _proposedWidth = getMax(120.5, _proposedWidth);
+        animate(legendWidth,setLegendWidth,_proposedWidth);
+        legendHeight = 55 + fMathCeil(_qnt/2) * ((envNormalTextHeight + CONST_PADDING) * 2);
     }
 
     /**
@@ -1324,11 +1353,10 @@ var TeleChart = function (ctxId) {
      */
     function animationComplete(animationKey) {
         if (animationKey === CONST_SELECTION_CURRENT_INDEX_ANIMATION_KEY) {
-            calcLegendPosition();
+            animate(legendTextOpacity, setLegendTextOpacity, 1, 5);
         }
         else if (animationKey === CONST_SELECTION_FACTOR_Y_ANIMATION_KEY) {
             animate(axisYLabelOpacity, setAxisYLabelOpacity, 1, 10);
-
         }
     }
 
