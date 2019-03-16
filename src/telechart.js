@@ -991,7 +991,7 @@ var TeleChart = function (ctxId) {
         setFont(envBoldSmallFont);
         setFillStyle(envColorGrad[fParseInt(_legendBoxOpacity * legendTextOpacity)]);
         fillText(legendDateText, _sValueX + legendTextLeft, legendDateTop);
-        var _currentY = CONST_BTN_RADIUS + CONST_PADDING_3;
+        var _currentY = CONST_BTN_RADIUS + CONST_PADDING_2;
         var _qnt = 0;
         for (_i in yAxisDataRefs) {
             _axisY = yAxisDataRefs[_i];
@@ -1000,7 +1000,7 @@ var TeleChart = function (ctxId) {
                 var _isEven = (_qnt & 1);
                 var _shiftX = _isEven ? legendTextLeftEx : legendTextLeft;
                 if (!_isEven) {
-                    _currentY += (envNormalTextHeight + CONST_PADDING) * 2;
+                    _currentY += (envNormalTextHeight + envSmallTextHeight + CONST_PADDING_4);
                 }
                 setFillStyle(_axisY.sCg[fParseInt(_legendBoxOpacity * legendTextOpacity)]);
                 setFont(envBoldNormalFont);
@@ -1050,7 +1050,6 @@ var TeleChart = function (ctxId) {
      * Draws a frame on canvas
      */
     function redrawFrame() {
-        assign("start");
         frameContext.clearRect(0, 0, totalWidth, totalHeight);
         //fillRect(0,0, totalWidth, totalHeight); //todo debug
         if (xAxisDataRef && yAxisDataRefs && yAxisDataRefs.length) {
@@ -1064,9 +1063,9 @@ var TeleChart = function (ctxId) {
             setFillStyle(envBgColorGrad[10]);
             fillRect(_startZoom + CONST_PADDING_2, navigatorTop + CONST_PADDING_HALF, _endZoom - _startZoom - CONST_PADDING_4, navigatorHeight - CONST_PADDING); //todo optimize
             drawHorizontalGrid();
-            assign("middle");
+            assign("other");
             var _existVisible = drawSeries();
-
+            assign("series");
             //Draw navigation frame  //todo function
             setFillStyle(envColorGrad[1]);
             fillRect(0, navigatorTop, _startZoom, navigatorHeight);
@@ -1091,11 +1090,11 @@ var TeleChart = function (ctxId) {
             //  frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
             //   frameContext.fillText("mouseX " + mouseX, 10, 50);
             //    frameContext.fillText("mouseY " + mouseY, 10, 70);
-             frameContext.fillText("end=" +_perfResult.end, 10, 30);
-            frameContext.fillText("middle=" +_perfResult.middle, 10, 50);
+             frameContext.fillText("other=" +_perfResult.end, 10, 30);
+            frameContext.fillText("series=" +_perfResult.middle, 10, 50);
             mainCtx.clearRect(0, 0, totalWidth, totalHeight);
             mainCtx.drawImage(frameCanvas, 0, 0);
-            assign("end");
+
         }
     }
 
@@ -1390,7 +1389,7 @@ var TeleChart = function (ctxId) {
             _proposedWidth *= 2;
         }
         _proposedWidth = getMax(120.5, _proposedWidth);
-        legendHeight = 36 + envNormalTextHeight + fMathCeil(_qnt / 2) * ((envNormalTextHeight + CONST_PADDING) * 2);
+        legendHeight = 36 + envNormalTextHeight + fMathCeil(_qnt / 2) * (envNormalTextHeight + envSmallTextHeight + CONST_PADDING_4);
         animate(legendWidth, setLegendWidth, _proposedWidth);
     }
 
