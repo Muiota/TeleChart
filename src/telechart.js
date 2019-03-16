@@ -1090,8 +1090,8 @@ var TeleChart = function (ctxId) {
             //  frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
             //   frameContext.fillText("mouseX " + mouseX, 10, 50);
             //    frameContext.fillText("mouseY " + mouseY, 10, 70);
-             frameContext.fillText("other=" +_perfResult.end, 10, 30);
-            frameContext.fillText("series=" +_perfResult.middle, 10, 50);
+             frameContext.fillText("other=" +_perfResult.other, 10, 30);
+            frameContext.fillText("series=" +_perfResult.series, 10, 50);
             mainCtx.clearRect(0, 0, totalWidth, totalHeight);
             mainCtx.drawImage(frameCanvas, 0, 0);
 
