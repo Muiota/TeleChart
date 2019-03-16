@@ -334,8 +334,8 @@ var TeleChart = function (ctxId) {
             if (animate(selectionCurrentIndexFloat, setSelectionCurrentIndexFloat, _proposed)) {
                 animate(legendTextOpacity, setLegendTextOpacity, 0);
             }
-            mouseFrame.nS = zoomStartSmooth;
-            mouseFrame.nE = zoomEndSmooth ;
+            mouseFrame.tS = zoomStartSmooth;
+            mouseFrame.tE = zoomEndSmooth ;
             mouseFrame.tF = mouseX;
             _result = ENUM_SELECTION_HOVER;
             invalidateInner();
@@ -417,16 +417,16 @@ var TeleChart = function (ctxId) {
         animate(zoomEndSmooth, setZoomEnd, val);
     }
 
-    function moveChartCore(shift, maxX) {
-        var _start = shift + mouseFrame.nS,
-            _end = shift + mouseFrame.nE;
+    function moveChartCore(shift, maxX, start, end) {
+        var _start = shift + start,
+            _end = shift + end;
         if (_start < 0) {
             _start = 0;
-            _end = mouseFrame.nE - mouseFrame.nS;
+            _end = end - start;
         }
         if (_end > maxX) {
             _end = maxX;
-            _start = maxX - mouseFrame.nE + mouseFrame.nS;
+            _start = maxX - end + start;
         }
         associateZoomStart(_start);
         associateZoomEnd(_end);
@@ -455,7 +455,7 @@ var TeleChart = function (ctxId) {
                 }
                 break;
             case ENUM_ZOOM_HOVER:
-                moveChartCore(_proposedX, _maxProposedX);
+                moveChartCore(_proposedX, _maxProposedX, mouseFrame.nS, mouseFrame.nE);
                 break;
         }
     }
@@ -472,20 +472,20 @@ var TeleChart = function (ctxId) {
             if (_interval > CONST_PADDING || mouseFrame.tI) {
                 mouseFrame.tI = vTrue;
                 var _maxProposedX = xAxisDataRef.data.length - 2;
-                moveChartCore(_interval, _maxProposedX);
+                moveChartCore(_interval, _maxProposedX, mouseFrame.tS, mouseFrame.tE);
             }
         } else {
             moveChart();
         }
     }
 
-    function assignMousePos(e) {
+    function assignMousePos(e, withoutPress) {
         var _clientX = e.clientX,
             _clientY = e.clientY;
         if (_clientX && _clientY) {
             mouseX = fParseInt((_clientX - mouseOffsetX) * CONST_DISPLAY_SCALE_FACTOR);
             mouseY = fParseInt((_clientY - mouseOffsetY) * CONST_DISPLAY_SCALE_FACTOR);
-            mousePressed ? moveHoveredElement() : calcHoveredElement();
+            (mousePressed && !withoutPress) ? moveHoveredElement() : calcHoveredElement();
             invalidateInner();
         }
     }
@@ -493,13 +493,14 @@ var TeleChart = function (ctxId) {
     /**
      * Handles the mouse move
      * @param e {Object}
+     * @param withoutPress {Boolean=}
      */
-    function handleMouseMove(e) {
+    function handleMouseMove(e, withoutPress) {
         stopPropagation(e);
         var _touches = e.touches;
         (_touches && _touches.length) ?
-            assignMousePos(_touches[0]) :
-            assignMousePos(e);
+            assignMousePos(_touches[0], withoutPress) :
+            assignMousePos(e, withoutPress);
     }
 
     /**
@@ -510,9 +511,8 @@ var TeleChart = function (ctxId) {
     function handleMouseClick(e, pressed) {
         stopPropagation(e);
         mousePressed = pressed;
-
+        handleMouseMove(e, true);
         if (pressed) {
-            handleMouseMove(e);
             calcHoveredElement(vTrue);
             switch (mouseHovered) {
                 case ENUM_ZOOM_HOVER:
