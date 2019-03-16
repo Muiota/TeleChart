@@ -23,16 +23,13 @@ Demo: https://muiota.github.io/TeleChart/
 - Resize container support 
 - Area type of series 
 - Performance, minimize & fixes
-````
- - Auto height not work
+```` 
  - Highlight when bounds
- - Smart X-axis labels overlay
- - Top navigator overlay
+ - Smart X-axis labels overlay 
  - Opacity animation (buttons, series, legend) 
  - Date format config
  - Mobile touch for resize zoom problem
- - Scroll chart in selection window
- - Clip navigator drawing
+ - Scroll chart in selection window 
  - Cleanup code 
 ````
 
