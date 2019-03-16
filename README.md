@@ -30,4 +30,4 @@ Demo: https://muiota.github.io/TeleChart/
  - Cleanup code 
 ````
 
-![Screenshot](https://i.imgur.com/IkHg18g.png)
+![Screenshot](https://i.imgur.com/sYxKiEV.png)

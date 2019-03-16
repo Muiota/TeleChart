@@ -51,7 +51,7 @@ var TeleChart = function (ctxId) {
         selectionUpSpace = navigatorHeight / 2,
         navigatorTop = selectionHeight + navigatorHeight + CONST_PADDING * 4,
         navigatorBottom = navigatorTop + navigatorHeight,
-        totalHeight = navigatorBottom + CONST_PADDING *10 + CONST_BTN_RADIUS * 4,
+        totalHeight = navigatorBottom + CONST_PADDING * 10 + CONST_BTN_RADIUS * 4,
         needRedraw,
         mainCanvas = createCanvas(totalWidth, totalHeight, "m_" + ctxId),
         frameCanvas = createCanvas(totalWidth, totalHeight, "f_" + ctxId),
@@ -120,7 +120,7 @@ var TeleChart = function (ctxId) {
         envRegularNormalFont;
 
     function setRound(enable) {
-        frameContext.lineJoin = enable? "round": "miter";
+        frameContext.lineJoin = enable ? "round" : "bevel";
     }
 
     /**
@@ -345,7 +345,7 @@ var TeleChart = function (ctxId) {
                 animate(legendTextOpacity, setLegendTextOpacity, 0);
             }
             mouseFrame.tS = zoomStartSmooth;
-            mouseFrame.tE = zoomEndSmooth ;
+            mouseFrame.tE = zoomEndSmooth;
             mouseFrame.tF = mouseX;
             _result = ENUM_SELECTION_HOVER;
             invalidateInner();
@@ -356,9 +356,9 @@ var TeleChart = function (ctxId) {
                 _startZShift = _startZoom - mouseX,
                 _endZShift = _endZoom - mouseX;
 
-            if (fMathAbs(_startZShift + CONST_PADDING) < CONST_PADDING*2) {
+            if (fMathAbs(_startZShift + CONST_PADDING) < CONST_PADDING * 2) {
                 _result = ENUM_START_SELECTION_HOVER;
-            } else if (fMathAbs(_endZShift - CONST_PADDING) < CONST_PADDING*2) {
+            } else if (fMathAbs(_endZShift - CONST_PADDING) < CONST_PADDING * 2) {
                 _result = ENUM_END_SELECTION_HOVER;
             } else if (mouseX > _startZoom && mouseX < _endZoom) {
                 mouseFrame.nS = _startZShift / navigatorFactorX;
@@ -751,8 +751,8 @@ var TeleChart = function (ctxId) {
         }
 
 
-        setFillStyle(envBgColorGrad[10]);
-        fillRect(0, navigatorTop - navigatorHeight + CONST_PADDING * 2, totalWidth, navigatorHeight - CONST_PADDING * 2);
+        //setFillStyle(envBgColorGrad[10]);
+        //fillRect(0, navigatorTop - navigatorHeight + CONST_PADDING * 2, totalWidth, navigatorHeight - CONST_PADDING * 2);
         //X-axis labels
         setLineWidth(1);
         setFillStyle(_c);
@@ -922,7 +922,7 @@ var TeleChart = function (ctxId) {
     /**
      * Draws the legend
      */
-    function drawSeriesLegend() { //todo optimize
+    function drawSeriesLegend() { //todo optimize (big code)
         var _selectionAxis = selectionHeight + selectionUpSpace,
             _sValueX = (selectionCurrentIndexFloat - selectionStartIndexFloat  ) * selectionFactorX,
             _from = fMathFloor(selectionCurrentIndexFloat),
@@ -962,12 +962,33 @@ var TeleChart = function (ctxId) {
             circle(_sValueX, _sValueY, 5);
             endPath();
         }
-        drawBalloon(_sValueX + legendLeft, legendTop,
-            legendWidth, legendHeight, vTrue, legendBoxOpacity);
+
+        var _left = _sValueX + legendLeft - 3,
+            _right = 0;
+        if (_left < 0) {
+            _sValueX =  - legendLeft+ 3;
+        }
+        else {
+            var _overlap = _left + legendWidth - totalWidth + 6 ;
+            if (_overlap > 0) {
+                _right = _overlap - legendWidth+ CONST_BTN_RADIUS*2;
+                _sValueX =   totalWidth - legendLeft - legendWidth - 3;
+            }
+        }
+
+        if (_left > 0) {
+            _left = 0;
+        }
+        if (_right < 0) {
+            _right = 0;
+        }
+
+        drawBalloon(_sValueX + legendLeft+_left, legendTop,
+            legendWidth - _left + _right, legendHeight, vTrue, legendBoxOpacity);
         setFont(envBoldSmallFont);
         setFillStyle(envColorGrad[fParseInt(_legendBoxOpacity * legendTextOpacity)]);
         fillText(legendDateText, _sValueX + legendDateLeft, legendDateTop);
-        var _currentY = CONST_BTN_RADIUS + CONST_PADDING * 3 ;
+        var _currentY = CONST_BTN_RADIUS + CONST_PADDING * 3;
         var _qnt = 0;
         for (_i in yAxisDataRefs) {
             _axisY = yAxisDataRefs[_i];
@@ -1005,7 +1026,7 @@ var TeleChart = function (ctxId) {
             }
 
             beginPath();
-            setFillStyle(envColorGrad[fParseInt(navigatorPressed*2)]);
+            setFillStyle(envColorGrad[fParseInt(navigatorPressed * 2)]);
 
             circle(_x, navigatorTop + navigatorHeight / 2, navigatorPressed * 35);
             fill();
@@ -1055,7 +1076,7 @@ var TeleChart = function (ctxId) {
             //  frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
             //   frameContext.fillText("mouseX " + mouseX, 10, 50);
             //    frameContext.fillText("mouseY " + mouseY, 10, 70);
-           // frameContext.fillText("mouseFrame.tS=" +mouseFrame.tS, 10, 30);
+            // frameContext.fillText("mouseFrame.tS=" +mouseFrame.tS, 10, 30);
             mainCtx.clearRect(0, 0, totalWidth, totalHeight);
             mainCtx.drawImage(frameCanvas, 0, 0, totalWidth, totalHeight);
         }
@@ -1144,7 +1165,7 @@ var TeleChart = function (ctxId) {
     function calcButtonsParams() {
         var _x = CONST_PADDING,
             _y = navigatorBottom + CONST_PADDING * 6,
-            _height = CONST_BTN_RADIUS* 2,
+            _height = CONST_BTN_RADIUS * 2,
             _i,
             _j;
         setFont(envRegularNormalFont);
@@ -1209,7 +1230,7 @@ var TeleChart = function (ctxId) {
                         alias: _alias,
                         data: _column, //without realloc mem
                         type: CONST_DEFAULT_TYPE,
-                        name: _alias , //todo debug need remove + "etrewterter"
+                        name: _alias, //todo debug need remove + "etrewterter"
                         min: _min,
                         max: _max,
                         bOn: vTrue,
@@ -1239,7 +1260,7 @@ var TeleChart = function (ctxId) {
 
         assignAxisProperty(src.types, "type");
         assignAxisProperty(src.colors, "color");
-         assignAxisProperty(src.names, "name"); //todo need revert debug
+        assignAxisProperty(src.names, "name"); //todo need revert debug
 
         calcNavigatorFactors();
         calcButtonsParams();
@@ -1312,11 +1333,9 @@ var TeleChart = function (ctxId) {
      *  Calculate legend in cache once before show
      */
     function calcLegendPosition(pos) {
-
-
         legendTop = CONST_BTN_RADIUS + 0.5;
-        legendLeft = -25.5;
-        legendDateLeft = - 25 + CONST_PADDING * 3;
+        legendLeft = -25.5;// -25.5;
+        legendDateLeft = -25 + CONST_PADDING * 3;
         legendDateTop = CONST_BTN_RADIUS + CONST_PADDING * 3 + envSmallTextHeight + 0.5;
         var _dataIndex = fMathFloor(pos);
         legendDateText = formatDate(xAxisDataRef.data[_dataIndex], vTrue);
@@ -1331,20 +1350,19 @@ var TeleChart = function (ctxId) {
             _qnt++;
             var _value = _axisY.data[_dataIndex];
             setFont(envBoldNormalFont);
-             _width = getMax(getTextWidth(_value) + CONST_PADDING, _width);
+            _width = getMax(getTextWidth(_value) + CONST_PADDING, _width);
             setFont(envRegularSmallFont);
-             _width = getMax(getTextWidth(_axisY.name) + CONST_PADDING, _width);
+            _width = getMax(getTextWidth(_axisY.name) + CONST_PADDING, _width);
         }
 
-        legendDateLeftEx =_width;
+        legendDateLeftEx = _width;
         var _proposedWidth = (_width + CONST_PADDING * 3);
-        if (_qnt> 1)
-        {
-            _proposedWidth*= 2;
+        if (_qnt > 1) {
+            _proposedWidth *= 2;
         }
         _proposedWidth = getMax(120.5, _proposedWidth);
-        animate(legendWidth,setLegendWidth,_proposedWidth);
-        legendHeight = 55 + fMathCeil(_qnt/2) * ((envNormalTextHeight + CONST_PADDING) * 2);
+        animate(legendWidth, setLegendWidth, _proposedWidth);
+        legendHeight = 55 + fMathCeil(_qnt / 2) * ((envNormalTextHeight + CONST_PADDING) * 2);
     }
 
     /**
@@ -1376,10 +1394,10 @@ var TeleChart = function (ctxId) {
             redrawFrame();
 
             //todo======================== debug
-           // var _performance = performance.now();
-          //  var _delta = (_performance - lastCalledTime) / 1000;
-          //  mainCtx.fillText("FPS " + fParseInt(1 / _delta), 10, 90);
-          //  lastCalledTime = _performance;
+            // var _performance = performance.now();
+            //  var _delta = (_performance - lastCalledTime) / 1000;
+            //  mainCtx.fillText("FPS " + fParseInt(1 / _delta), 10, 90);
+            //  lastCalledTime = _performance;
             //todo======================== debug
         }
 
