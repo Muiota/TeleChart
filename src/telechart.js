@@ -336,7 +336,7 @@ var TeleChart = function (ctxId) {
             }
             mouseFrame.nS = zoomStartSmooth;
             mouseFrame.nE = zoomEndSmooth ;
-            mouseFrame.tF = _proposed;
+            mouseFrame.tF = mouseX;
             _result = ENUM_SELECTION_HOVER;
             invalidateInner();
         } else if (mouseY > navigatorTop && mouseY < navigatorBottom) {
@@ -417,16 +417,16 @@ var TeleChart = function (ctxId) {
         animate(zoomEndSmooth, setZoomEnd, val);
     }
 
-    function moveChartCore(_proposedX, _maxProposedX) {
-        var _start = _proposedX + mouseFrame.nS,
-            _end = _proposedX + mouseFrame.nE;
+    function moveChartCore(shift, maxX) {
+        var _start = shift + mouseFrame.nS,
+            _end = shift + mouseFrame.nE;
         if (_start < 0) {
             _start = 0;
             _end = mouseFrame.nE - mouseFrame.nS;
         }
-        if (_end > _maxProposedX) {
-            _end = _maxProposedX;
-            _start = _maxProposedX - mouseFrame.nE + mouseFrame.nS;
+        if (_end > maxX) {
+            _end = maxX;
+            _start = maxX - mouseFrame.nE + mouseFrame.nS;
         }
         associateZoomStart(_start);
         associateZoomEnd(_end);
@@ -468,10 +468,9 @@ var TeleChart = function (ctxId) {
             return;
         }
         if (ENUM_SELECTION_HOVER === mouseHovered) {
-            var _proposed = mouseX / selectionFactorX + mouseFrame.tF;
-            var _interval = selectionCurrentIndexFloat - _proposed;
+            var _proposed = ( mouseFrame.tF - mouseX ) / selectionFactorX;
             var _maxProposedX = xAxisDataRef.data.length - 2;
-            moveChartCore(_interval, _maxProposedX);
+            moveChartCore(_proposed, _maxProposedX);
         } else {
             moveChart();
         }
@@ -507,10 +506,11 @@ var TeleChart = function (ctxId) {
      */
     function handleMouseClick(e, pressed) {
         stopPropagation(e);
-        handleMouseMove(e);
         mousePressed = pressed;
-        calcHoveredElement(vTrue);
+
         if (pressed) {
+            handleMouseMove(e);
+            calcHoveredElement(vTrue);
             switch (mouseHovered) {
                 case ENUM_ZOOM_HOVER:
                 case ENUM_START_SELECTION_HOVER:
@@ -879,7 +879,7 @@ var TeleChart = function (ctxId) {
             for (_k = 1; _k < _length; _k++) {
                 var _xValue = (_k - 1) * navigatorFactorX,
                     _yValue = navigatorTop + navigatorHeight + (_axisY.data[_k] - navigatorMinY) * navigatorFactorY;
-                moveOrLine(_k === 1, _xValue, _yValue);
+                moveOrLine(_k === 1 || _yValue < navigatorTop- CONST_PADDING, _xValue, _yValue);
             }
             endPath();
             setRound(true);
