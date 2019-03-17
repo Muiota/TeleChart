@@ -29,6 +29,7 @@ var TeleChart = function (ctxId) {
         CONST_PADDING_3 = CONST_PADDING * 3,
         CONST_PADDING_4 = CONST_PADDING * 4,
         CONST_BTN_RADIUS = 20,
+        CONST_BTN_RADIUS_2 = CONST_BTN_RADIUS * 2,
         ENUM_NAVIGATOR_HOVER = 1,
         ENUM_START_SELECTION_HOVER = 2,
         ENUM_END_SELECTION_HOVER = 3,
@@ -42,7 +43,6 @@ var TeleChart = function (ctxId) {
         CONST_TWO_PI = 2 * Math.PI,
         CONST_PIXEL = "px",
         CONST_BOLD_PREFIX = "bold ",
-        CONST_SELECTION_CURRENT_INDEX_ANIMATION_KEY = getFunctionName(setSelectionCurrentIndexFloat),
         CONST_SELECTION_FACTOR_Y_ANIMATION_KEY = getFunctionName(setSelectionFactorY);
 
     /**
@@ -506,7 +506,7 @@ var TeleChart = function (ctxId) {
     function handleMouseMove(e, withoutPress) {
         stopPropagation(e);
         var _touches = e.touches;
-        (_touches && _touches.length) ?
+         (_touches && _touches.length) ?
             assignMousePos(_touches[0], withoutPress) :
             assignMousePos(e, withoutPress);
     }
@@ -575,11 +575,11 @@ var TeleChart = function (ctxId) {
             return color;
         }
         if (color.indexOf("#") !== -1) {
-            var regExp = color.length === 7 ?
+            var _regExp = color.length === 7 ?
                 /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i :
-                /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
-            var result = regExp.exec(color);
-            color = "rgb(" + fParseInt(result[1], 16) + "," + fParseInt(result[2], 16) + "," + fParseInt(result[3], 16) + ")";
+                /^#?([a-f\d])([a-f\d])([a-f\d])$/i,
+                _result = _regExp.exec(color);
+            color = "rgb(" + fParseInt(_result[1], 16) + "," + fParseInt(_result[2], 16) + "," + fParseInt(_result[3], 16) + ")";
         }
         if (color.indexOf("a") === -1) {
             return color.replace(")", ", " + opacity + ")").replace("rgb", "rgba");
@@ -721,13 +721,14 @@ var TeleChart = function (ctxId) {
      * Draws the horizontal grid
      */
     function drawHorizontalGrid() {
-        var _selectionAxis = selectionHeight + selectionUpSpace;
+        var _selectionAxis = selectionHeight + selectionUpSpace,
+            nextScale = _selectionAxis,
+            _y;
         beginPath();
         setStrokeStyle(envColorGrad[1]);
         setLineWidth(1);
-        var nextScale = _selectionAxis;
         while (nextScale > selectionUpSpace) {
-            var _y = fParseInt(nextScale) + 0.5;
+            _y = fParseInt(nextScale) + 0.5;
             moveOrLine(vTrue, 0, _y);
             moveOrLine(vFalse, totalWidth, _y);
             nextScale = nextScale + scaleIntervalY * selectionFactorY;
@@ -740,19 +741,21 @@ var TeleChart = function (ctxId) {
      */
     function drawAxisLabels() { //todo need optimize & fixes
         var _selectionAxis = selectionHeight + selectionUpSpace,
-            _c = envColorGrad[4],
+            _color = envColorGrad[5],
+            _bgColor = envBgColorGrad[fParseInt(7 * axisYLabelOpacity)],
             _needCalc = !smartAxisStart || !mousePressed,
             _l,
             _nextItem,
             _labelX,
-            _labelY;
+            _labelY,
+            _nextScaleValue = 0;
         if (_needCalc) {
             smartAxisStart = selectionStartIndexInt;
             smartAxisRange = fParseInt(fMathCeil((selectionEndIndexFloat - selectionStartIndexFloat) / 6));
         }
 
         setLineWidth(1);
-        setFillStyle(_c);
+        setFillStyle(_color);
         _nextItem = smartAxisStart;
 
         if (!_needCalc) {
@@ -773,35 +776,33 @@ var TeleChart = function (ctxId) {
         }
 
         //Y-axis labels
-        var _nextScaleValue = 0,
-            _bg = envBgColorGrad[fParseInt(7 * axisYLabelOpacity)];
-
-        _c = envColorGrad[fParseInt(4 * axisYLabelOpacity)];
+        _color = envColorGrad[fParseInt(4 * axisYLabelOpacity)];
         while (_selectionAxis > selectionUpSpace) {
             _labelY = fParseInt(_selectionAxis) + 0.5 - CONST_PADDING;
-            var _textWidth = getTextWidth(_nextScaleValue);
-            setFillStyle(_bg);
-            fillRect(CONST_PADDING_HALF, _labelY - envSmallTextHeight + 2, _textWidth + CONST_PADDING_2, envSmallTextHeight); //todo
-            setFillStyle(_c);
+            setFillStyle(_bgColor);
+            fillRect(CONST_PADDING_HALF, _labelY - envSmallTextHeight + 2, getTextWidth(_nextScaleValue) + CONST_PADDING_2, envSmallTextHeight); //todo
+            setFillStyle(_color);
             fillText(_nextScaleValue, CONST_PADDING, _labelY);
             _nextScaleValue = fParseInt(_nextScaleValue + scaleIntervalY);
             _selectionAxis = _selectionAxis + scaleIntervalY * selectionFactorY;
         }
     }
 
-
     function drawBalloon(x, y, width, height, hovered, opacity) {
+        var _xWidth = x + width,
+            _yHeight = y + height;
+
         beginPath();
         setStrokeStyle(envColorGrad[fParseInt((hovered ? 4 : 2) * opacity)]);
         setFillStyle(envBgColorGrad[fParseInt(3 + 6 * opacity)]);
         setLineWidth(1);
         moveOrLine(vTrue, x + CONST_BTN_RADIUS, y);
-        moveOrLine(vFalse, x + width - CONST_BTN_RADIUS, y);
-        quadraticCurveTo(x + width, y, x + width, y + CONST_BTN_RADIUS);
-        moveOrLine(vFalse, x + width, y + height - CONST_BTN_RADIUS);
-        quadraticCurveTo(x + width, y + height, x + width - CONST_BTN_RADIUS, y + height);
-        moveOrLine(vFalse, x + CONST_BTN_RADIUS, y + height);
-        quadraticCurveTo(x, y + height, x, y + height - CONST_BTN_RADIUS);
+        moveOrLine(vFalse, _xWidth - CONST_BTN_RADIUS, y);
+        quadraticCurveTo(_xWidth, y, _xWidth, y + CONST_BTN_RADIUS);
+        moveOrLine(vFalse, _xWidth, _yHeight - CONST_BTN_RADIUS);
+        quadraticCurveTo(_xWidth, _yHeight, _xWidth - CONST_BTN_RADIUS, _yHeight);
+        moveOrLine(vFalse, x + CONST_BTN_RADIUS, _yHeight);
+        quadraticCurveTo(x, _yHeight, x, _yHeight - CONST_BTN_RADIUS);
         moveOrLine(vFalse, x, y + CONST_BTN_RADIUS);
         quadraticCurveTo(x, y, x + CONST_BTN_RADIUS, y);
         closePath();
@@ -829,6 +830,7 @@ var TeleChart = function (ctxId) {
 
         setStrokeStyle(envBgColorGrad[10]);
         setLineWidth(4);
+        setRound(vTrue);
         beginPath();
         translate(-2, 4);
         moveOrLine(vTrue, _x + CONST_BTN_RADIUS - CONST_PADDING, _y + CONST_BTN_RADIUS - CONST_PADDING);
@@ -836,6 +838,7 @@ var TeleChart = function (ctxId) {
         moveOrLine(vFalse, _x + CONST_BTN_RADIUS + CONST_PADDING * 1.8, _y + CONST_BTN_RADIUS - CONST_PADDING * 1.8);
         translate(2, -4);
         endPath();
+        setRound(vFalse);
 
         beginPath();
         setFillStyle(envBgColorGrad[10]);
@@ -844,7 +847,7 @@ var TeleChart = function (ctxId) {
 
         setFillStyle(envColorGrad[10]);
         setFont(envRegularNormalFont);
-        fillText(_name, _x + CONST_BTN_RADIUS * 2 + CONST_PADDING + 1, _y + CONST_BTN_RADIUS + envSmallTextHeight / 2 - CONST_PADDING + 4);
+        fillText(_name, _x + CONST_BTN_RADIUS_2 + CONST_PADDING + 1, _y + CONST_BTN_RADIUS + envSmallTextHeight / 2 - CONST_PADDING + 4);
         setFont(envRegularSmallFont);
 
         beginPath();
@@ -965,7 +968,7 @@ var TeleChart = function (ctxId) {
         else {
             var _overlap = _left + legendWidth - totalWidth + 6;
             if (_overlap > 0) {
-                _right = _overlap - legendWidth + CONST_BTN_RADIUS * 2;
+                _right = _overlap - legendWidth + CONST_BTN_RADIUS_2;
                 _sValueX = totalWidth - legendLeft - legendWidth - 3;
             }
         }
@@ -1056,10 +1059,9 @@ var TeleChart = function (ctxId) {
 
             if (_existVisible) {
                 drawAxisLabels();
-            }
-
-            if (_existVisible && legendBoxOpacity > 0) {
-                drawSeriesLegend();
+                if (legendBoxOpacity > 0) {
+                    drawSeriesLegend();
+                }
             }
 
             drawButtons();
@@ -1174,13 +1176,15 @@ var TeleChart = function (ctxId) {
     function calcButtonsParams() {
         var _x = CONST_PADDING,
             _y = navigatorBottom + CONST_PADDING * 6,
-            _height = CONST_BTN_RADIUS * 2,
+            _height = CONST_BTN_RADIUS_2,
+            _axis,
+            _width,
             _i,
             _j;
         setFont(envRegularNormalFont);
         for (_i in yAxisDataRefs) {
-            var _axis = yAxisDataRefs[_i],
-                _width = 40 + CONST_PADDING_4 + getTextWidth(_axis.name);
+            _axis = yAxisDataRefs[_i];
+            _width = 40 + CONST_PADDING_4 + getTextWidth(_axis.name);
 
             if (_x + _width > totalWidth) {
                 _x = CONST_PADDING;
@@ -1208,7 +1212,8 @@ var TeleChart = function (ctxId) {
             return;
         }
         var columns = src.columns,
-            _i;
+            _i,
+            _k;
         if (!columns) {
             return;
         }
@@ -1218,7 +1223,7 @@ var TeleChart = function (ctxId) {
                 _max = vUndefined,
                 _min = vUndefined,
                 _alias = _column[0];
-            for (var _k = 1; _k < _dataLen; _k++) {
+            for (_k = 1; _k < _dataLen; _k++) {
                 var _elementVal = _column[_k];
                 _max = getMax(_elementVal, _max);
                 _min = getMin(_elementVal, _min);
@@ -1382,10 +1387,7 @@ var TeleChart = function (ctxId) {
      * @param animationKey {String} callback function name
      */
     function animationComplete(animationKey) {
-        if (animationKey === CONST_SELECTION_CURRENT_INDEX_ANIMATION_KEY) {
-       //     animate(legendTextOpacity, setLegendTextOpacity, 1, 5);
-        }
-        else if (animationKey === CONST_SELECTION_FACTOR_Y_ANIMATION_KEY) {
+       if (animationKey === CONST_SELECTION_FACTOR_Y_ANIMATION_KEY) {
             animate(axisYLabelOpacity, setAxisYLabelOpacity, 1, 10);
         }
     }
