@@ -12,7 +12,7 @@ Demo: https://muiota.github.io/TeleChart/
  - High resolution (fix blur, retina support)
  - Switch series
  - Smooth animation
- - Mobile high resolution & touches support
+ - Mobile touches support
  - Material design animations
  - Tooltip legend
  - Transparent background for wallpapers
@@ -24,8 +24,6 @@ Demo: https://muiota.github.io/TeleChart/
 - Performance, minimize & fixes
 ```` 
  - Highlight when bounds
- - Smart X-axis labels overlay  
- - Balloon width optimize 
  - Date format config
  - Mobile touch for resize zoom problem
  - Zoom chart in selection window for mobile 

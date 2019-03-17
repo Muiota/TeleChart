@@ -11,6 +11,7 @@ var TeleChart = function (ctxId) {
         fMathCeil = Math.ceil,
         fMathFloor = Math.floor,
         fMathRound = Math.round,
+        fMathLog = Math.log,
         vDocument = document,
         vUndefined = undefined,
         vTrue = true,
@@ -91,6 +92,8 @@ var TeleChart = function (ctxId) {
         smartAxisStart,
         smartAxisRange,
         smartAxisFrozen,
+        smartAxisRatio,
+
         smartAxisFrozenStart,
         smartAxisFrozenEnd,
 
@@ -162,7 +165,7 @@ var TeleChart = function (ctxId) {
 
         mainCanvas.onmousemove = handleMouseMove;
         mainCanvas.ontouchmove = handleMouseMove;
-        mainCanvas.onmouseout = handleMouseMove;
+        mainCanvas.onmouseout = _onMouseUp;
 
         mainCanvas.onmousedown = _onMouseDown;
         mainCanvas.onmouseup = _onMouseUp;
@@ -226,6 +229,10 @@ var TeleChart = function (ctxId) {
 
     function setAxisXLabelOpacity(val) {
         axisXLabelOpacity = val;
+    }
+
+    function setSmartAxisRatio(val) {
+        smartAxisRatio = val;
     }
 
     /**
@@ -534,6 +541,7 @@ var TeleChart = function (ctxId) {
             smartAxisFrozen = vTrue;
             smartAxisFrozenStart = selectionStartIndexFloat;
             smartAxisFrozenEnd = selectionEndIndexFloat;
+            smartAxisRatio = 0;
             calcHoveredElement(vTrue);
             switch (mouseHovered) {
                 case ENUM_ZOOM_HOVER:
@@ -561,13 +569,18 @@ var TeleChart = function (ctxId) {
             }
         } else {
             mouseFrame.tI = vFalse;
-            animate(navigatorPressed, setNavigatorPressed, 0, 15);
+            if (navigatorPressed > 0) {
+                animate(navigatorPressed, setNavigatorPressed, 0, 15);
+            }
 
-            if (smartAxisFrozenStart !== selectionStartIndexFloat ||
-                smartAxisFrozenEnd !== selectionEndIndexFloat) {
-                animate(axisXLabelOpacity, setAxisXLabelOpacity, 0, 5);
-            } else {
-                smartAxisFrozen = vFalse;
+            if (smartAxisFrozen) {
+                if (smartAxisFrozenStart !== selectionStartIndexFloat ||
+                    smartAxisFrozenEnd !== selectionEndIndexFloat) {
+                    animate(axisXLabelOpacity, setAxisXLabelOpacity, 0, 5);
+                } else {
+                    smartAxisFrozen = vFalse;
+                    smartAxisRatio = 0;
+                }
             }
         }
         invalidateInner();
@@ -755,6 +768,8 @@ var TeleChart = function (ctxId) {
         endPath();
     }
 
+
+
     /**
      * Draws the axis labels
      */
@@ -764,42 +779,85 @@ var TeleChart = function (ctxId) {
             _bgColor = envBgColorGrad[fParseInt(7 * axisYLabelOpacity)],
             _needCalc = !smartAxisStart || !smartAxisFrozen,
             _l,
+            _prevSmartAxisRange,
             _nextItem,
             _labelX,
             _labelY,
-            _nextScaleValue = 0;
+            _nextScaleValue = 0,
+            _opacity,
+            _nextStage;
+
+        //X-axis labels ============================
         if (_needCalc) {
+            smartAxisRange = fMathCeil((selectionEndIndexFloat - selectionStartIndexFloat) / 5);
             smartAxisStart = selectionStartIndexInt;
-            smartAxisRange = fParseInt(fMathCeil((selectionEndIndexFloat - selectionStartIndexFloat) / 6));
+            smartAxisStart = ++smartAxisStart - smartAxisRange; //+1 to visible frame and -range for overflow
+            if (smartAxisStart < 1) {
+                smartAxisStart = 1;
+            }
         }
 
         setLineWidth(1);
-        setFillStyle(_color);
+
         _nextItem = smartAxisStart;
 
+        var _axisRange = smartAxisRange;
+        _opacity = 1;
+      // _prevSmartAxisRange = _axisRange;
+        if (smartAxisRatio < 0) {
+            _nextStage = fMathFloor(smartAxisRatio);
+            _opacity = 1 - smartAxisRatio + _nextStage;
+            for (_l = 0; _l > _nextStage; _l--) {
+                _prevSmartAxisRange = _axisRange;
+                _axisRange /= 2;
+            }
+        } else if (smartAxisRatio > 0) {
+            _nextStage = fMathCeil(smartAxisRatio);
+            _opacity =  _nextStage - smartAxisRatio ;
+            _prevSmartAxisRange = _axisRange;
+            for (_l = 0; _l < _nextStage; _l++) {
+                _axisRange = _prevSmartAxisRange;
+                _prevSmartAxisRange *= 2;
+            }
+        }
+
         if (!_needCalc) {
-            while (_nextItem - smartAxisRange >= selectionStartIndexInt) {
-                _nextItem = _nextItem - smartAxisRange;
+            while (_nextItem - _axisRange >= selectionStartIndexInt) {
+                _nextItem = _nextItem - _axisRange;
             }
             while (_nextItem < selectionStartIndexInt) {
-                _nextItem = _nextItem + smartAxisRange;
+                _nextItem = _nextItem + _axisRange;
             }
         }
         _labelY = _selectionAxis + CONST_PADDING * 5;
-        for (_l = selectionStartIndexInt; _l <= selectionEndIndexInt; _l++) {
+
+        var _newStartIndex = selectionStartIndexInt - fMathCeil(_axisRange);
+
+
+
+        var _prev = _prevSmartAxisRange;
+        for (_l = _newStartIndex; _l <= selectionEndIndexInt; _l++) {
             _labelX = (_l - selectionStartIndexFloat ) * selectionFactorX;
             if (_nextItem <= _l) {
+                if (_opacity < 1 && fMathAbs((_l - smartAxisStart) % _prev) >=1) {
+                    setFillStyle(envColorGrad[fParseInt(5 * _opacity * seriesMaxOpacity * axisXLabelOpacity)]); //
+                } else {
+                    setFillStyle(_color);
+                }
+
                 fillText(formatDate(xAxisDataRef.data[_l]), _labelX, _labelY);
-                _nextItem = _nextItem + smartAxisRange;
+                _nextItem = _nextItem + _axisRange;
             }
         }
 
-        //Y-axis labels
-        _color = envColorGrad[fParseInt(5 * getMin(seriesMaxOpacity,axisYLabelOpacity))];
+
+        //Y-axis labels ============================
+        _color = envColorGrad[fParseInt(5 * getMin(seriesMaxOpacity, axisYLabelOpacity))];
         while (_selectionAxis > selectionUpSpace) {
             _labelY = fParseInt(_selectionAxis) + 0.5 - CONST_PADDING;
             setFillStyle(_bgColor);
-            fillRect(CONST_PADDING_HALF, _labelY - envSmallTextHeight + 2, getTextWidth(_nextScaleValue) + CONST_PADDING_2, envSmallTextHeight); //todo
+            fillRect(CONST_PADDING_HALF, _labelY - envSmallTextHeight + 2,
+                getTextWidth(_nextScaleValue) + CONST_PADDING_2, envSmallTextHeight); //todo
             setFillStyle(_color);
             fillText(_nextScaleValue, CONST_PADDING, _labelY);
             _nextScaleValue = fParseInt(_nextScaleValue + scaleIntervalY);
@@ -1057,7 +1115,6 @@ var TeleChart = function (ctxId) {
      */
     function redrawFrame() {
         frameContext.clearRect(0, 0, totalWidth, totalHeight);
-        //fillRect(0,0, totalWidth, totalHeight); //todo debug
         if (xAxisDataRef && yAxisDataRefs && yAxisDataRefs.length) {
             setFont(envRegularSmallFont);
 
@@ -1081,7 +1138,7 @@ var TeleChart = function (ctxId) {
             fillRect(_endZoom, navigatorTop, totalWidth - _endZoom, navigatorHeight);
 
 
-            if (axisXLabelOpacity > 0) {
+            if (seriesMaxOpacity > 0) {
                 drawAxisLabels();
                 if (legendBoxOpacity > 0) {
                     drawSeriesLegend();
@@ -1092,10 +1149,22 @@ var TeleChart = function (ctxId) {
             drawPressHighlight(_startZoom, _endZoom);
 
             //todo debug need remove
-            /*  frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
+            /* frameContext.fillStyle = "rgba(0, 0, 0, 0.5)";
+            frameContext.fillText("_debug=" + JSON.stringify(_debug), 50, 20);
+            frameContext.fillText("_debug2=" + JSON.stringify(_debug2), 50, 40);
+            frameContext.fillText("selectionStartIndexInt=" + selectionStartIndexInt, 50, 60);
+            frameContext.fillText("_newStartIndex=" + _debug3[0], 50, 80);
+            frameContext.fillText("smartAxisRange=" + _debug3[1], 50, 100);
+            frameContext.fillText("smartAxisStart=" + _debug3[2], 50, 120);
+            frameContext.fillText("_axisRange=" + _debug3[3], 50, 140);
+            frameContext.fillText("_prevAxisRange=" + _debug3[4], 50, 160);
+
+
+            // frameContext.fillText("selectionStartIndexInt=" + selectionStartIndexInt +" "+ formatDate(xAxisDataRef.data[selectionStartIndexInt]), 10, 40);
+             frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
              frameContext.fillText("mouseX " + mouseX, 10, 50);
                frameContext.fillText("mouseY " + mouseY, 10, 70);
-            frameContext.fillText("start=" + fParseInt(_perfResult.start), 10, 20);
+
             frameContext.fillText("other=" + fParseInt(_perfResult.other), 10, 40);
             frameContext.fillText("series=" + fParseInt(_perfResult.series), 10, 60);
             frameContext.fillText("navi=" + fParseInt(_perfResult.navi), 10, 80);
@@ -1174,10 +1243,21 @@ var TeleChart = function (ctxId) {
             _j,
             _axisY,
             _value;
+
+        if (smartAxisFrozen && smartAxisFrozenEnd > smartAxisFrozenStart) {
+            _value = fMathRound(fMathLog((selectionEndIndexFloat - selectionStartIndexFloat) /
+                (smartAxisFrozenEnd - smartAxisFrozenStart)) * Math.LOG2E);
+            if (fMathAbs(_value - smartAxisRatio) >= 1) {
+                animate(smartAxisRatio, setSmartAxisRatio, _value, 10); //todo faster
+            }
+        }
         for (_i in yAxisDataRefs) {
             _axisY = yAxisDataRefs[_i];
             if (_axisY.bOn) {
                 selectionStartIndexInt = fMathFloor(selectionStartIndexFloat);
+                if (selectionStartIndexInt === 0) {
+                    selectionStartIndexInt++;
+                }
                 selectionEndIndexInt = fMathCeil(selectionEndIndexFloat);
                 for (_j = selectionStartIndexInt; _j <= selectionEndIndexInt; _j++) {
                     _value = _axisY.data[_j];
@@ -1416,7 +1496,8 @@ var TeleChart = function (ctxId) {
         } else if (animationKey === CONST_AXIS_X_LABEL_OPACITY_ANIMATION_KEY) {
             if (smartAxisFrozen) {
                 smartAxisFrozen = false;
-                animate(axisXLabelOpacity, setAxisXLabelOpacity, 1, 3, 10);
+                smartAxisRatio = 0;
+                animate(axisXLabelOpacity, setAxisXLabelOpacity, 1, 5);
             }
         }
 
