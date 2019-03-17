@@ -16,6 +16,17 @@
             background: #242f3e;
             color: #ffffff;
         }
+
+        body.custom {
+            background: #f2f6fa;
+            color: #3a6d99;
+        }
+
+        body.custom.dark {
+            background: #2d4456;
+            color: #f2f6fa;
+        }
+
         .im_dialog_peer {
             font-weight: 700;
             margin-top: 2px;
@@ -37,6 +48,7 @@
 <body>
 <div class="settings_panel">
     <input type="checkbox" name="dark_mode" id="dark_mode" value="dark">Dark mode<br>
+    <input type="checkbox" name="custom_color" id="custom_color" value="dark">Custom color<br>
 </div>
 <span class="im_dialog_peer">Followers</span>
 <div id="charts_container">
@@ -124,31 +136,39 @@
     });
 
 
-    var _checkbox = document.getElementById("dark_mode");
+    var _dark_mode_checkbox = document.getElementById("dark_mode");
+    var _custom_color_checkbox = document.getElementById("custom_color");
 
 
-    _checkbox.addEventListener("change", function () {
+    _dark_mode_checkbox.addEventListener("change", function () {
+        changeClass.call(this, "dark");
+    });
+
+    _custom_color_checkbox.addEventListener("change", function () {
+        changeClass.call(this, "custom");
+    });
+
+    function changeClass(color) {
         if (this.checked) {
-            document.body.classList.add("dark");
+            document.body.classList.add(color);
         } else {
-            document.body.classList.remove("dark");
+            document.body.classList.remove(color);
         }
         for (var k = 0; k < instances.length; k++) {
             instances[k].invalidate();
         }
-
-    });
+    }
 
     //default dark mode for mobile
     if (isMobile()) {
-        _checkbox.checked = true;
+        _dark_mode_checkbox.checked = true;
         if ("createEvent" in document) {
             var _evt = document.createEvent("HTMLEvents");
             _evt.initEvent("change", false, true);
-            _checkbox.dispatchEvent(_evt);
+            _dark_mode_checkbox.dispatchEvent(_evt);
         }
         else
-            _checkbox.fireEvent("onchange");
+            _dark_mode_checkbox.fireEvent("onchange");
     }
 
 </script>
