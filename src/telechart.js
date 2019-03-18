@@ -1122,35 +1122,8 @@ var TeleChart = function (ctxId) {
 
             circle(_x, navigatorTop + navigatorHeightHalf, navigatorPressed * 35);
             fill();
-
-
-            gradient(-navigatorPressed);
-            gradient(navigatorPressed);
         }
     }
-
-
-    function gradient(overflow) {
-        if (overflow !== 0)
-        {
-            var _x1,
-                _x2;
-            if (overflow < 0) {
-                _x1 = 0;
-                _x2 = CONST_BTN_RADIUS;
-            } else {
-                _x1 = totalWidth;
-                _x2 = totalWidth - CONST_BTN_RADIUS;
-            }
-
-            var _grd = frameContext.createLinearGradient(_x1, 0, _x2, 0);
-            _grd.addColorStop(1, envColorGrad[0]);
-            _grd.addColorStop(0, envColorGrad[parseInt(3* fMathAbs(overflow))]);
-            setFillStyle(_grd);
-            fillRect(_x1, 0 ,fMathAbs(_x1-_x2),selectionBottom);
-        }
-    }
-
 
     /**
      * Draws a navigator opacity layers
@@ -1209,9 +1182,11 @@ var TeleChart = function (ctxId) {
     function calcNavigatorFactors(withoutAnimation) {
         var _max = vUndefined,
             _min = minValueAxisY,
-            _i;
+            _i,
+            _axisY,
+            _navigatorFactorY;
         for (_i in yAxisDataRefs) {
-            var _axisY = yAxisDataRefs[_i];
+            _axisY = yAxisDataRefs[_i];
             if (_axisY.bOn) {
                 _max = getMax(_axisY.max, _max);
                 _min = getMin(_axisY.min, _min);
@@ -1219,10 +1194,9 @@ var TeleChart = function (ctxId) {
         }
         if (_max) {
             navigatorMinY = _min + 1;
-            var _navigatorFactorY = -(navigatorHeight - 2) / (_max - _min);
+            _navigatorFactorY = -(navigatorHeight - 2) / (_max - _min);
             if (withoutAnimation) {
                 setNavigationFactorY(_navigatorFactorY);
-                smartAxisYOpacity = 1;
                 smartAxisYOpacity = 1;
             }
             else {
