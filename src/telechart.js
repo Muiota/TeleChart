@@ -10,7 +10,7 @@ var TeleChart = function (ctxId) {
         fParseInt = window.parseInt,
         fMathAbs = oMath.abs,
         fMathCeil = oMath.ceil,
-        fMathFloor = oMath.floor,
+        fMathFloor = fParseInt,
         fMathRound = oMath.round,
         fMathLog = oMath.log,
         vDocument = document,
@@ -548,7 +548,7 @@ var TeleChart = function (ctxId) {
     function handleMouseMove(e, withoutPress) {
         stopPropagation(e);
         var _touches = e.touches;
-        (_touches && _touches.length) ?
+        (_touches && getLength(_touches)) ?
             assignMousePos(_touches[0], withoutPress) :
             assignMousePos(e, withoutPress);
     }
@@ -627,7 +627,7 @@ var TeleChart = function (ctxId) {
     function getRGBA(color, opacity) {
         if (opacity < 1) {
             if (color.indexOf("#") !== -1) {
-                var _regExp = color.length === 7 ?
+                var _regExp = getLength(color) === 7 ?
                     /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i :
                     /^#?([a-f\d])([a-f\d])([a-f\d])$/i,
                     _result = _regExp.exec(color);
@@ -1219,7 +1219,7 @@ var TeleChart = function (ctxId) {
             _divider;
 
         do {
-            if (_i >= CONST_HUMAN_SCALES.length) {
+            if (_i >= getLength(CONST_HUMAN_SCALES)) {
                 _i = 0;
                 _factor = _factor * 10;
             }
@@ -1342,7 +1342,7 @@ var TeleChart = function (ctxId) {
             if (columns) {
                 for (_i in columns) {
                     var _column = columns[_i],
-                        _dataLen = _column.length,
+                        _dataLen = getLength(_column),
                         _max = vUndefined,
                         _min = vUndefined,
                         _alias = _column[0];
@@ -1393,6 +1393,14 @@ var TeleChart = function (ctxId) {
      */
     function getFunctionName(f) {
         return f.name || f.toString().match(/^function\s*([^\s(]+)/)[1];
+    }
+
+    /**
+     * Length of array
+     * @param a {Object}
+     */
+    function getLength(a) {
+        return a.length;
     }
 
     /**
