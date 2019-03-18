@@ -1418,22 +1418,18 @@ var TeleChart = function (ctxId) {
      */
     function animate(i, c, p, s, o) {
 
-        var _key = getFunctionName(c),
-            _steps = s || (mousePressed || mouseHovered === ENUM_SELECTION_HOVER ? 5 : 15);
+        var _key = getFunctionName(c);
 
         if (o) {
             _key += o.alias;
         }
 
         if (i !== p && c) { //no need animation
-            if (frameDelay > 32) { //double speed for old devices
-                _steps = _steps / 2;
-            }
             animations[_key] = {
                 i: i,
                 c: c,
                 p: p,
-                s: _steps, //faster when user active
+                s: s || (mousePressed || mouseHovered === ENUM_SELECTION_HOVER ? 5 : 15), //faster when user active
                 o: o
             };
             return vTrue;
@@ -1454,8 +1450,13 @@ var TeleChart = function (ctxId) {
                 if (!_animation.f) {
                     _animation.f = (_animation.p - _animation.i) / _animation.s;
                 }
-                _animation.i = _animation.i + _animation.f;
-                if (_animation.f !== 0 && fMathAbs(_animation.i - _animation.p) > fMathAbs(_animation.f * 2)) {
+                var _increment = _animation.f;
+                if (frameDelay > 20) {
+                    _increment = _increment * frameDelay / 20;
+                }
+
+                _animation.i = _animation.i + _increment;
+                if (_animation.f !== 0 && fMathAbs(_animation.i - _animation.p) > fMathAbs(_increment * 2)) {
                     _animation.c(_animation.i, _animation.o);
                 } else {
                     _animation.c(_animation.p, _animation.o);
