@@ -4,7 +4,7 @@ Demo: https://muiota.github.io/TeleChart/
 
 ### Features:
  - Pure js (without css)
- - Small size (<10kB) 
+ - Small size (10kB) 
  - Advanced navigation/zoom
  - Vertical auto zoom
  - Smart axes labels
@@ -25,7 +25,7 @@ Demo: https://muiota.github.io/TeleChart/
 ```` 
  - Highlight when bounds
  - Date format config
- - Mobile touch for resize zoom problem
+ - Mobile touch resize
  - Zoom chart in selection window for mobile 
  - Cleanup code 
 ````
