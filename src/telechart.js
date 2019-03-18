@@ -133,7 +133,10 @@ var TeleChart = function (ctxId) {
         envRegularSmallFont,
         envBoldSmallFont,
         envBoldNormalFont,
-        envRegularNormalFont;
+        envRegularNormalFont,
+
+        lastPerformance,
+        frameDelay = 0 ;
 
     /**
      * Initializes the environment
@@ -839,7 +842,8 @@ var TeleChart = function (ctxId) {
             _nextScaleValue = 0,
             _opacity,
             _nextStage,
-            _axisRange;
+            _axisRange,
+            _value;
 
         //X-axis labels ============================
         if (_needCalc) {
@@ -897,11 +901,12 @@ var TeleChart = function (ctxId) {
         _color = envColorGrad[fParseInt(5 * getMin(seriesMaxOpacity, smartAxisYOpacity))];
         while (_selectionAxis > navigatorHeightHalf) {
             _labelY = fParseInt(_selectionAxis) + CONST_ANTI_BLUR_SHIFT - CONST_PADDING;
+            _value = _nextScaleValue.toString();
             setFillStyle(_bgColor);
             fillRect(CONST_PADDING_HALF, _labelY - envSmallTextHeight + 2,
-                getTextWidth(_nextScaleValue) + CONST_PADDING_2, envSmallTextHeight);
+                getTextWidth(_value) + CONST_PADDING_2, envSmallTextHeight);
             setFillStyle(_color);
-            fillText(_nextScaleValue, CONST_PADDING, _labelY);
+            fillText(_value, CONST_PADDING, _labelY);
             _nextScaleValue = fParseInt(_nextScaleValue + smartAxisYRange);
             _selectionAxis = _selectionAxis + smartAxisYRange * selectionFactorY;
         }
@@ -1413,17 +1418,22 @@ var TeleChart = function (ctxId) {
      */
     function animate(i, c, p, s, o) {
 
-        var _key = getFunctionName(c);
+        var _key = getFunctionName(c),
+            _steps = s || (mousePressed || mouseHovered === ENUM_SELECTION_HOVER ? 5 : 15);
+
         if (o) {
             _key += o.alias;
         }
 
         if (i !== p && c) { //no need animation
+            if (frameDelay > 32) { //double speed for old devices
+                _steps = _steps / 2;
+            }
             animations[_key] = {
                 i: i,
                 c: c,
                 p: p,
-                s: s || (mousePressed || mouseHovered === ENUM_SELECTION_HOVER ? 5 : 15), //faster when user active
+                s: _steps, //faster when user active
                 o: o
             };
             return vTrue;
@@ -1523,7 +1533,11 @@ var TeleChart = function (ctxId) {
             needRedraw = vFalse;
             redrawFrame();
         }
-
+        var _proposed = performance.now();
+        if (lastPerformance) {
+            frameDelay = 0.8 * frameDelay + 0.2 * (_proposed - lastPerformance );
+        }
+        lastPerformance = _proposed;
         requestAnimationFrame(render);
     }
 
@@ -1537,6 +1551,3 @@ var TeleChart = function (ctxId) {
         destroy: destroy
     };
 };
-
-
-

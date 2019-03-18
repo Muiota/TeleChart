@@ -4,7 +4,7 @@ Demo: https://muiota.github.io/TeleChart/
 
 ### Features:
  - Pure js (without css)
- - Small size (10kB) 
+ - Small size (10kB "~5kB gZip") 
  - Advanced navigation/zoom
  - Vertical auto zoom
  - Smart axes labels
