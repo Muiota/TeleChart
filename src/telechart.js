@@ -846,7 +846,8 @@ var TeleChart = function (ctxId) {
             _opacity,
             _nextStage,
             _axisRange,
-            _value;
+            _value,
+            _textLength;
 
         //X-axis labels ============================
         if (_needCalc) {
@@ -905,6 +906,12 @@ var TeleChart = function (ctxId) {
         while (_selectionAxis > navigatorHeightHalf) {
             _labelY = fParseInt(_selectionAxis) + CONST_ANTI_BLUR_SHIFT - CONST_PADDING;
             _value = _nextScaleValue.toString();
+            _textLength = getLength(_value);
+            if (_textLength > 6) {
+                _value = _nextScaleValue / 1000000 + "M";
+            } else if (_textLength > 3) {
+                _value = _nextScaleValue / 1000 + "K";
+            }
             setFillStyle(_bgColor);
             fillRect(CONST_PADDING_HALF, _labelY - envSmallTextHeight + 2,
                 getTextWidth(_value) + CONST_PADDING_2, envSmallTextHeight);
