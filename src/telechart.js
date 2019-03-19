@@ -136,7 +136,9 @@ var TeleChart = function (ctxId) {
         envRegularNormalFont,
 
         lastPerformance,
-        frameDelay = 0 ;
+        frameDelay = 0,
+
+        boundHighlight;
 
     /**
      * Initializes the environment
@@ -195,7 +197,7 @@ var TeleChart = function (ctxId) {
     function addEventListener(name, handler) {
         window.addEventListener(name, handler);
     }
-    
+
     //======== setters for animation ========
     function setSelectionFactorY(val) {
         selectionFactorY = val;
@@ -282,8 +284,8 @@ var TeleChart = function (ctxId) {
             _envBgColor = getBodyStyle("background-color"),
             _opacity,
             _i;
-        for (_i = 0; _i <= 10; _i++) {
-            _opacity = _i / 10;
+        for (_i = 0; _i <= 100; _i++) {
+            _opacity = _i / 100;
             envColorGrad[_i] = getRGBA(_envColor, _opacity);
             envBgColorGrad[_i] = getRGBA(_envBgColor, _opacity);
         }
@@ -385,9 +387,9 @@ var TeleChart = function (ctxId) {
                 _startZShift = _startZoom - mouseX,
                 _endZShift = _endZoom - mouseX;
 
-            if (fMathAbs(_startZShift + CONST_PADDING) < CONST_PADDING_2) { //Navigator start edge hovered
+            if (fMathAbs(_startZShift + CONST_PADDING_2) < CONST_PADDING_4) { //Navigator start edge hovered
                 _result = ENUM_START_SELECTION_HOVER;
-            } else if (fMathAbs(_endZShift - CONST_PADDING) < CONST_PADDING_2) { //Navigator end edge hovered
+            } else if (fMathAbs(_endZShift - CONST_PADDING_2) < CONST_PADDING_4) { //Navigator end edge hovered
                 _result = ENUM_END_SELECTION_HOVER;
             } else if (mouseX > _startZoom && mouseX < _endZoom) { //Navigator center hovered
                 mouseFrame.nS = _startZShift / navigatorFactorX;
@@ -470,11 +472,14 @@ var TeleChart = function (ctxId) {
     function moveNavigatorFrame(shift, maxX, start, end) {
         var _start = shift + start,
             _end = shift + end;
+        boundHighlight = 0;
         if (_start < 0) {
+            boundHighlight = getMax(_start * 3 / (_end - _start), -1);
             _start = 0;
             _end = end - start;
         }
         if (_end > maxX) {
+            boundHighlight = getMin((_end - maxX) * 3 / (_end - _start), 1);
             _end = maxX;
             _start = maxX - end + start;
         }
@@ -553,7 +558,6 @@ var TeleChart = function (ctxId) {
      * @param withoutPress {Boolean=}
      */
     function handleMouseMove(e, withoutPress) {
-        stopPropagation(e);
         var _touches = e.touches;
         (_touches && getLength(_touches)) ?
             assignMousePos(_touches[0], withoutPress) :
@@ -566,7 +570,6 @@ var TeleChart = function (ctxId) {
      * @param pressed {Boolean} left button pressed
      */
     function handleMouseClick(e, pressed) {
-        stopPropagation(e);
         mousePressed = pressed;
         handleMouseMove(e, vTrue);
         if (pressed) {
@@ -579,6 +582,7 @@ var TeleChart = function (ctxId) {
             if (mouseHovered === ENUM_SELECTION_HOVER) {
                 mouseFrame.tI = vTrue;
             } else if (mouseHovered === ENUM_BUTTON_HOVER) {
+                stopPropagation(e);
                 mousePressed = vFalse;
                 for (var _i in yAxisDataRefs) {
                     var _axis = yAxisDataRefs[_i];
@@ -593,6 +597,7 @@ var TeleChart = function (ctxId) {
             } else if (mouseHovered === ENUM_ZOOM_HOVER ||
                 mouseHovered === ENUM_START_SELECTION_HOVER ||
                 mouseHovered === ENUM_END_SELECTION_HOVER) {
+                stopPropagation(e);
                 animate(navigatorPressed, setNavigatorPressed, 1, 15);
                 navigatorPressedSide = mouseHovered;
             }
@@ -758,8 +763,8 @@ var TeleChart = function (ctxId) {
             _yHeight = y + height;
 
         beginPath();
-        setStrokeStyle(envColorGrad[fParseInt((highlighted ? 4 : 2) * opacity)]);
-        setFillStyle(envBgColorGrad[fParseInt(3 + 6 * opacity)]);
+        setStrokeStyle(envColorGrad[fParseInt((highlighted ? 40 : 20) * opacity)]);
+        setFillStyle(envBgColorGrad[fParseInt(30 + 60 * opacity)]);
         setLineWidth();
         moveOrLine(vTrue, x + CONST_BTN_RADIUS, y);
         moveOrLine(vFalse, _xWidth - CONST_BTN_RADIUS, y);
@@ -815,7 +820,7 @@ var TeleChart = function (ctxId) {
         var _nextScaleLevel = selectionBottom,
             _yCoordinate;
         beginPath();
-        setStrokeStyle(envColorGrad[1]);
+        setStrokeStyle(envColorGrad[10]);
         setLineWidth(2);
         while (_nextScaleLevel > navigatorHeightHalf) {
             _yCoordinate = fMathCeil(_nextScaleLevel) + CONST_ANTI_BLUR_SHIFT;
@@ -831,8 +836,8 @@ var TeleChart = function (ctxId) {
      */
     function drawAxisLabels() {
         var _selectionAxis = selectionBottom,
-            _color = envColorGrad[fParseInt(5 * seriesMaxOpacity * smartAxisXOpacity)],
-            _bgColor = envBgColorGrad[fParseInt(7 * smartAxisYOpacity)],
+            _color = envColorGrad[fParseInt(50 * seriesMaxOpacity * smartAxisXOpacity)],
+            _bgColor = envBgColorGrad[fParseInt(70 * smartAxisYOpacity)],
             _needCalc = !smartAxisXStart || !smartAxisXFrozen,
             _i,
             _prevSmartAxisRange,
@@ -881,7 +886,7 @@ var TeleChart = function (ctxId) {
             while (_nextItem < selectionStartIndexInt) {
                 _nextItem = _nextItem + _axisRange;
             }
-            _opacity = envColorGrad[fParseInt(5 * _opacity * seriesMaxOpacity * smartAxisXOpacity)];
+            _opacity = envColorGrad[fParseInt(50 * _opacity * seriesMaxOpacity * smartAxisXOpacity)];
         }
         _labelY = _selectionAxis + CONST_PADDING * 5;
 
@@ -898,7 +903,7 @@ var TeleChart = function (ctxId) {
         }
 
         //Y-axis labels ============================
-        _color = envColorGrad[fParseInt(5 * getMin(seriesMaxOpacity, smartAxisYOpacity))];
+        _color = envColorGrad[fParseInt(50 * getMin(seriesMaxOpacity, smartAxisYOpacity))];
         while (_selectionAxis > navigatorHeightHalf) {
             _labelY = fParseInt(_selectionAxis) + CONST_ANTI_BLUR_SHIFT - CONST_PADDING;
             _value = _nextScaleValue.toString();
@@ -932,9 +937,9 @@ var TeleChart = function (ctxId) {
         circle(_xCenter, _yCenter, CONST_BTN_RADIUS - CONST_PADDING);
         fill();
 
-        setStrokeStyle(envBgColorGrad[10]);
+        setStrokeStyle(envBgColorGrad[100]);
         setLineWidth(4);
-        setRound(vTrue);
+        // setRound(vTrue);
         beginPath();
         translate(-2, 4);
         moveOrLine(vTrue, _xCenter - CONST_PADDING, _yCenter - CONST_PADDING);
@@ -942,20 +947,20 @@ var TeleChart = function (ctxId) {
         moveOrLine(vFalse, _xCenter + CONST_PADDING * 1.8, _yCenter - CONST_PADDING * 1.8);
         translate(2, -4);
         endPath();
-        setRound(vFalse);
+        //   setRound(vFalse);
 
         beginPath();
-        setFillStyle(envBgColorGrad[10]);
+        setFillStyle(envBgColorGrad[100]);
         circle(_xCenter, _yCenter, 12 * (1 - axis.sOp));
         fill();
 
-        setFillStyle(envColorGrad[10]);
+        setFillStyle(envColorGrad[100]);
         setFont(envRegularNormalFont);
         fillText(_name, _x + CONST_BTN_RADIUS_2 + CONST_PADDING + 1, _yCenter + envSmallTextHeight / 2 - CONST_PADDING + 4);
         setFont(envRegularSmallFont);
 
         beginPath();
-        setStrokeStyle(envColorGrad[fParseInt((1 - axis.bPulse) * 4)]);
+        setStrokeStyle(envColorGrad[fParseInt((1 - axis.bPulse) * 40)]);
         setLineWidth(10);
         circle(_xCenter, _yCenter, axis.bPulse * 30);
         endPath();
@@ -988,7 +993,7 @@ var TeleChart = function (ctxId) {
             beginPath();
             setLineWidth(2);
 
-            setStrokeStyle(_axisY.sCg[fParseInt(10 * _axisY.sOp)]);
+            setStrokeStyle(_axisY.sCg[fParseInt(100 * _axisY.sOp)]);
             _xValue = 0;
             for (_k = 1; _k < xAxisDataRef.l;) {
                 _yValue = navigatorBottom + (_axisY.data[_k] - navigatorMinY) * navigatorFactorY;
@@ -999,7 +1004,7 @@ var TeleChart = function (ctxId) {
                 _xValue = _k++ * navigatorFactorX;
             }
             endPath();
-            setRound(vTrue);
+            //   setRound(vTrue);
             //selection series
             beginPath();
             setLineWidth(3);
@@ -1009,7 +1014,7 @@ var TeleChart = function (ctxId) {
                 moveOrLine(_k++ === selectionStartIndexInt, _xValue, _yValue);
             }
             endPath();
-            setRound(vFalse);
+            //     setRound(vFalse);
         }
     }
 
@@ -1037,7 +1042,7 @@ var TeleChart = function (ctxId) {
             _value;
 
         beginPath();
-        setStrokeStyle(envColorGrad[fParseInt(4 * legendBoxOpacity)]);
+        setStrokeStyle(envColorGrad[fParseInt(40 * legendBoxOpacity)]);
         setLineWidth();
         moveOrLine(vTrue, _sValueX, 0);
         moveOrLine(vFalse, _sValueX, selectionBottom);
@@ -1056,12 +1061,12 @@ var TeleChart = function (ctxId) {
             }
 
             beginPath();
-            setFillStyle(envBgColorGrad[fParseInt(_legendBoxOpacity * _opacity)]);
+            setFillStyle(envBgColorGrad[fParseInt(10*_legendBoxOpacity * _opacity)]);
             circle(_sValueX, _sValueY, 4);
             fill();
 
             beginPath();
-            setStrokeStyle(_axisY.sCg[fParseInt(_legendBoxOpacity * _opacity)]);
+            setStrokeStyle(_axisY.sCg[fParseInt(10*_legendBoxOpacity * _opacity)]);
 
             circle(_sValueX, _sValueY, 5);
             endPath();
@@ -1086,7 +1091,7 @@ var TeleChart = function (ctxId) {
         drawBalloon(_sValueX + legendLeft + _leftThreshold, legendTop,
             legendWidth - _leftThreshold + _rightThreshold, legendHeight, vTrue, legendBoxOpacity);
         setFont(envBoldSmallFont);
-        setFillStyle(envColorGrad[fParseInt(_legendBoxOpacity * legendTextOpacity)]);
+        setFillStyle(envColorGrad[fParseInt(10*_legendBoxOpacity * legendTextOpacity)]);
         fillText(legendDateText, _sValueX + legendTextLeft[0], legendDateTop);
 
         _sValueY = CONST_BTN_RADIUS + CONST_PADDING_2;
@@ -1099,7 +1104,7 @@ var TeleChart = function (ctxId) {
                 if (!_isEven) {
                     _sValueY += (envNormalTextHeight + envSmallTextHeight + CONST_PADDING_4);
                 }
-                setFillStyle(_axisY.sCg[fParseInt(_legendBoxOpacity * legendTextOpacity)]);
+                setFillStyle(_axisY.sCg[fParseInt(10*_legendBoxOpacity * legendTextOpacity)]);
                 setFont(envBoldNormalFont);
                 fillText(_value, _sValueX + _shiftX, _sValueY);
                 setFont(envRegularSmallFont);
@@ -1127,10 +1132,37 @@ var TeleChart = function (ctxId) {
             }
 
             beginPath();
-            setFillStyle(envColorGrad[fParseInt(navigatorPressed * 2)]);
+            setFillStyle(envColorGrad[fParseInt(navigatorPressed * 20)]);
 
             circle(_x, navigatorTop + navigatorHeightHalf, navigatorPressed * 35);
             fill();
+            if (boundHighlight) {
+                drawBoundHighlight(boundHighlight * navigatorPressed);
+            }
+        }
+
+
+    }
+
+    function drawBoundHighlight(overflow) {
+        if (overflow !== 0)
+        {
+            var _x1,
+                _x2,
+                _negate = overflow < 0;
+            if (_negate) {
+                _x1 = 0;
+                _x2 = CONST_BTN_RADIUS;
+            } else {
+                _x1 = totalWidth - CONST_BTN_RADIUS;
+                _x2 = totalWidth;
+            }
+
+            var _grd = frameContext.createLinearGradient(_x1, 0, _x2, 0);
+            _grd.addColorStop(_negate ? 1: 0, envColorGrad[0]);
+            _grd.addColorStop(_negate ? 0: 1, envColorGrad[parseInt(20* fMathAbs(overflow))]);
+            setFillStyle(_grd);
+            fillRect(_x1, 0 ,fMathAbs(_x1-_x2),selectionBottom);
         }
     }
 
@@ -1140,17 +1172,17 @@ var TeleChart = function (ctxId) {
      */
     function drawNavigatorLayer(isBackground) {
         if (isBackground) {
-            setFillStyle(envColorGrad[3]);
+            setFillStyle(envColorGrad[30]);
             fillRect(zoomStartHard, navigatorTop, zoomEndHard - zoomStartHard, navigatorHeight);
-            setFillStyle(envBgColorGrad[10]);
+            setFillStyle(envBgColorGrad[100]);
             fillRect(zoomStartHard + CONST_PADDING_2, navigatorTop + CONST_PADDING_HALF, zoomEndHard -
                 zoomStartHard - CONST_PADDING_4, navigatorHeight - CONST_PADDING);
         } else {
-            setFillStyle(envColorGrad[1]);
+            setFillStyle(envColorGrad[10]);
             fillRect(0, navigatorTop, zoomStartHard, navigatorHeight);
             fillRect(zoomEndHard, navigatorTop, totalWidth - zoomEndHard, navigatorHeight);
 
-            setFillStyle(envBgColorGrad[5]);
+            setFillStyle(envBgColorGrad[50]);
             fillRect(0, navigatorTop, zoomStartHard, navigatorHeight);
             fillRect(zoomEndHard, navigatorTop, totalWidth - zoomEndHard, navigatorHeight);
         }
@@ -1204,7 +1236,7 @@ var TeleChart = function (ctxId) {
                 smartAxisYOpacity = 1;
             }
             else {
-                if (animate(navigatorFactorY, setNavigationFactorY, _navigatorFactorY)) {
+                if (animate(navigatorFactorY, setNavigationFactorY, _navigatorFactorY, null, undefined, vTrue)) {
                     animate(smartAxisYOpacity, setAxisYLabelOpacity, 0, 2);
                 }
             }
@@ -1273,7 +1305,8 @@ var TeleChart = function (ctxId) {
             selectionFactorX = totalWidth / (selectionEndIndexFloat - selectionStartIndexFloat);
             selectionMinY = _min;
             selectionMaxY = _max;
-            animate(selectionFactorY, setSelectionFactorY, -(selectionHeight - 2) / (_max - _min));
+            animate(selectionFactorY, setSelectionFactorY, -(selectionHeight - 2) / (_max - _min),
+                null, undefined, vTrue);
             calcSmartAxisY();
         }
     }
@@ -1304,8 +1337,8 @@ var TeleChart = function (ctxId) {
             _axis.bH = _height;
             _axis.sCg = [];
             _x += _width + CONST_PADDING_3;
-            for (_j = 0; _j <= 10; _j++) {
-                _axis.sCg[_j] = getRGBA(_axis.color, _j / 10);
+            for (_j = 0; _j <= 100; _j++) {
+                _axis.sCg[_j] = getRGBA(_axis.color, _j / 100);
             }
         }
         setFont(envRegularSmallFont);
@@ -1414,22 +1447,29 @@ var TeleChart = function (ctxId) {
      * @param s {Number=} speed (number of frames)
      * @param p {Number} proposed value
      * @param o {Object=} callback context
+     * @param l {Boolean=} is logarithmic scale
      * @returns {Boolean} animation enqueued
      */
-    function animate(i, c, p, s, o) {
+    function animate(i, c, p, s, o, l) {
 
-        var _key = getFunctionName(c);
+        var _key = getFunctionName(c),
+            _frameCount,
+            _exAnimationFrames;
 
         if (o) {
             _key += o.alias;
         }
-
         if (i !== p && c) { //no need animation
+            _frameCount = s || (mousePressed || mouseHovered === ENUM_SELECTION_HOVER ? 5 : 15); //faster when user active
+            if (l && i) { // smooth logarithmic scale for big transitions
+                _exAnimationFrames = fMathCeil(fMathAbs(fMathLog(fMathAbs(p / i)) * 10));
+                _frameCount += getMin(_exAnimationFrames, 15);
+            }
             animations[_key] = {
                 i: i,
                 c: c,
                 p: p,
-                s: s || (mousePressed || mouseHovered === ENUM_SELECTION_HOVER ? 5 : 15), //faster when user active
+                s: _frameCount,
                 o: o
             };
             return vTrue;
@@ -1514,9 +1554,9 @@ var TeleChart = function (ctxId) {
         if (animationKey === CONST_SELECTION_FACTOR_Y_ANIMATION_KEY) {
             animate(smartAxisYOpacity, setAxisYLabelOpacity, 1, 10);
         } else if (animationKey === CONST_AXIS_X_LABEL_OPACITY_ANIMATION_KEY && smartAxisXFrozen) {
-                smartAxisXFrozen = false;
-                animate(smartAxisXRatio, setSmartAxisRatio, 0, 1);
-                animate(smartAxisXOpacity, setAxisXLabelOpacity, 1, 5);
+            smartAxisXFrozen = false;
+            animate(smartAxisXRatio, setSmartAxisRatio, 0, 1);
+            animate(smartAxisXOpacity, setAxisXLabelOpacity, 1, 5);
         }
     }
 
