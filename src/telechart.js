@@ -176,7 +176,6 @@ var TeleChart = function (ctxId) {
 
         _canvasStyle[CONST_WIDTH] = fParseInt(totalWidth / CONST_DISPLAY_SCALE_FACTOR) + CONST_PIXEL;
         _canvasStyle[CONST_HEIGHT] = fParseInt(totalHeight / CONST_DISPLAY_SCALE_FACTOR) + CONST_PIXEL;
-        _canvasStyle.userSelect = "none";
 
         container.appendChild(mainCanvas);
 
