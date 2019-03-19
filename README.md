@@ -15,6 +15,7 @@ Demo: https://muiota.github.io/TeleChart/
  - Mobile touches support
  - Material design animations
  - Tooltip legend
+ - Out of range highlighting
  - Transparent background for wallpapers
   
 ### Road map:
@@ -23,11 +24,14 @@ Demo: https://muiota.github.io/TeleChart/
 - Area type of series 
 - Performance, minimize & fixes
 ```` 
- - Highlight when bounds
  - Date format config
  - Mobile touch resize
  - Zoom chart in selection window for mobile 
  - Cleanup code 
+ - GlobalAlpha performance issue
 ````
-
+Desktop
 ![Screenshot](https://i.imgur.com/sYxKiEV.png)
+
+Mobile
+![Screenshot](https://i.imgur.com/QB5HBHw.jpg)

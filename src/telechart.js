@@ -151,6 +151,7 @@ var TeleChart = function (ctxId) {
         mainCanvas[CONST_HEIGHT] = totalHeight;
         frameContext = mainCanvas.getContext("2d");
         frameContext.lineJoin = "bevel";
+        frameContext.version = "4ca015fcb4125a30c";
 
         var _size = getBodyStyle("font-size"),
             _fontFamily = getBodyStyle("font-family"),
@@ -270,7 +271,7 @@ var TeleChart = function (ctxId) {
      * Destroy chart
      */
     function destroy() {
-        container.removeChild(mainCanvas);
+        mainCanvas.parentNode.remove(mainCanvas);
     }
 
     /**
@@ -513,12 +514,10 @@ var TeleChart = function (ctxId) {
     function moveHoveredElement() {
         if (xAxisDataRef) {
             if (mouseHovered === ENUM_SELECTION_HOVER) {
-                var _interval = ( mouseFrame.tF - mouseX ) / selectionFactorX;
-                if (_interval > CONST_PADDING || mouseFrame.tI) {
-                    mouseFrame.tI = vTrue;
-                    var _maxProposedX = xAxisDataRef.l - 2;
+                var _interval = ( mouseFrame.tF - mouseX ) / selectionFactorX,
+                    _maxProposedX = xAxisDataRef.l - 2;
                     moveNavigatorFrame(_interval, _maxProposedX, mouseFrame.tS, mouseFrame.tE);
-                }
+
             } else {
                 navigateChart();
             }
@@ -569,7 +568,6 @@ var TeleChart = function (ctxId) {
             calcHoveredElement(vTrue);
 
             if (mouseHovered === ENUM_SELECTION_HOVER) {
-                mouseFrame.tI = vTrue;
             } else if (mouseHovered === ENUM_BUTTON_HOVER) {
                 stopPropagation(e);
                 mousePressed = vFalse;
@@ -591,7 +589,6 @@ var TeleChart = function (ctxId) {
                 navigatorPressedSide = mouseHovered;
             }
         } else {
-            mouseFrame.tI = vFalse;
             if (navigatorPressed > 0) {
                 animate(navigatorPressed, setNavigatorPressed, 0, 15);
             }
@@ -1140,25 +1137,19 @@ var TeleChart = function (ctxId) {
 
     }
 
+    /**
+     * Draws a highlight when chart out of bounds
+     * @param overflow (-1;0) - left bound, (0;1) - right bound
+     */
     function drawBoundHighlight(overflow) {
-        if (overflow !== 0)
-        {
-            var _x1,
-                _x2,
-                _negate = overflow < 0;
-            if (_negate) {
-                _x1 = 0;
-                _x2 = CONST_BTN_RADIUS;
-            } else {
-                _x1 = totalWidth - CONST_BTN_RADIUS;
-                _x2 = totalWidth;
-            }
-
-            var _grd = frameContext.createLinearGradient(_x1, 0, _x2, 0);
-            _grd.addColorStop(_negate ? 1: 0, envColorGrad[0]);
-            _grd.addColorStop(_negate ? 0: 1, envColorGrad[fParseInt(20* fMathAbs(overflow))]);
+        if (overflow !== 0) {
+            var _x = overflow < 0 ? 0 : totalWidth - CONST_BTN_RADIUS,
+                _grd;
+            _grd = frameContext.createLinearGradient(_x, 0, _x + CONST_BTN_RADIUS, 0);
+            _grd.addColorStop(_x ? 0 : 1, envColorGrad[0]);
+            _grd.addColorStop(_x ? 1 : 0, envColorGrad[fParseInt(20 * fMathAbs(overflow))]);
             setFillStyle(_grd);
-            fillRect(_x1, 0 ,fMathAbs(_x1-_x2),selectionBottom);
+            fillRect(_x, 0, CONST_BTN_RADIUS, selectionBottom);
         }
     }
 
