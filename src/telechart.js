@@ -15,6 +15,7 @@ var TeleChart = function (ctxId) {
         fMathLog = oMath.log,
         vDocument = document,
         vUndefined = undefined,
+        vNull = null,
         vTrue = true,
         vFalse = false;
 
@@ -260,7 +261,7 @@ var TeleChart = function (ctxId) {
      * Clears the chart
      */
     function clear() {
-        xAxisDataRef = null;
+        xAxisDataRef = vNull;
         yAxisDataRefs = [];
         invalidateInner();
     }
@@ -316,19 +317,9 @@ var TeleChart = function (ctxId) {
             _currentStyle = _el.currentStyle;
         return _currentStyle ?
             _currentStyle[propertyName] :
-            vDocument.defaultView.getComputedStyle(_el, null)[propertyName];
+            vDocument.defaultView.getComputedStyle(_el, vNull)[propertyName];
     }
 
-    /**
-     *  Creates the  canvas
-     * @param width {Number} width of canvas
-     * @param height {Number} height of canvas
-     * @param postfix {String} postfix name
-     * @returns {Element} created canvas
-     */
-    function createCanvas(width, height, postfix) {
-
-    }
 
     /**
      * Formats a date of UNIX timestamp
@@ -362,7 +353,7 @@ var TeleChart = function (ctxId) {
      *  Calculates a hovered element
      */
     function calcHoveredElement(force) {
-        var _result = null,
+        var _result = vNull,
             _i;
 
         if (!navigatorFactorX) {
@@ -1165,7 +1156,7 @@ var TeleChart = function (ctxId) {
 
             var _grd = frameContext.createLinearGradient(_x1, 0, _x2, 0);
             _grd.addColorStop(_negate ? 1: 0, envColorGrad[0]);
-            _grd.addColorStop(_negate ? 0: 1, envColorGrad[parseInt(20* fMathAbs(overflow))]);
+            _grd.addColorStop(_negate ? 0: 1, envColorGrad[fParseInt(20* fMathAbs(overflow))]);
             setFillStyle(_grd);
             fillRect(_x1, 0 ,fMathAbs(_x1-_x2),selectionBottom);
         }
@@ -1241,7 +1232,7 @@ var TeleChart = function (ctxId) {
                 smartAxisYOpacity = 1;
             }
             else {
-                if (animate(navigatorFactorY, setNavigationFactorY, _navigatorFactorY, null, undefined, vTrue)) {
+                if (animate(navigatorFactorY, setNavigationFactorY, _navigatorFactorY, vNull, vUndefined, vTrue)) {
                     animate(smartAxisYOpacity, setAxisYLabelOpacity, 0, 2);
                 }
             }
@@ -1311,7 +1302,7 @@ var TeleChart = function (ctxId) {
             selectionMinY = _min;
             selectionMaxY = _max;
             animate(selectionFactorY, setSelectionFactorY, -(selectionHeight - 2) / (_max - _min),
-                null, undefined, vTrue);
+                vNull, vUndefined, vTrue);
             calcSmartAxisY();
         }
     }
