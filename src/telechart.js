@@ -149,6 +149,7 @@ var TeleChart = function (ctxId) {
         mainCanvas[CONST_WIDTH] = totalWidth;
         mainCanvas[CONST_HEIGHT] = totalHeight;
         frameContext = mainCanvas.getContext("2d");
+        frameContext.lineJoin = "bevel";
 
         var _size = getBodyStyle("font-size"),
             _fontFamily = getBodyStyle("font-family"),
@@ -161,7 +162,7 @@ var TeleChart = function (ctxId) {
                 handleMouseClick(e, vFalse);
             };
 
-        setRound(vFalse);
+
 
         envSmallTextHeight = fParseInt(_baseFontSize * 1.2);
         envNormalTextHeight = fParseInt(_baseFontSize * CONST_DISPLAY_SCALE_FACTOR);
@@ -172,8 +173,11 @@ var TeleChart = function (ctxId) {
         envBoldNormalFont = CONST_BOLD_PREFIX + envRegularNormalFont;
 
         setFont(envRegularSmallFont);
+
         _canvasStyle[CONST_WIDTH] = fParseInt(totalWidth / CONST_DISPLAY_SCALE_FACTOR) + CONST_PIXEL;
         _canvasStyle[CONST_HEIGHT] = fParseInt(totalHeight / CONST_DISPLAY_SCALE_FACTOR) + CONST_PIXEL;
+        _canvasStyle.userSelect = "none";
+
         container.appendChild(mainCanvas);
 
         mainCanvas.onmousemove = handleMouseMove;
@@ -302,11 +306,6 @@ var TeleChart = function (ctxId) {
             invalidateInner();
         }
     }
-
-    function setRound(enable) {
-        frameContext.lineJoin = enable ? "round" : "bevel";
-    }
-
 
     /**
      * Gets a style property from document body
