@@ -31,7 +31,7 @@ Demo: https://muiota.github.io/TeleChart/
  - GlobalAlpha performance issue
 ````
 ##### Desktop:
-<img src="https://i.imgur.com/sYxKiEV.png?raw=true" alt="Desktop" width="1002" height="569">
+<img src="https://i.imgur.com/D1GVf9l.png?raw=true" alt="Desktop" width="998" height="556">
 
 ##### Mobile:
 <img src="https://i.imgur.com/QB5HBHw.jpg?raw=true" alt="Desktop" width="360" height="640">
