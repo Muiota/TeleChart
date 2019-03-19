@@ -30,8 +30,9 @@ Demo: https://muiota.github.io/TeleChart/
  - Cleanup code 
  - GlobalAlpha performance issue
 ````
-Desktop
-![Screenshot](https://i.imgur.com/sYxKiEV.png)
+<img src="https://i.imgur.com/sYxKiEV.png?raw=true" alt="Desktop" width="1002" height="569">
 
-Mobile
-![Screenshot](https://i.imgur.com/QB5HBHw.jpg)
+![Screenshot](https://i.imgur.com/sYxKiEV.png?raw=true "Desktop")
+
+
+![Screenshot](https://i.imgur.com/QB5HBHw.jpg?raw=true "Mobile")
