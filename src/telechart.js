@@ -284,7 +284,7 @@ var TeleChart = function (ctxId) {
     /**
      * Invalidates the canvas & prepare environment colors
      */
-    function invalidate(withAnimation) {
+    function invalidate() {
         var _envColor = getBodyStyle("color"),
             _envBgColor = getBodyStyle("background-color"),
             _opacity,
@@ -294,9 +294,7 @@ var TeleChart = function (ctxId) {
             envColorGrad[_i] = getRGBA(_envColor, _opacity);
             envBgColorGrad[_i] = getRGBA(_envBgColor, _opacity);
         }
-        (withAnimation) ?
-            animate(0, invalidate, 1, 60) :
-            invalidateInner();
+        invalidateInner();
     }
 
     /**
