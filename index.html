@@ -7,6 +7,10 @@
         body {
             font: 13px/18px Tahoma, sans-serif, Arial, Helvetica;
             -webkit-touch-callout: none;
+            -webkit-transition: background-color 0.2s ease;
+            -moz-transition: background-color 0.2s ease;
+            -o-transition: background-color 0.2s ease;
+            transition: background-color 0.2s ease;
         }
 
         body {
@@ -61,6 +65,27 @@
 </div>
 <span class="im_dialog_peer">Followers</span>
 <div id="charts_container">
+</div>
+<hr/>
+<div>
+    <h4>Features:</h4>
+    <ul>
+        <li>Pure js (without css)</li>
+        <li>ES5 only (compatible with old browsers)</li>
+        <li>Small size (<10kB "~5kB gZip")</li>
+        <li>Advanced navigation/zoom (Vertical/horizontal)</li>
+        <li>Smart axes labels</li>
+        <li>Day/night switch</li>
+        <li>High resolution (fix blur, retina support)</li>
+        <li>Switch series</li>
+        <li>Mobile touches support</li>
+        <li>Material design animations (smooth)</li>
+        <li>Tooltip legend</li>
+        <li>Out of range highlighting</li>
+        <li>Resizible container</li>
+        <li>Transparent background for wallpapers</li>
+    </ul>
+    <a href="https://github.com/Muiota/TeleChart" target="_blank">Source codes on GitHub</a>
 </div>
 
 <script>
@@ -171,7 +196,7 @@
             document.body.classList.remove(color);
         }
         for (var k = 0; k < instances.length; k++) {
-            instances[k].invalidate();
+            instances[k].invalidate(true);
         }
     }
 

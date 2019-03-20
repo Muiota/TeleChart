@@ -4,28 +4,25 @@ Demo: https://muiota.github.io/TeleChart/
 
 ### Features:
  - Pure js (without css)
- - Small size (10kB "~5kB gZip") 
- - Advanced navigation/zoom
- - Vertical auto zoom
+ - ES5 only (compatible with old browsers)
+ - Small size (<10kB "~5kB gZip") 
+ - Advanced navigation/zoom (Vertical/horizontal) 
  - Smart axes labels
  - Day/night switch
  - High resolution (fix blur, retina support)
- - Switch series
- - Smooth animation
+ - Switch series  
  - Mobile touches support
- - Material design animations
+ - Material design animations (smooth)
  - Tooltip legend
  - Out of range highlighting
+ - Resizible container
  - Transparent background for wallpapers
   
 ### Road map:
-
-- Resize container support 
 - Area type of series 
 - Performance, minimize & fixes
 ```` 
  - Date format config
- - Mobile touch resize
  - Zoom chart in selection window for mobile 
  - Cleanup code 
  - GlobalAlpha performance issue
