@@ -52,7 +52,7 @@
         }
 
     </style>
-    <script src="src/telechart.min.js"></script>
+    <script src="src/telechart.f.min.js"></script>
 </head>
 <body>
 <div class="settings_panel">
@@ -71,7 +71,7 @@
         <li>Small size (<10kB "~5kB gZip")</li>
         <ul>
             <li>Minimized 10.7Kb</li>
-            <li>Obfuscated 10.1Kb</li>
+            <li><b>Obfuscated 9.9Kb</b></li>
         </ul>
         <li>Advanced navigation/zoom (Vertical/horizontal)</li>
         <li>Smart axes labels</li>
@@ -127,7 +127,11 @@
                 callback(status, xhr.response);
             }
         };
-        xhr.send();
+        try {
+            xhr.send();
+        } catch (e) {
+            callback(null, xhr.response);
+        }
     }
 
     function createCharts(data) {

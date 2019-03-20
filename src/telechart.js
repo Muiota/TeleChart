@@ -355,9 +355,9 @@ var TeleChart = function (ctxId) {
         var _result = vNull,
             _i;
 
-        if (!navigatorFactorX) {
+        if (!navigatorFactorX)
             return;
-        }
+
 
         if (mouseY < navigatorTop && mouseX > 0 && mouseX < totalWidth && selectionFactorX) { //Selection hovered
             var _proposed = fMathRound(mouseX / selectionFactorX + selectionStartIndexFloat);
@@ -490,9 +490,7 @@ var TeleChart = function (ctxId) {
                 _proposedX = _maxProposedX;
             }
 
-            if (mouseHovered === ENUM_SELECTION_HOVER) { //most likely
-                //nothing
-            } else if (mouseHovered === ENUM_ZOOM_HOVER) {
+            if (mouseHovered === ENUM_ZOOM_HOVER) {
                 moveNavigatorFrame(_proposedX, _maxProposedX, mouseFrame.nS, mouseFrame.nE);
             } else if (mouseHovered === ENUM_START_SELECTION_HOVER) {
                 if (zoomEndSmooth - _proposedX > _threshold) {
@@ -533,7 +531,7 @@ var TeleChart = function (ctxId) {
         if (_clientX && _clientY) {
             mouseX = fParseInt((_clientX - mouseOffsetX) * CONST_DISPLAY_SCALE_FACTOR);
             mouseY = fParseInt((_clientY - mouseOffsetY) * CONST_DISPLAY_SCALE_FACTOR);
-            (mousePressed && !calcOnly) ? moveHoveredElement() : calcHoveredElement();
+            mousePressed && !calcOnly ? moveHoveredElement() : calcHoveredElement();
             invalidateInner();
         }
     }
@@ -545,7 +543,7 @@ var TeleChart = function (ctxId) {
      */
     function handleMouseMove(e, withoutPress) {
         var _touches = e.touches;
-        (_touches && getLength(_touches)) ?
+        _touches && getLength(_touches) ?
             assignMousePos(_touches[0], withoutPress) :
             assignMousePos(e, withoutPress);
     }
@@ -565,8 +563,7 @@ var TeleChart = function (ctxId) {
             smartAxisXFrozen = vTrue;
             calcHoveredElement(vTrue);
 
-            if (mouseHovered === ENUM_SELECTION_HOVER) {
-            } else if (mouseHovered === ENUM_BUTTON_HOVER) {
+            if (mouseHovered === ENUM_BUTTON_HOVER) {
                 stopPropagation(e);
                 mousePressed = vFalse;
                 for (var _i in yAxisDataRefs) {
@@ -629,9 +626,9 @@ var TeleChart = function (ctxId) {
                     _result = _regExp.exec(color);
                 color = "rgb(" + fParseInt(_result[1], 16) + "," + fParseInt(_result[2], 16) + "," + fParseInt(_result[3], 16) + ")";
             }
-            if (color.indexOf("a") === -1) {
+            if (color.indexOf("a") === -1)
                 color = color.replace(")", ", " + opacity + ")").replace("rgb", "rgba");
-            }
+
         }
         return color;
     }
@@ -879,7 +876,7 @@ var TeleChart = function (ctxId) {
         for (_i = _nextItem - _axisRange; _i <= selectionEndIndexInt; _i += _axisRange) {
             _nextItem = fMathCeil(_i);
             _labelX = (_nextItem - selectionStartIndexFloat ) * selectionFactorX;
-            (_opacity && fMathAbs((_nextItem - smartAxisXStart) % _prevSmartAxisRange) >= 1) ?
+            _opacity && fMathAbs((_nextItem - smartAxisXStart) % _prevSmartAxisRange) >= 1 ?
                 setFillStyle(_opacity) :
                 setFillStyle(_color);
             if (_nextItem > 0) {
@@ -893,11 +890,11 @@ var TeleChart = function (ctxId) {
             _labelY = fParseInt(_selectionAxis) + CONST_ANTI_BLUR_SHIFT - CONST_PADDING;
             _value = _nextScaleValue.toString();
             _textLength = getLength(_value);
-            if (_textLength > 6) {
+            if (_textLength > 6)
                 _value = _nextScaleValue / 1000000 + "M";
-            } else if (_textLength > 3) {
+            else if (_textLength > 3)
                 _value = _nextScaleValue / 1000 + "K";
-            }
+
             setFillStyle(_bgColor);
             fillRect(CONST_PADDING_HALF, _labelY - envSmallTextHeight + 2,
                 getTextWidth(_value) + CONST_PADDING_2, envSmallTextHeight);
@@ -1440,11 +1437,10 @@ var TeleChart = function (ctxId) {
         var _key = getFunctionName(c),
             _frameCount,
             _exAnimationFrames;
-
-        if (o) {
-            _key += o.alias;
-        }
         if (i !== p && c) { //no need animation
+            if (o)
+                _key += o.alias;
+
             _frameCount = s || (mousePressed || mouseHovered === ENUM_SELECTION_HOVER ? 5 : 15); //faster when user active
             if (l && i) { // smooth logarithmic scale for big transitions
                 _exAnimationFrames = fMathCeil(fMathAbs(fMathLog(fMathAbs(p / i)) * 10));
@@ -1468,14 +1464,15 @@ var TeleChart = function (ctxId) {
      */
     function processAnimations() {
         var _key,
-            _animation;
+            _animation,
+            _increment;
         for (_key in animations) {
             _animation = animations[_key];
             if (_animation) {
                 if (!_animation.f) {
                     _animation.f = (_animation.p - _animation.i) / _animation.s;
                 }
-                var _increment = _animation.f;
+                _increment = _animation.f;
                 if (frameDelay > 20) {
                     _increment = _increment * frameDelay / 20;
                 }

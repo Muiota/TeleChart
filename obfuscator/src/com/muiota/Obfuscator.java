@@ -26,23 +26,21 @@ public class Obfuscator {
 
     private String obfuscate(String source) throws Exception {
         HashMap<String, String> swaps = new HashMap<>();
-        String result = obfuscatePart(source, "function", "_f", swaps);
+        String result = obfuscatePart(source, "function", "~", swaps);
         result = obfuscatePart(result, "return", "_r", swaps);
-        result = obfuscatePart(result, "if\\(", "_i", swaps);
+        result = obfuscatePart(result, "if\\(", "`", swaps);
         result = obfuscatePart(result, "else", "_e", swaps);
         result = obfuscatePart(result, "for\\(", "_l", swaps);
         result = obfuscatePart(result, "while\\(", "_w", swaps);
-        result = obfuscatePart(result, "var ", "_v", swaps);
+        result = obfuscatePart(result, "var ", "_i", swaps);
         result = obfuscatePart(result, " in ", "_t", swaps);
         result = obfuscatePart(result, "mouse", "_z", swaps);
         result = obfuscatePart(result, "color", "_c", swaps);
-        result = obfuscatePart(result, "style", "_s", swaps);
-        result = obfuscatePart(result, "Style", "_S", swaps);
-        result = obfuscatePart(result, "touch", "_a", swaps);
         result = obfuscatePart(result, "name", "_n", swaps);
         result = obfuscatePart(result, "data", "_d", swaps);
-        result = obfuscatePart(result, "replace", "_b", swaps);
-        result = obfuscatePart(result, "move", "_x", swaps);
+
+
+        result = obfuscatePart(result, "===", "_j", swaps);
 
         result = result
                 .replaceAll("\\\\", "\\\\\\\\")
@@ -65,12 +63,16 @@ public class Obfuscator {
     private String obfuscatePart(String source, String replaceable,
                                  String replacement, HashMap<String, String> swaps) throws Exception {
         if (swaps.containsKey(replacement)) {
-            throw new Exception("Key " + replacement + " duplicated");
+            throw new Exception("Key " + replacement + " duplicated for "+replaceable );
         }
 
         while (source.indexOf(replacement) >= 0) {
             throw new Exception("replacement " + replacement + " already exist in " + source);
         }
+
+        System.out.println(replaceable+" "+source.split(replaceable).length);
+
+
         String result = source.replaceAll(replaceable, replacement);
         swaps.put(replacement, replaceable);
         return result;
