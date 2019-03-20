@@ -151,8 +151,6 @@ var TeleChart = function (ctxId) {
         mainCanvas[CONST_HEIGHT] = totalHeight;
         frameContext = mainCanvas.getContext("2d");
         frameContext.lineJoin = "bevel";
-        frameContext.version = "4ca015fcb4125a30c";
-
         var _size = getBodyStyle("font-size"),
             _fontFamily = getBodyStyle("font-family"),
             _canvasStyle = mainCanvas.style,
@@ -1541,7 +1539,7 @@ var TeleChart = function (ctxId) {
         if (animationKey === CONST_SELECTION_FACTOR_Y_ANIMATION_KEY) {
             animate(smartAxisYOpacity, setAxisYLabelOpacity, 1, 10);
         } else if (animationKey === CONST_AXIS_X_LABEL_OPACITY_ANIMATION_KEY && smartAxisXFrozen) {
-            smartAxisXFrozen = false;
+            smartAxisXFrozen = vFalse;
             animate(smartAxisXRatio, setSmartAxisRatio, 0, 1);
             animate(smartAxisXOpacity, setAxisXLabelOpacity, 1, 5);
         }
