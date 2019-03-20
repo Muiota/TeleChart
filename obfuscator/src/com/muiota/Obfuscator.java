@@ -49,28 +49,36 @@ public class Obfuscator {
         StringBuilder deObfuscate = new StringBuilder();
 
         for (Map.Entry<String, String> element : swaps.entrySet()) {
-            deObfuscate.append(element.getKey() + ":\"" + element.getValue().replace("\\", "") + "\",");
+            if (deObfuscate.length() > 0) {
+                deObfuscate.append(",");
+            }
+            String value = element.getValue().replace("\\", "");
+            String key = element.getKey();
+            if ("`".equals(key) || "~".equals(key)) {
+                key = "\"" + key + "\"";
+            }
+            deObfuscate.append(key + ":\"" + value + "\"");
         }
 
 
         // _a:"function",_b:"sdsd"
 
         result =
-                "eval(function(){var s=\"" + result + "\",r={" + deObfuscate.toString() + "},k;for(k in r){s=s.replace(new RegExp(k,\"g\"),r[k])} return s}());";
+                "eval(function(){var s='" + result + "',r={" + deObfuscate.toString() + "},k;for(k in r){s=s.replace(new RegExp(k,\"g\"),r[k])} return s}());";
         return result;
     }
 
     private String obfuscatePart(String source, String replaceable,
                                  String replacement, HashMap<String, String> swaps) throws Exception {
         if (swaps.containsKey(replacement)) {
-            throw new Exception("Key " + replacement + " duplicated for "+replaceable );
+            throw new Exception("Key " + replacement + " duplicated for " + replaceable);
         }
 
         while (source.indexOf(replacement) >= 0) {
             throw new Exception("replacement " + replacement + " already exist in " + source);
         }
 
-        System.out.println(replaceable+" "+source.split(replaceable).length);
+        System.out.println(replaceable + " " + source.split(replaceable).length);
 
 
         String result = source.replaceAll(replaceable, replacement);
