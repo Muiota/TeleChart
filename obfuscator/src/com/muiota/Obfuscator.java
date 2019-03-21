@@ -25,8 +25,12 @@ public class Obfuscator {
     }
 
     private String obfuscate(String source) throws Exception {
+
+        String result = source
+                .replaceAll("function\\(", "function \\(");
+
         HashMap<String, String> swaps = new HashMap<>();
-        String result = obfuscatePart(source, "function", "~", swaps);
+        result = obfuscatePart(result, "function ", "~", swaps);
         result = obfuscatePart(result, "return", "_r", swaps);
         result = obfuscatePart(result, "if\\(", "`", swaps);
         result = obfuscatePart(result, "else", "_e", swaps);
