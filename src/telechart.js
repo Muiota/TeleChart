@@ -639,11 +639,20 @@ var TeleChart = function (ctxId) {
     function getRGBA(color, opacity) {
         if (opacity < 1) {
             if (color.indexOf("#") !== -1) {
-                var _regExp = getLength(color) === 7 ?
+                var _normal = getLength(color) === 7,
+                    _regExp = _normal ?
                     /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i :
                     /^#?([a-f\d])([a-f\d])([a-f\d])$/i,
-                    _result = _regExp.exec(color);
-                color = "rgb(" + fParseInt(_result[1], 16) + "," + fParseInt(_result[2], 16) + "," + fParseInt(_result[3], 16) + ")";
+                    _result = _regExp.exec(color),
+                    _r = fParseInt(_result[1], 16),
+                    _g = fParseInt(_result[2], 16),
+                    _b = fParseInt(_result[3], 16);
+                if (!_normal) {  //short color notation support
+                    _r = (_r << 4) + _r;
+                    _g = (_g << 4) + _r;
+                    _b = (_b << 4) + _r;
+                }
+                color = "rgb(" + _r + "," + _g + "," + _b + ")";
             }
             if (color.indexOf("a") === -1) {
                 color = color.replace(")", ", " + opacity + ")").replace("rgb", "rgba");
@@ -1462,7 +1471,7 @@ var TeleChart = function (ctxId) {
      * @returns {String} function name
      */
     function getFunctionName(f) {
-        return f.name || f.toString().match(/^function\s*([^\s(]+)/)[1];
+        return f.name || f.toString().substring(9, 32);
     }
 
     /**

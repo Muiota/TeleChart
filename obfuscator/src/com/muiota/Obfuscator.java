@@ -36,15 +36,16 @@ public class Obfuscator {
         result = obfuscatePart(result, "else", "_e", swaps);
         result = obfuscatePart(result, "for\\(", "_l", swaps);
         result = obfuscatePart(result, "while\\(", "_w", swaps);
-        result = obfuscatePart(result, "var ", "_i", swaps);
+        result = obfuscatePart(result, "var ", "@", swaps);
         result = obfuscatePart(result, " in ", "_t", swaps);
-        result = obfuscatePart(result, "mouse", "_z", swaps);
+        result = obfuscatePart(result, "\\.onmouse", "_z", swaps);
         result = obfuscatePart(result, "color", "_c", swaps);
         result = obfuscatePart(result, "name", "_n", swaps);
         result = obfuscatePart(result, "data", "_d", swaps);
 
 
-        result = obfuscatePart(result, "===", "_j", swaps);
+
+       // result = obfuscatePart(result, "", "^", swaps);
 
         result = result
                 .replaceAll("\\\\", "\\\\\\\\")
@@ -58,7 +59,7 @@ public class Obfuscator {
             }
             String value = element.getValue().replace("\\", "");
             String key = element.getKey();
-            if ("`".equals(key) || "~".equals(key)) {
+            if ("`".equals(key) || "~".equals(key)|| "@".equals(key) || "'".equals(key)) {
                 key = "\"" + key + "\"";
             }
             deObfuscate.append(key + ":\"" + value + "\"");
@@ -68,7 +69,7 @@ public class Obfuscator {
         // _a:"function",_b:"sdsd"
 
         result =
-                "eval(function(){var s='" + result + "',r={" + deObfuscate.toString() + "},k;for(k in r){s=s.replace(new RegExp(k,\"g\"),r[k])} return s}());";
+                "eval(function(){var s=\"" + result + "\",r={" + deObfuscate.toString() + "},k;for(k in r){s=s.replace(new RegExp(k,\"g\"),r[k])} return s}());";
         return result;
     }
 
