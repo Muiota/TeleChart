@@ -66,8 +66,10 @@ var TeleChart = function (ctxId) {
         navigatorBottom = navigatorTop + navigatorHeight,
         totalHeight = navigatorBottom + CONST_PADDING * 10 + CONST_BTN_RADIUS * 4,
         needRedraw,
-        mainCanvas ,
-        frameContext ,
+        mainCanvas,
+        bufferNavigatorCanvas,
+        frameContext,
+        bufferNavigatorContext,
         xAxisDataRef,
         yAxisDataRefs = [],
         animations = {},
@@ -106,6 +108,7 @@ var TeleChart = function (ctxId) {
         smartAxisXFrozenEnd,
         smartAxisXOpacity = 1,
         smartAxisYRange,
+        smartAxisYRangeVal, //todo
         smartAxisYOpacity = 1,
 
         navigatorFactorX,
@@ -113,6 +116,7 @@ var TeleChart = function (ctxId) {
         navigatorMinY,
         navigatorPressed = 0,
         navigatorPressedSide,
+        navigatorNeedUpdateBuffer,
 
 
         seriesMaxOpacity,
@@ -145,15 +149,12 @@ var TeleChart = function (ctxId) {
      * Initializes the environment
      */
     function initialize() {
-        mainCanvas = vDocument.createElement("canvas");
-        mainCanvas.id = "lr_" + ctxId;
-        mainCanvas[CONST_WIDTH] = totalWidth;
-        mainCanvas[CONST_HEIGHT] = totalHeight;
+        mainCanvas = createCanvas(totalWidth, totalHeight);
         frameContext = mainCanvas.getContext("2d");
-        frameContext.lineJoin = "bevel";
+
         var _size = getBodyStyle("font-size"),
             _fontFamily = getBodyStyle("font-family"),
-            _canvasStyle = mainCanvas.style,
+            _mainCanvasStyle = mainCanvas.style,
             _baseFontSize = fParseInt(_size.replace(/\D/g, "")),
             _onMouseDown = function (e) {
                 handleMouseClick(e, vTrue);
@@ -162,8 +163,9 @@ var TeleChart = function (ctxId) {
                 handleMouseClick(e, vFalse);
             };
 
-
-
+        bufferNavigatorCanvas = createCanvas(totalWidth, navigatorHeight);
+        bufferNavigatorContext = bufferNavigatorCanvas.getContext("2d");
+        bufferNavigatorContext.lineWidth = 2;
         envSmallTextHeight = fParseInt(_baseFontSize * 1.2);
         envNormalTextHeight = fParseInt(_baseFontSize * CONST_DISPLAY_SCALE_FACTOR);
 
@@ -174,8 +176,8 @@ var TeleChart = function (ctxId) {
 
         setFont(envRegularSmallFont);
 
-        _canvasStyle[CONST_WIDTH] = fParseInt(totalWidth / CONST_DISPLAY_SCALE_FACTOR) + CONST_PIXEL;
-        _canvasStyle[CONST_HEIGHT] = fParseInt(totalHeight / CONST_DISPLAY_SCALE_FACTOR) + CONST_PIXEL;
+        _mainCanvasStyle[CONST_WIDTH] = fParseInt(totalWidth / CONST_DISPLAY_SCALE_FACTOR) + CONST_PIXEL;
+        _mainCanvasStyle[CONST_HEIGHT] = fParseInt(totalHeight / CONST_DISPLAY_SCALE_FACTOR) + CONST_PIXEL;
 
         container.appendChild(mainCanvas);
 
@@ -201,6 +203,15 @@ var TeleChart = function (ctxId) {
         window.addEventListener(name, handler);
     }
 
+    function createCanvas(totalWidth, totalHeight) {
+        var _canvas = vDocument.createElement("canvas");
+        _canvas[CONST_WIDTH] = totalWidth;
+        _canvas[CONST_HEIGHT] = totalHeight;
+        _canvas.lineJoin = "bevel";
+        return _canvas;
+    }
+
+
     //======== setters for animation ========
     function setSelectionFactorY(val) {
         selectionFactorY = val;
@@ -208,6 +219,7 @@ var TeleChart = function (ctxId) {
 
     function setNavigationFactorY(val) {
         navigatorFactorY = val;
+        navigatorNeedUpdateBuffer = vTrue;
     }
 
     function setNavigatorPressed(val) {
@@ -238,6 +250,7 @@ var TeleChart = function (ctxId) {
 
     function setSeriesOpacity(val, series) {
         series.sOp = val;
+        navigatorNeedUpdateBuffer = vTrue;
     }
 
     function setButtonPulse(val, series) {
@@ -248,12 +261,20 @@ var TeleChart = function (ctxId) {
         smartAxisYOpacity = val;
     }
 
+    function setSmartAxisYRange(val) {
+        smartAxisYRange = val;
+    }
+
     function setAxisXLabelOpacity(val) {
         smartAxisXOpacity = val;
     }
 
     function setSmartAxisRatio(val) {
         smartAxisXRatio = val;
+    }
+
+    function setBoundHighlight(val) {
+        boundHighlight = val;
     }
 
     /**
@@ -355,8 +376,9 @@ var TeleChart = function (ctxId) {
         var _result = vNull,
             _i;
 
-        if (!navigatorFactorX)
+        if (!navigatorFactorX) {
             return;
+        }
 
 
         if (mouseY < navigatorTop && mouseX > 0 && mouseX < totalWidth && selectionFactorX) { //Selection hovered
@@ -436,18 +458,18 @@ var TeleChart = function (ctxId) {
      * Setter for start navigator edge
      * @param val {Number} value
      */
-    function associateZoomStart(val) {
-        zoomStartHard = val* navigatorFactorX;
-        animate(zoomStartSmooth, setZoomStart, val);
+    function associateZoomStart(val, withoutAnimation) {
+        zoomStartHard = val * navigatorFactorX;
+        withoutAnimation ? setZoomStart(val) : animate(zoomStartSmooth, setZoomStart, val);
     }
 
     /**
      * Setter for end navigator edge
      * @param val {Number} value
      */
-    function associateZoomEnd(val) {
-        zoomEndHard = val* navigatorFactorX;
-        animate(zoomEndSmooth, setZoomEnd, val);
+    function associateZoomEnd(val, withoutAnimation) {
+        zoomEndHard = val * navigatorFactorX;
+        withoutAnimation ? setZoomEnd(val) : animate(zoomEndSmooth, setZoomEnd, val);
     }
 
     /**
@@ -471,8 +493,8 @@ var TeleChart = function (ctxId) {
             _end = maxX;
             _start = maxX - end + start;
         }
-        associateZoomStart(_start);
-        associateZoomEnd(_end);
+        associateZoomStart(_start, true);
+        associateZoomEnd(_end, true);
     }
 
     /**
@@ -512,7 +534,7 @@ var TeleChart = function (ctxId) {
             if (mouseHovered === ENUM_SELECTION_HOVER) {
                 var _interval = ( mouseFrame.tF - mouseX ) / selectionFactorX,
                     _maxProposedX = xAxisDataRef.l - 2;
-                    moveNavigatorFrame(_interval, _maxProposedX, mouseFrame.tS, mouseFrame.tE);
+                moveNavigatorFrame(_interval, _maxProposedX, mouseFrame.tS, mouseFrame.tE);
 
             } else {
                 navigateChart();
@@ -584,10 +606,8 @@ var TeleChart = function (ctxId) {
                 navigatorPressedSide = mouseHovered;
             }
         } else {
-            if (navigatorPressed > 0) {
-                animate(navigatorPressed, setNavigatorPressed, 0, 15);
-            }
-
+            animate(navigatorPressed, setNavigatorPressed, 0, 15);
+            animate(boundHighlight, setBoundHighlight, 0, 15);
             if (smartAxisXFrozen) {
                 if (smartAxisXFrozenStart !== selectionStartIndexFloat ||
                     smartAxisXFrozenEnd !== selectionEndIndexFloat) {
@@ -626,8 +646,9 @@ var TeleChart = function (ctxId) {
                     _result = _regExp.exec(color);
                 color = "rgb(" + fParseInt(_result[1], 16) + "," + fParseInt(_result[2], 16) + "," + fParseInt(_result[3], 16) + ")";
             }
-            if (color.indexOf("a") === -1)
+            if (color.indexOf("a") === -1) {
                 color = color.replace(")", ", " + opacity + ")").replace("rgb", "rgba");
+            }
 
         }
         return color;
@@ -890,17 +911,19 @@ var TeleChart = function (ctxId) {
             _labelY = fParseInt(_selectionAxis) + CONST_ANTI_BLUR_SHIFT - CONST_PADDING;
             _value = _nextScaleValue.toString();
             _textLength = getLength(_value);
-            if (_textLength > 6)
+            if (_textLength > 6) {
                 _value = _nextScaleValue / 1000000 + "M";
-            else if (_textLength > 3)
+            }
+            else if (_textLength > 3) {
                 _value = _nextScaleValue / 1000 + "K";
+            }
 
             setFillStyle(_bgColor);
             fillRect(CONST_PADDING_HALF, _labelY - envSmallTextHeight + 2,
                 getTextWidth(_value) + CONST_PADDING_2, envSmallTextHeight);
             setFillStyle(_color);
             fillText(_value, CONST_PADDING, _labelY);
-            _nextScaleValue = fParseInt(_nextScaleValue + smartAxisYRange);
+            _nextScaleValue = fParseInt(_nextScaleValue + smartAxisYRangeVal);
             _selectionAxis = _selectionAxis + smartAxisYRange * selectionFactorY;
         }
     }
@@ -963,6 +986,22 @@ var TeleChart = function (ctxId) {
         }
     }
 
+    function drawNavigatorSeries(_axisY) {
+        var _xValue = 0,
+            _yValue,
+            _k;
+
+        bufferNavigatorContext.beginPath();
+        bufferNavigatorContext.strokeStyle = _axisY.sCg[100];
+        bufferNavigatorContext.globalAlpha = _axisY.sOp;
+        for (_k = 1; _k < xAxisDataRef.l;) {
+            _yValue = navigatorHeight + (_axisY.data[_k] - navigatorMinY) * navigatorFactorY;
+            _k === 1 ? bufferNavigatorContext.moveTo(_xValue, _yValue) : bufferNavigatorContext.lineTo(_xValue, _yValue);
+            _xValue = _k++ * navigatorFactorX;
+        }
+        bufferNavigatorContext.stroke();
+    }
+
     /**
      * Draws the chart series (Attention! Performance critical)
      */
@@ -973,28 +1012,23 @@ var TeleChart = function (ctxId) {
             _axisY,
             _xValue,
             _yValue;
+
+        if (navigatorNeedUpdateBuffer) {
+            bufferNavigatorContext.clearRect(0, 0, totalWidth, navigatorHeight);
+        }
+
         for (_i in yAxisDataRefs) {
             _axisY = yAxisDataRefs[_i];
             seriesMaxOpacity = getMax(_axisY.sOp, seriesMaxOpacity);
 
             //navigator series
-            beginPath();
-            setLineWidth(2);
-
-            setStrokeStyle(_axisY.sCg[fParseInt(100 * _axisY.sOp)]);
-            _xValue = 0;
-            for (_k = 1; _k < xAxisDataRef.l;) {
-                _yValue = navigatorBottom + (_axisY.data[_k] - navigatorMinY) * navigatorFactorY;
-                if (_yValue < navigatorTop) {
-                    _yValue = navigatorTop;
-                }
-                moveOrLine(_k === 1, _xValue, _yValue);
-                _xValue = _k++ * navigatorFactorX;
+            if (navigatorNeedUpdateBuffer) {
+                drawNavigatorSeries(_axisY);
             }
-            endPath();
             //   setRound(vTrue);
             //selection series
             beginPath();
+            setStrokeStyle(_axisY.sCg[fParseInt(100 * _axisY.sOp)]);
             setLineWidth(3);
             for (_k = selectionStartIndexInt; _k <= selectionEndIndexInt;) {
                 _xValue = (_k - selectionStartIndexFloat) * selectionFactorX;
@@ -1004,6 +1038,8 @@ var TeleChart = function (ctxId) {
             endPath();
             //     setRound(vFalse);
         }
+        navigatorNeedUpdateBuffer = vFalse;
+        frameContext.drawImage(bufferNavigatorCanvas, 0, navigatorTop);
     }
 
     /**
@@ -1124,9 +1160,10 @@ var TeleChart = function (ctxId) {
 
             circle(_x, navigatorTop + navigatorHeightHalf, navigatorPressed * 35);
             fill();
-            if (boundHighlight) {
-                drawBoundHighlight(boundHighlight * navigatorPressed);
-            }
+
+        }
+        if (boundHighlight) {
+            drawBoundHighlight(boundHighlight);
         }
 
 
@@ -1245,7 +1282,8 @@ var TeleChart = function (ctxId) {
             _newProposed = fMathCeil(_prevProposed / _divider) * _divider;
             _i++;
         } while (_newProposed - _prevProposed < _threshold);
-        smartAxisYRange = _newProposed;
+        animate(smartAxisYRange, setSmartAxisYRange, _newProposed);
+        smartAxisYRangeVal = _newProposed;
     }
 
     /**
@@ -1438,8 +1476,9 @@ var TeleChart = function (ctxId) {
             _frameCount,
             _exAnimationFrames;
         if (i !== p && c) { //no need animation
-            if (o)
+            if (o) {
                 _key += o.alias;
+            }
 
             _frameCount = s || (mousePressed || mouseHovered === ENUM_SELECTION_HOVER ? 5 : 15); //faster when user active
             if (l && i) { // smooth logarithmic scale for big transitions
@@ -1574,3 +1613,4 @@ var TeleChart = function (ctxId) {
         destroy: destroy
     };
 };
+
