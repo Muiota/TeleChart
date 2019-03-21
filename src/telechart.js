@@ -580,7 +580,9 @@ var TeleChart = function (ctxId) {
                 return vTrue;
             }
         }
-        updateHoveredInfo(vNull);
+        if (!calcOnly) {
+            updateHoveredInfo(vNull);
+        }
         return vFalse;
     }
 
