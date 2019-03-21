@@ -612,6 +612,8 @@ var TeleChart = function (ctxId) {
             smartAxisXFrozenEnd = selectionEndIndexFloat;
             smartAxisXFrozen = vTrue;
             calcHoveredElement(vTrue);
+            delete animations[CONST_AXIS_X_LABEL_OPACITY_ANIMATION_KEY];
+            setAxisXLabelOpacity(1);
             if (mouseHovered === ENUM_BUTTON_HOVER) {
                 stopPropagation(e);
                 mousePressed = vFalse;
