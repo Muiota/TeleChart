@@ -21,6 +21,8 @@ var TeleChart = function (ctxId) {
 
     /**
      * Constants
+     * @type {Number|Array|String}
+     * @const
      */
     var CONST_NAVIGATOR_HEIGHT_PERCENT = 12,
         CONST_NAVIGATOR_WIDTH_PERCENT = 25,
@@ -55,6 +57,7 @@ var TeleChart = function (ctxId) {
 
     /**
      * Global members
+     * @type {Number|Array|String|HTMLCanvasElement|CanvasRenderingContext2D|Element|Object}
      */
     var container = vDocument.getElementById(ctxId),
         totalWidth = container.offsetWidth * CONST_DISPLAY_SCALE_FACTOR,
@@ -108,7 +111,7 @@ var TeleChart = function (ctxId) {
         smartAxisXFrozenEnd,
         smartAxisXOpacity = 1,
         smartAxisYRange,
-        smartAxisYRangeVal, //todo
+        smartAxisYRangeVal,
         smartAxisYOpacity = 1,
 
         navigatorFactorX,
@@ -153,7 +156,7 @@ var TeleChart = function (ctxId) {
         frameContext = mainCanvas.getContext("2d");
         frameContext.lineJoin = "bevel";
         var _size = getBodyStyle("font-size"),
-            _fontFamilyCombined =  CONST_PIXEL +" " + getBodyStyle("font-family"),
+            _fontFamilyCombined = CONST_PIXEL + " " + getBodyStyle("font-family"),
             _mainCanvasStyle = mainCanvas.style,
             _baseFontSize = fParseInt(_size.replace(/\D/g, "")),
             _onMouseDown = function (e) {
@@ -199,17 +202,27 @@ var TeleChart = function (ctxId) {
         invalidate();
     }
 
+    /**
+     * Sets up a handler that will be called whenever the event is delivered to the target
+     * @param name {String} name of event
+     * @param handler {Function} callback
+     */
     function addEventListener(name, handler) {
         window.addEventListener(name, handler);
     }
 
+    /**
+     * Creates the canvas
+     * @param width {Number} width of canvas
+     * @param height {Number} height of canvas
+     * @returns {Element}
+     */
     function createCanvas(width, height) {
         var _canvas = vDocument.createElement("canvas");
         _canvas[CONST_WIDTH] = width;
         _canvas[CONST_HEIGHT] = height;
         return _canvas;
     }
-
 
     //======== setters for animation ========
     function setSelectionFactorY(val) {
@@ -369,7 +382,41 @@ var TeleChart = function (ctxId) {
     }
 
     /**
-     *  Calculates a hovered element
+     * Sets the mouseHovered variable & fire events
+     * @param proposed {Number} type of hovered element
+     * @param force {Boolean=} force fire events
+     */
+    function updateHoveredInfo(proposed, force) {
+        if (mouseHovered !== proposed || force) {
+            mouseHovered = proposed;
+
+            if (mouseHovered !== ENUM_SELECTION_HOVER) {
+                animate(legendBoxOpacity, setLegendOpacity, 0);
+            } else if (mouseHovered !== ENUM_BUTTON_HOVER) {
+                //reset all hovered once
+                for (var _i in yAxisDataRefs) {
+                    yAxisDataRefs[_i].bO = vFalse;
+                }
+            }
+
+            //Set cursor
+            if (mouseHovered === ENUM_SELECTION_HOVER) { //most likely
+                animate(legendBoxOpacity, setLegendOpacity, 1);
+                setCursor(0);
+            } else if (mouseHovered === ENUM_ZOOM_HOVER ||
+                mouseHovered === ENUM_BUTTON_HOVER) {
+                setCursor(1);
+            } else if (mouseHovered === ENUM_START_SELECTION_HOVER ||
+                mouseHovered === ENUM_END_SELECTION_HOVER) {
+                setCursor(2);
+            } else {
+                setCursor(0);
+            }
+        }
+    }
+
+    /**
+     * @param force {Boolean=} force calculate hovered if region not changed
      */
     function calcHoveredElement(force) {
         var _result = vNull,
@@ -379,8 +426,7 @@ var TeleChart = function (ctxId) {
             return;
         }
 
-
-        if (mouseY < navigatorTop && mouseX > 0 && mouseX < totalWidth && selectionFactorX) { //Selection hovered
+        if (mouseY < navigatorTop && selectionFactorX) { //Selection hovered
             var _proposed = fMathRound(mouseX / selectionFactorX + selectionStartIndexFloat);
             calcLegendPosition(_proposed);
             animate(selectionCurrentIndexFloat, setSelectionCurrentIndexFloat, _proposed);
@@ -416,32 +462,7 @@ var TeleChart = function (ctxId) {
                 }
             }
         }
-        if (mouseHovered !== _result || force) {
-            mouseHovered = _result;
-
-            if (mouseHovered !== ENUM_SELECTION_HOVER) {
-                animate(legendBoxOpacity, setLegendOpacity, 0);
-            } else if (mouseHovered !== ENUM_BUTTON_HOVER) {
-                //reset all hovered once
-                for (_i in yAxisDataRefs) {
-                    yAxisDataRefs[_i].bO = vFalse;
-                }
-            }
-
-            //Set cursor
-            if (mouseHovered === ENUM_SELECTION_HOVER) { //most likely
-                animate(legendBoxOpacity, setLegendOpacity, 1);
-                setCursor(0);
-            } else if (mouseHovered === ENUM_ZOOM_HOVER ||
-                mouseHovered === ENUM_BUTTON_HOVER) {
-                setCursor(1);
-            } else if (mouseHovered === ENUM_START_SELECTION_HOVER ||
-                mouseHovered === ENUM_END_SELECTION_HOVER) {
-                setCursor(2);
-            } else {
-                setCursor(0);
-            }
-        }
+        updateHoveredInfo(_result, force);
     }
 
     /**
@@ -552,9 +573,15 @@ var TeleChart = function (ctxId) {
         if (_clientX && _clientY) {
             mouseX = fParseInt((_clientX - mouseOffsetX) * CONST_DISPLAY_SCALE_FACTOR);
             mouseY = fParseInt((_clientY - mouseOffsetY) * CONST_DISPLAY_SCALE_FACTOR);
-            mousePressed && !calcOnly ? moveHoveredElement() : calcHoveredElement();
-            invalidateInner();
+            if (mouseY >= -CONST_PADDING && mouseX >= -CONST_PADDING &&
+                mouseX <= totalWidth + CONST_PADDING && mouseY <= totalHeight + CONST_PADDING) {
+                mousePressed && !calcOnly ? moveHoveredElement() : calcHoveredElement();
+                invalidateInner();
+                return vTrue;
+            }
         }
+        updateHoveredInfo(vNull);
+        return vFalse;
     }
 
     /**
@@ -564,7 +591,7 @@ var TeleChart = function (ctxId) {
      */
     function handleMouseMove(e, withoutPress) {
         var _touches = e.touches;
-        _touches && getLength(_touches) ?
+        return (_touches && getLength(_touches)) ?
             assignMousePos(_touches[0], withoutPress) :
             assignMousePos(e, withoutPress);
     }
@@ -575,15 +602,16 @@ var TeleChart = function (ctxId) {
      * @param pressed {Boolean} left button pressed
      */
     function handleMouseClick(e, pressed) {
+        if (!handleMouseMove(e, vTrue)) {
+            pressed = vFalse;
+        }
         mousePressed = pressed;
-        handleMouseMove(e, vTrue);
         if (pressed) {
             animate(smartAxisXRatio, setSmartAxisRatio, 0, 1);
             smartAxisXFrozenStart = selectionStartIndexFloat;
             smartAxisXFrozenEnd = selectionEndIndexFloat;
             smartAxisXFrozen = vTrue;
             calcHoveredElement(vTrue);
-
             if (mouseHovered === ENUM_BUTTON_HOVER) {
                 stopPropagation(e);
                 mousePressed = vFalse;
