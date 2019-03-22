@@ -24,7 +24,7 @@
     var instances = [],
         dataStore;
 
-    function createChart(base, fractional) {
+    function createChart(base, fractional, pair) {
         var columns = [["x"],["ask"],["bid"]];
         var course = base;
         var trend = course;
@@ -49,15 +49,16 @@
             colors: {ask: "#F34C44", bid: "#3DC23F"},
             names: {ask: "Ask", bid: "Bid"},
             types: {x: "x", ask: "line", bid: "line"},
-            columns: columns
+            columns: columns,
+            title: pair
         };
         return chart;
     }
 
     function generateData() {
         dataStore = [];
-        dataStore.push(createChart(64.6523, 4));
-        dataStore.push(createChart(72.8236, 4));
+        dataStore.push(createChart(64.6523, 4, "USD/RUB"));
+        dataStore.push(createChart(72.8236, 4, "EUR/RUB"));
     }
     generateData();
     createCharts();
@@ -79,15 +80,24 @@
         }
 
         for (var k = 0; k < dataStore.length; k++) {
+
             var innerContainer = document.createElement('div');
-            innerContainer.id = "chart_" + k;
             innerContainer.style.display = "inline-block";
-            innerContainer.style.width = isMobile() ? "100%" : "500px";
+            var title = document.createElement('div');
+            title.innerHTML = dataStore[k].title;
+            title.classList.add("currency-title");
+            innerContainer.appendChild(title);
+
+            var chartContainer = document.createElement('div');
+            chartContainer.id = "chart_" + k;
+            chartContainer.style.display = "inline-block";
+            chartContainer.style.width = isMobile() ? "100%" : "420px";
             if (!isMobile()) {
-                innerContainer.style.margin = "15px";
+                chartContainer.style.margin = "15px";
             }
+            innerContainer.appendChild(chartContainer);
             _container.appendChild(innerContainer);
-            var tc = new TeleChart(innerContainer.id,
+            var tc = new TeleChart(chartContainer.id,
                 {
                     startAxisAtZero: false
                 });

@@ -91,3 +91,7 @@ div .title {
     margin-bottom: 10px;
     margin-top: 10px;
 }
+
+div .currency-title {
+    margin-left: 15px;
+}
