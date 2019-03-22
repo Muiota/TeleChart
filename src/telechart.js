@@ -77,7 +77,7 @@ var TeleChart = function (ctxId, config) {
         yAxisDataRefs = [],
         animations = {},
 
-        minValueAxisY = 0, //todo config (if not assigned then auto scale)
+        minValueAxisY,
 
         mouseX,
         mouseY,
@@ -154,6 +154,9 @@ var TeleChart = function (ctxId, config) {
     function initialize() {
         if (!config) {
             config = {};
+        }
+        if (config.startAxisAtZero === vFalse ? vFalse : vTrue) {
+            minValueAxisY = 0;
         }
         mainCanvas = createCanvas(totalWidth, totalHeight);
         frameContext = mainCanvas.getContext("2d");
@@ -432,6 +435,7 @@ var TeleChart = function (ctxId, config) {
 
         if (mouseY < navigatorTop && selectionFactorX && !config.scrollDisabled) { //Selection hovered
             var _proposed = fMathRound(mouseX / selectionFactorX + selectionStartIndexFloat);
+            _proposed = getMin(getMax(1, _proposed), xAxisDataRef.l - 1);
             calcLegendPosition(_proposed);
             animate(selectionCurrentIndexFloat, setSelectionCurrentIndexFloat, _proposed);
             mouseFrame.tS = zoomStartSmooth;
@@ -890,7 +894,7 @@ var TeleChart = function (ctxId, config) {
             _nextItem,
             _labelX,
             _labelY,
-            _nextScaleValue = 0,
+            _nextScaleValue = fMathCeil(selectionMinY),
             _opacity,
             _nextStage,
             _axisRange,
@@ -1326,10 +1330,17 @@ var TeleChart = function (ctxId, config) {
     function calcSmartAxisY() {
         var _prevProposed = fMathCeil((selectionMaxY - selectionMinY) / 6),
             _threshold = _prevProposed / 25,
-            _i = 0,
+            _i = fMathCeil(selectionMinY),
             _factor = 1,
             _newProposed,
             _divider;
+
+        if (_prevProposed > 10) {
+        } else if (_prevProposed > 2) {
+            _factor = _factor / 10;
+        } else {
+            _factor = _factor / 1000;
+        }
 
         do {
             if (_i >= getLength(CONST_HUMAN_SCALES)) {
