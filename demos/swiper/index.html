@@ -90,7 +90,7 @@
         _video_slide.width(isMobile() ? "100%" : "300px");
         dataStore = data;
 
-        var _container = document.getElementById("charts_container");
+        var _container = $("#charts_container");
         instances = [];
         if (!dataStore) {
             return;
@@ -112,12 +112,6 @@
                 innerContainer.style.margin = "15px";
             }
             _container.prepend(innerContainer);
-
-            _container.onmousedown = function (e) {
-                console.log(e);
-                e.preventDefault();
-                e.stopPropagation();
-            };
 
             var tc = new TeleChart(innerContainer.id,
                 {
