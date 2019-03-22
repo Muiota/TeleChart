@@ -82,6 +82,9 @@
         for (var k = 0; k < dataStore.length; k++) {
 
             var innerContainer = document.createElement('div');
+            if (isMobile()) {
+                innerContainer.style.width = "100%";
+            }
             innerContainer.style.display = "inline-block";
             var title = document.createElement('div');
             title.innerHTML = dataStore[k].title;
