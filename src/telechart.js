@@ -325,6 +325,7 @@ var TeleChart = function (ctxId) {
             envColorGrad[_i] = getRGBA(_envColor, _opacity);
             envBgColorGrad[_i] = getRGBA(_envBgColor, _opacity);
         }
+        calcMouseOffset();
         invalidateInner();
     }
 
