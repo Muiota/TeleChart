@@ -77,7 +77,7 @@ var TeleChart = function (ctxId, config) {
         yAxisDataRefs = [],
         animations = {},
 
-        minValueAxisY,
+        configMinValueAxisY,
 
         mouseX,
         mouseY,
@@ -117,6 +117,7 @@ var TeleChart = function (ctxId, config) {
         navigatorFactorX,
         navigatorFactorY,
         navigatorMinY,
+        navigatorMaxY,
         navigatorPressed = 0,
         navigatorPressedSide,
         navigatorNeedUpdateBuffer,
@@ -156,7 +157,7 @@ var TeleChart = function (ctxId, config) {
             config = {};
         }
         if (config.startAxisAtZero === vFalse ? vFalse : vTrue) {
-            minValueAxisY = 0;
+            configMinValueAxisY = 0;
         }
         mainCanvas = createCanvas(totalWidth, totalHeight);
         frameContext = mainCanvas.getContext("2d");
@@ -234,10 +235,24 @@ var TeleChart = function (ctxId, config) {
     function setSelectionFactorY(val) {
         selectionFactorY = val;
     }
+    
+    function setSelectionMinY(val) {
+        selectionMinY = val;
+        animate(selectionFactorY, setSelectionFactorY, -(selectionHeight - 2) / (selectionMaxY - selectionMinY),
+            vNull, vUndefined, vTrue);
+    }
 
     function setNavigationFactorY(val) {
         navigatorFactorY = val;
         navigatorNeedUpdateBuffer = vTrue;
+    }
+
+    function setNavigatorMinY(val) {
+        navigatorMinY = val;
+        navigatorNeedUpdateBuffer = vTrue;
+        if (animate(navigatorFactorY, setNavigationFactorY,  -(navigatorHeight - 2) / (navigatorMaxY - navigatorMinY), vNull, vUndefined, vTrue)) {
+            animate(smartAxisYOpacity, setAxisYLabelOpacity, 0, 2);
+        }
     }
 
     function setNavigatorPressed(val) {
@@ -1298,7 +1313,7 @@ var TeleChart = function (ctxId, config) {
      */
     function calcNavigatorFactors(withoutAnimation) {
         var _max = vUndefined,
-            _min = minValueAxisY,
+            _min = configMinValueAxisY,
             _i,
             _axisY,
             _navigatorFactorY;
@@ -1310,15 +1325,21 @@ var TeleChart = function (ctxId, config) {
             }
         }
         if (_max) {
-            navigatorMinY = _min + 1;
             _navigatorFactorY = -(navigatorHeight - 2) / (_max - _min);
             if (withoutAnimation) {
+                navigatorMinY = _min;
                 setNavigationFactorY(_navigatorFactorY);
                 smartAxisYOpacity = 1;
             }
             else {
-                if (animate(navigatorFactorY, setNavigationFactorY, _navigatorFactorY, vNull, vUndefined, vTrue)) {
-                    animate(smartAxisYOpacity, setAxisYLabelOpacity, 0, 2);
+                navigatorMaxY = _max;
+                if (configMinValueAxisY !== vUndefined || navigatorMinY === _min) {
+                    navigatorMinY = _min;
+                    if (animate(navigatorFactorY, setNavigationFactorY, _navigatorFactorY, vNull, vUndefined, vTrue)) {
+                        animate(smartAxisYOpacity, setAxisYLabelOpacity, 0, 2);
+                    }
+                } else {
+                    animate(navigatorMinY, setNavigatorMinY, _min, vNull, vUndefined, vTrue);
                 }
             }
         }
@@ -1362,7 +1383,7 @@ var TeleChart = function (ctxId, config) {
         selectionStartIndexFloat = zoomStartSmooth + 1;
         selectionEndIndexFloat = zoomEndSmooth + 1;
         var _max = vUndefined,
-            _min = minValueAxisY,
+            _min = configMinValueAxisY,
             _i,
             _j,
             _axisY,
@@ -1392,10 +1413,15 @@ var TeleChart = function (ctxId, config) {
         }
         if (_max) {
             selectionFactorX = totalWidth / (selectionEndIndexFloat - selectionStartIndexFloat);
-            selectionMinY = _min;
             selectionMaxY = _max;
-            animate(selectionFactorY, setSelectionFactorY, -(selectionHeight - 2) / (_max - _min),
-                vNull, vUndefined, vTrue);
+            if (configMinValueAxisY !== vUndefined || _min === selectionMinY) {
+                selectionMinY = _min;
+                animate(selectionFactorY, setSelectionFactorY, -(selectionHeight - 2) / (_max - _min),
+                    vNull, vUndefined, vTrue);
+            } else {
+                animate(selectionMinY * 1, setSelectionMinY, _min,
+                    vNull, vUndefined, vTrue);
+            }
             calcSmartAxisY();
         }
     }
