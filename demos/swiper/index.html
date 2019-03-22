@@ -3,83 +3,8 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Tele chart demo (swiper)</title>
+    <link rel="stylesheet" href="../../assets/demo.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/Swiper/4.5.0/css/swiper.min.css">
-    <style>
-        body {
-            font: 13px/18px Tahoma, sans-serif, Arial, Helvetica;
-        }
-
-        body {
-            color: #222222;
-            background: #ffffff;
-        }
-
-        body.dark {
-            background: #242f3e;
-            color: #ffffff;
-        }
-
-        body.custom {
-            background: #f2f6fa;
-            color: #3a6d99;
-        }
-
-        body.custom.dark {
-            background: #2d4456;
-            color: #f2f6fa;
-        }
-
-        .im_dialog_peer {
-            font-weight: 700;
-            margin-top: 2px;
-            margin-bottom: 2px;
-            padding-left: 15px;
-        }
-
-        .settings_panel {
-            float: right;
-        }
-
-        .settings_panel input {
-            vertical-align: top;
-        }
-
-        .swiper-container {
-            width: 100%;
-            height: 100%;
-        }
-
-        a {
-            text-decoration: none;
-        }
-
-        .dark a {
-            color: #35ace1;
-        }
-
-        .swiper-slide {
-            text-align: center;
-            font-size: 18px;
-            /* Center slide text vertically */
-            display: -webkit-box;
-            display: -ms-flexbox;
-            display: -webkit-flex;
-            display: flex;
-            -webkit-box-pack: center;
-            -ms-flex-pack: center;
-            -webkit-justify-content: center;
-            justify-content: center;
-            -webkit-box-align: center;
-            -ms-flex-align: center;
-            -webkit-align-items: center;
-            align-items: center;
-        }
-
-
-    </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Swiper/4.5.0/js/swiper.min.js"></script>
-    <script src="../../src/telechart.js"></script>
 </head>
 <body>
 <div class="settings_panel">
@@ -90,11 +15,21 @@
 <a href="/TeleChart" class="im_dialog_peer">Back</a>
 <div class="swiper-container">
     <div class="swiper-wrapper" id="charts_container">
+        <div class="swiper-slide video">
+            <div class="title">Other content</div>
+            <iframe width="300" height="168" src="https://www.youtube.com/embed/yhTsKR1AFFc" frameborder="0"
+                    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen></iframe>
+            <iframe width="300" height="168" src="https://www.youtube.com/embed/vICFo2c7I08" frameborder="0"
+                    allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen></iframe>
+        </div>
     </div>
     <div class="swiper-pagination"></div>
 </div>
-
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Swiper/4.5.0/js/swiper.min.js"></script>
+<script src="../../src/telechart.f.min.js"></script>
 <script>
 
     var instances = [], swiper, dataStore;
@@ -145,14 +80,14 @@
         }
     }
 
-    setInterval(invalidateCharts, 1000);
-
     function createCharts(data) {
 
         if (swiper) {
             swiper.destroy();
         }
-        $("#charts_container").empty();
+        $(".swiper-slide.chart").remove();
+        var _video_slide = $(".swiper-slide.video");
+        _video_slide.width(isMobile() ? "100%" : "300px");
         dataStore = data;
 
         var _container = document.getElementById("charts_container");
@@ -168,20 +103,28 @@
         for (var k = 0; k < dataStore.length; k++) {
             var innerContainer = document.createElement('div');
             innerContainer.classList.add("swiper-slide");
+            innerContainer.classList.add("chart");
             innerContainer.id = "chart_" + k;
             innerContainer.width = "300px";
-            innerContainer.height = "400px";
             innerContainer.style.display = "inline-block";
-            innerContainer.style.width = "300px";
             innerContainer.style.width = isMobile() ? "100%" : "300px";
             if (!isMobile()) {
                 innerContainer.style.margin = "15px";
             }
-            _container.appendChild(innerContainer);
-            var tc = new TeleChart(innerContainer.id);
+            _container.prepend(innerContainer);
+
+            _container.onmousedown = function (e) {
+                console.log(e);
+                e.preventDefault();
+                e.stopPropagation();
+            };
+
+            var tc = new TeleChart(innerContainer.id,
+                {
+                    scrollDisabled: true
+                });
             tc.draw(dataStore[k]);
             instances.push(tc);
-            //  break;
         }
 
 
@@ -207,11 +150,11 @@
             touchMoveStopPropagation: false,
         };
         if (isMobile()) {
-            swiperConfig = {
+            jQuery.extend(swiperConfig, {
                 spaceBetween: 10
-            };
+            });
         } else {
-            swiperConfig = {
+            jQuery.extend(swiperConfig,{
                 effect: 'coverflow',
                 grabCursor: true,
                 centeredSlides: true,
@@ -223,7 +166,7 @@
                     modifier: 1,
                     slideShadows: true,
                 }
-            };
+            });
         }
         swiper = new Swiper('.swiper-container', swiperConfig);
 

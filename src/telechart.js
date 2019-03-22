@@ -1,6 +1,6 @@
 /*jslint browser: true*/
 /*global window*/
-var TeleChart = function (ctxId) {
+var TeleChart = function (ctxId, config) {
     "use strict";
 
     /**
@@ -152,6 +152,9 @@ var TeleChart = function (ctxId) {
      * Initializes the environment
      */
     function initialize() {
+        if (!config) {
+            config = {};
+        }
         mainCanvas = createCanvas(totalWidth, totalHeight);
         frameContext = mainCanvas.getContext("2d");
         frameContext.lineJoin = "bevel";
@@ -427,7 +430,7 @@ var TeleChart = function (ctxId) {
             return;
         }
 
-        if (mouseY < navigatorTop && selectionFactorX) { //Selection hovered
+        if (mouseY < navigatorTop && selectionFactorX && !config.scrollDisabled) { //Selection hovered
             var _proposed = fMathRound(mouseX / selectionFactorX + selectionStartIndexFloat);
             calcLegendPosition(_proposed);
             animate(selectionCurrentIndexFloat, setSelectionCurrentIndexFloat, _proposed);
