@@ -95,3 +95,8 @@ div .title {
 div .currency-title {
     margin-left: 15px;
 }
+
+small
+{
+    opacity: 0.6;
+}
