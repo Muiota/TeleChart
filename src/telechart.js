@@ -1110,14 +1110,27 @@ var TeleChart = function (ctxId, config) {
     function drawNavigatorSeriesInBuffer(series) {
         var _xValue = 0,
             _yValue,
-            _k;
+            _k,
+            _lastXValue,
+            _lastYValue,
+            _needOptimization = xAxisDataRef.l / totalWidth >= 1;
 
         bufferNavigatorContext.beginPath();
         bufferNavigatorContext.strokeStyle = series.sCg[100];
         bufferNavigatorContext.globalAlpha = series.sO;
         for (_k = 1; _k < xAxisDataRef.l;) {
             _yValue = navigatorHeight + (series.data[_k] - navigatorMinY) * navigatorFactorY;
-            _k === 1 ? bufferNavigatorContext.moveTo(_xValue, _yValue) : bufferNavigatorContext.lineTo(_xValue, _yValue);
+            if (_k === 1) {
+                bufferNavigatorContext.moveTo(_xValue, _yValue);
+                _lastXValue = _xValue;
+                _lastYValue = _yValue;
+            } else {
+                if (!_needOptimization || _xValue - _lastXValue >= 1 || fMathAbs(_yValue - _lastYValue) >= 1) {
+                    bufferNavigatorContext.lineTo(_xValue, _yValue);
+                    _lastXValue = _xValue;
+                    _lastYValue = _yValue;
+                }
+            }
             _xValue = _k++ * navigatorFactorX;
         }
         bufferNavigatorContext.stroke();
@@ -1150,7 +1163,7 @@ var TeleChart = function (ctxId, config) {
             //selection series
             beginPath();
             setStrokeStyle(_axisY.sCg[fParseInt(100 * _axisY.sO)]);
-            setLineWidth(3);
+            setLineWidth(config.lineWidth || 3);
             for (_k = selectionStartIndexInt; _k <= selectionEndIndexInt;) {
                 _xValue = (_k - selectionStartIndexFloat) * selectionFactorX;
                 _yValue = selectionBottom + (_axisY.data[_k] - selectionMinY) * selectionFactorY;
