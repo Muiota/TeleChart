@@ -18,6 +18,21 @@ Demo: https://muiota.github.io/TeleChart/
  - Resizible container
  - Transparent background for wallpapers
   
+### Getting Started With Tele chart:
+ - First of all we need to download <b>telechart.min.js</b>
+ - Include Tele chart file To Website/App
+ - Initialize Tele chart
+```js 
+var tc = new TeleChart(id,          //div container id
+    {
+        startAxisAtZero: {Boolean}, //Start axis-Y at zero, if false will auto calculated (default true)
+        withYearLabel: {Boolean},   //Year in timestamp legend label (default false)
+        scrollDisabled: {Boolean},  //Disable scroll in selection window, navigator only (default false)
+        lineWidth: {Number}         //Line width in selection window (default 3)
+    });
+tc.draw(data);  
+```
+
 ### Road map:
 - Area type of series 
 - Performance, minimize & fixes
