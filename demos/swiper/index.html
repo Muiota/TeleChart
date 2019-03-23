@@ -48,7 +48,7 @@
         }
     }
 
-    if (!isMobile) {
+    if (!isMobile()) {
         $("#charts_container").on("pointerup", function (e) {
             interceptEvents(e, "onmouseup");
         });
