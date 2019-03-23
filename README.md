@@ -1,8 +1,12 @@
 ﻿Tele chart
 ====================
-Demo: https://muiota.github.io/TeleChart/
+#### Demos: 
+- https://muiota.github.io/TeleChart/
+- https://muiota.github.io/TeleChart/demos/swiper/index.html
+- https://muiota.github.io/TeleChart/demos/bigdata/index.html
+- https://muiota.github.io/TeleChart/demos/edit/index.html
 
-### Features:
+#### Features:
  - Pure js (without css)
  - ES5 only (compatible with old browsers)
  - Small size (10kB "~5kB gZip") 
@@ -18,7 +22,7 @@ Demo: https://muiota.github.io/TeleChart/
  - Resizible container
  - Transparent background for wallpapers
   
-### Getting Started With Tele chart:
+#### Getting Started With Tele chart:
  - First of all we need to download <b>telechart.min.js</b>
  - Include Tele chart file To Website/App
  - Initialize Tele chart
@@ -33,7 +37,7 @@ var tc = new TeleChart(id,          //div container id
 tc.draw(data);  
 ```
 
-### Road map:
+#### Road map:
 - Area type of series 
 - Performance, minimize & fixes
 ```` 
