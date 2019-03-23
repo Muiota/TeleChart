@@ -448,7 +448,7 @@ var TeleChart = function (ctxId, config) {
             return;
         }
 
-        if (mouseY < navigatorTop && selectionFactorX && !config.scrollDisabled) { //Selection hovered
+        if (mouseY < navigatorTop && selectionFactorX) { //Selection hovered
             var _proposed = fMathRound(mouseX / selectionFactorX + selectionStartIndexFloat);
             _proposed = getMin(getMax(1, _proposed), xAxisDataRef.l - 1);
             calcLegendPosition(_proposed);
@@ -575,10 +575,11 @@ var TeleChart = function (ctxId, config) {
     function moveHoveredElement() {
         if (xAxisDataRef) {
             if (mouseHovered === ENUM_SELECTION_HOVER) {
+            if (!config.scrollDisabled) {
                 var _interval = ( mouseFrame.tF - mouseX ) / selectionFactorX,
                     _maxProposedX = xAxisDataRef.l - 2;
                 moveNavigatorFrame(_interval, _maxProposedX, mouseFrame.tS, mouseFrame.tE);
-
+            }
             } else {
                 navigateChart();
             }
