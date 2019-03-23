@@ -108,7 +108,8 @@
             var tc = new TeleChart(chartContainer.id,
                 {
                     startAxisAtZero: false,
-                    withYearLabel: true
+                    withYearLabel: true,
+                    lineWidth: 2
                 });
             tc.draw(dataStore[k]);
             instances.push(tc);

@@ -32,7 +32,7 @@
         <li>Advanced navigation/zoom (vertical/horizontal)</li>
         <li>Smart axes labels</li>
         <li>Day/night switch</li>
-        <li>High resolution (fix blur, retina support)</li>
+        <li>High resolution (retina support)</li>
         <li>Switch series</li>
         <li>Mobile touches support</li>
         <li>Material design animations (smooth)</li>
@@ -40,6 +40,19 @@
         <li>Out of range highlighting</li>
         <li>Resizible container</li>
         <li>Transparent background for wallpapers</li>
+    </ul>
+    <h4>Getting Started With Tele chart:</h4>
+    <ul>
+        <li>First of all we need to download <b>telechart.min.js</b> from <a href="https://github.com/Muiota/TeleChart" target="_blank">Tele chart GitHub repository</a></li>
+        <li>Include Tele chart file To Website/App</li>
+        <li>Initialize Tele chart<small><pre><span class="pl-k">var</span> tc <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">TeleChart</span>(id,          <span class="pl-c"><span class="pl-c">//</span>div container id</span>
+    {
+        startAxisAtZero<span class="pl-k">:</span> {<span class="pl-c1">Boolean</span>}, <span class="pl-c"><span class="pl-c">//</span>Start axis-Y at zero, if false will auto calculated (default true)</span>
+        withYearLabel<span class="pl-k">:</span> {<span class="pl-c1">Boolean</span>},   <span class="pl-c"><span class="pl-c">//</span>Year in timestamp legend label (default false)</span>
+        scrollDisabled<span class="pl-k">:</span> {<span class="pl-c1">Boolean</span>},  <span class="pl-c"><span class="pl-c">//</span>Disable scroll in selection window, navigator only (default false)</span>
+        lineWidth<span class="pl-k">:</span> {<span class="pl-c1">Number</span>}         <span class="pl-c"><span class="pl-c">//</span>Line width in selection window (default 3)</span>
+    });
+tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
     </ul>
     <a href="https://t.me/Muiota" target="_blank">Contact me on Telegram</a>
 </div>
