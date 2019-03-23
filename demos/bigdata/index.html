@@ -24,20 +24,25 @@
     var instances = [],
         dataStore;
 
-    function createChart(base, fractional, pair) {
+    function generateChart(base, fractional, pair) {
         var columns = [["x"],["ask"],["bid"]];
         var course = base;
         var trend = course;
+        var smallTrend;
         for (var k = 0; k < 4000; k++) {
-            var _spread = 0.3000 + Math.random();
-            if (k % 30 === 0) {
+            var _spread = 0.3000 + Math.random()/3;
+            if (k % (20 + Math.ceil(Math.random() * 20)) === 0) {
                 course = course + Math.random() - 0.5;
             }
-            if (k % 45 === 0) {
+            if (k % (40 +  Math.ceil(Math.random() * 20))=== 0) {
                 trend = course + (Math.random() - 0.5) * 4;
             }
-            course = course + (trend - course) * Math.random();
-            columns[0].push(1542412800000 + 86400000 * k)
+            if (k % (10 + Math.ceil(Math.random() * 20)) === 0) {
+                smallTrend = (Math.random() - 0.5) / 100;
+            }
+
+            course = course + (trend - course) * Math.random()+ smallTrend;
+            columns[0].push(1208908800000 + 86400000 * k)
             var _ask = (course + Math.random() / 4 + _spread).toFixed(fractional);
             var _bid = (course + Math.random() / 4 + -_spread).toFixed(fractional);
             columns[1].push(_ask);
@@ -57,8 +62,8 @@
 
     function generateData() {
         dataStore = [];
-        dataStore.push(createChart(64.6523, 4, "USD/RUB"));
-        dataStore.push(createChart(72.8236, 4, "EUR/RUB"));
+        dataStore.push(generateChart(64.6523, 4, "USD/RUB"));
+        dataStore.push(generateChart(72.8236, 4, "EUR/RUB"));
     }
     generateData();
     createCharts();
@@ -102,7 +107,8 @@
             _container.appendChild(innerContainer);
             var tc = new TeleChart(chartContainer.id,
                 {
-                    startAxisAtZero: false
+                    startAxisAtZero: false,
+                    withYearLabel: true
                 });
             tc.draw(dataStore[k]);
             instances.push(tc);

@@ -122,7 +122,7 @@ var TeleChart = function (ctxId, config) {
         mouseHoveredRegionType, //@type {Number} type of region hovered (ENUM_..._HOVERED const)
         mousePressed,           //@type {Boolean} mouse pressed (touched)
         /**
-          Object for zoom frame proposed coordinates (xAxisDataRef.data)
+         Object for zoom frame proposed coordinates (xAxisDataRef.data)
          {
             tF: {Number},       //index of mouse cursor (xAxisDataRef.data)
             tS: {Number},       //proposed left bound index in selection window (xAxisDataRef.data)
@@ -431,9 +431,13 @@ var TeleChart = function (ctxId, config) {
      * @returns {string} Formatted date
      */
     function formatDate(timestamp, withDay) {  //Jan 29
-        var _date = new Date(timestamp);
-        return (withDay ? CONST_DAY_NAMES_SHORT[_date.getDay()] + ", " : "" ) +
-            CONST_MONTH_NAMES_SHORT[_date.getMonth()] + " " + _date.getDate();
+        var _date = new Date(timestamp),
+            _result = (withDay ? CONST_DAY_NAMES_SHORT[_date.getDay()] + ", " : "" ) +
+                CONST_MONTH_NAMES_SHORT[_date.getMonth()] + " " + _date.getDate();
+        if (withDay && config.withYearLabel) {
+            _result = _date.getFullYear() + ", " + _result;
+        }
+        return _result;
     }
 
     function getMax(val, prev) {
@@ -1232,7 +1236,7 @@ var TeleChart = function (ctxId, config) {
         drawBalloon(_sValueX + legendLeft + _leftThreshold, legendTop,
             legendWidth - _leftThreshold + _rightThreshold, legendHeight, vTrue, legendBoxOpacity);
         setFont(envBoldSmallFont);
-        setFillStyle(envColorGrad[fParseInt(10 * _legendBoxOpacity )]);
+        setFillStyle(envColorGrad[fParseInt(10 * _legendBoxOpacity)]);
         fillText(legendDateText, _sValueX + legendTextLeft[0], legendDateTop);
 
         _sValueY = CONST_BTN_RADIUS + CONST_PADDING_2;
@@ -1245,7 +1249,7 @@ var TeleChart = function (ctxId, config) {
                 if (!_isEven) {
                     _sValueY += (envDefaultTextHeight + envSmallTextHeight + CONST_PADDING_4);
                 }
-                setFillStyle(_axisY.sCg[fParseInt(10 * _legendBoxOpacity )]);
+                setFillStyle(_axisY.sCg[fParseInt(10 * _legendBoxOpacity)]);
                 setFont(envBoldDefaultFont);
                 fillText(_value, _sValueX + _shiftX, _sValueY);
                 setFont(envRegularSmallFont);
@@ -1389,7 +1393,7 @@ var TeleChart = function (ctxId, config) {
                         animate(smartAxisYOpacity, setAxisYLabelOpacity, 0, 2);
                     }
                 } else {
-                    animate(navigatorMinY, setNavigatorMinY, _min, vNull, vUndefined, vTrue);
+                    animate(navigatorMinY * 1, setNavigatorMinY, _min * 1, vNull, vUndefined, vTrue);
                 }
             }
         }
@@ -1707,7 +1711,7 @@ var TeleChart = function (ctxId, config) {
         legendTextLeft[1] = _width[0];
         _proposedWidth = _width[0] + (_width[1] || 0) + CONST_PADDING_3 * 2;
 
-        _proposedWidth = getMax(120 + CONST_ANTI_BLUR_SHIFT, _proposedWidth);
+        _proposedWidth = getMax(getTextWidth(legendDateText) + CONST_PADDING_3 * 3 + CONST_ANTI_BLUR_SHIFT, _proposedWidth);
         legendHeight = 36 + envDefaultTextHeight + fMathCeil(_qnt / 2) * (envDefaultTextHeight + envSmallTextHeight + CONST_PADDING_4);
         animate(legendWidth, setLegendWidth, _proposedWidth);
     }
