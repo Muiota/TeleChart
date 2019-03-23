@@ -5,7 +5,7 @@ Demo: https://muiota.github.io/TeleChart/
 ### Features:
  - Pure js (without css)
  - ES5 only (compatible with old browsers)
- - Small size (<10kB "~5kB gZip") 
+ - Small size (10kB "~5kB gZip") 
  - Advanced navigation/zoom (Vertical/horizontal) 
  - Smart axes labels
  - Day/night switch
