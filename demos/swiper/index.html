@@ -32,7 +32,35 @@
 <script src="../../src/telechart.f.min.js"></script>
 <script>
 
-    var instances = [], swiper, dataStore;
+    var instances = {}, swiper, dataStore;
+
+
+    function interceptEvents(e, eventName) {
+        for (var k in instances) {
+            var _instance = instances[k];
+            if (_instance.hovered() && _instance.hovered() !== 6) {
+                e.preventDefault();
+                e.stopPropagation();
+                var _container = document.getElementById(k);
+                _container.children[0][eventName](e);
+                return false;
+            }
+        }
+    }
+
+    if (!isMobile) {
+        $("#charts_container").on("pointerup", function (e) {
+            interceptEvents(e, "onmouseup");
+        });
+
+        $("#charts_container").on("pointermove", function (e) {
+            interceptEvents(e, "onmousemove");
+        });
+
+        $("#charts_container").on("pointerdown", function (e) {
+            interceptEvents(e, "onmousedown");
+        });
+    }
 
     function isMobile() {
         return (/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|ipad|iris|kindle|Android|Silk|lge |maemo|midp|mmp|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows (ce|phone)|xda|xiino/i.test(navigator.userAgent)
@@ -75,7 +103,7 @@
     }
 
     function invalidateCharts() {
-        for (var k = 0; k < instances.length; k++) {
+        for (var k in instances) {
             instances[k].invalidate();
         }
     }
@@ -91,7 +119,7 @@
         dataStore = data;
 
         var _container = $("#charts_container");
-        instances = [];
+        instances = {};
         if (!dataStore) {
             return;
         }
@@ -118,7 +146,7 @@
                     scrollDisabled: true
                 });
             tc.draw(dataStore[k]);
-            instances.push(tc);
+            instances[innerContainer.id] = tc;
         }
 
 
@@ -148,7 +176,7 @@
                 spaceBetween: 10
             });
         } else {
-            jQuery.extend(swiperConfig,{
+            jQuery.extend(swiperConfig, {
                 effect: 'coverflow',
                 grabCursor: true,
                 centeredSlides: true,

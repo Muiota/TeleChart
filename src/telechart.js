@@ -280,6 +280,14 @@ var TeleChart = function (ctxId, config) {
         return _canvas;
     }
 
+    /**
+     * Return hovered element
+     * @returns {Number}
+     */
+    function getMouseHoveredRegionType() {
+        return mouseHoveredRegionType;
+    }
+    
     //======== setters for animation ========
     function setSelectionFactorY(val) {
         selectionFactorY = val;
@@ -1772,7 +1780,8 @@ var TeleChart = function (ctxId, config) {
         draw: draw,
         invalidate: invalidate,
         clear: clear,
-        destroy: destroy
+        destroy: destroy,
+        hovered: getMouseHoveredRegionType
     };
 };
 
