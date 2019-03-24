@@ -32,7 +32,10 @@
 <script src="../../src/telechart.f.min.js"></script>
 <script>
 
-    var instances = {}, swiper, dataStore;
+    var instances = {},
+        swiper,
+        dataStore,
+        timerId;
 
 
     function interceptEvents(e, eventName) {
@@ -102,10 +105,18 @@
         }
     }
 
-    function invalidateCharts() {
+
+    function invalidateChartsCore() {
         for (var k in instances) {
             instances[k].invalidate();
         }
+    }
+
+    function invalidateCharts() {
+        if (timerId) {
+            clearTimeout(timerId)
+        }
+        timerId = setTimeout(invalidateChartsCore, 200);
     }
 
     function createCharts(data) {
