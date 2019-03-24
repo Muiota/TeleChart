@@ -29,7 +29,7 @@
         var course = base;
         var trend = course;
         var smallTrend;
-        for (var k = 0; k < 4000; k++) {
+        for (var k = 0; k < 10000; k++) {
             var _spread = 0.3000 + Math.random()/3;
             if (k % (20 + Math.ceil(Math.random() * 20)) === 0) {
                 course = course + Math.random() - 0.5;
@@ -41,7 +41,12 @@
                 smallTrend = (Math.random() - 0.5) / 100;
             }
 
-            course = course + (trend - course) * Math.random()+ smallTrend;
+            course = course + (trend - course) * Math.random() + smallTrend;
+
+            if (Math.abs(course - base) > 5) {
+                smallTrend = (base - course) / 100;
+            }
+
             columns[0].push(1208908800000 + 86400000 * k)
             var _ask = (course + Math.random() / 4 + _spread).toFixed(fractional);
             var _bid = (course + Math.random() / 4 + -_spread).toFixed(fractional);
@@ -92,7 +97,7 @@
             }
             innerContainer.style.display = "inline-block";
             var title = document.createElement('div');
-            title.innerHTML = dataStore[k].title;
+            title.innerHTML = dataStore[k].title + "    <small>(" + (dataStore[k].columns[0].length - 1) + " points)</small>";
             title.classList.add("currency-title");
             innerContainer.appendChild(title);
 

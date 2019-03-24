@@ -57,7 +57,7 @@ var TeleChart = function (ctxId, config) {
 
     /**
      * Global members
-     * @type {Number|Array|String|HTMLCanvasElement|CanvasRenderingContext2D|Element|Object}
+     * @type {Number|Array|String|HTMLCanvasElement|CanvasRenderingContext2D|Element|Object|Date}
      */
     var container = vDocument.getElementById(ctxId),                               //canvases container
         totalWidth = container.offsetWidth * CONST_DISPLAY_SCALE_FACTOR,           //main frame width
@@ -196,7 +196,8 @@ var TeleChart = function (ctxId, config) {
         lastPerformance,                //@type {Number} last frame time
         frameDelay = 0,                 //@type {Number} current repaint time for animation corrections
 
-        boundHighlight;                 //@type {Number} out of bounds highlight opacity 0..1
+        boundHighlight,                 //@type {Number} out of bounds highlight opacity 0..1
+        dateSingleton = new Date();     //@type {Date} singleton for date format
 
     /**
      * Initializes the environment
@@ -439,11 +440,11 @@ var TeleChart = function (ctxId, config) {
      * @returns {string} Formatted date
      */
     function formatDate(timestamp, withDay) {  //Jan 29
-        var _date = new Date(timestamp),
-            _result = (withDay ? CONST_DAY_NAMES_SHORT[_date.getDay()] + ", " : "" ) +
-                CONST_MONTH_NAMES_SHORT[_date.getMonth()] + " " + _date.getDate();
+        dateSingleton.setTime(timestamp);
+        var _result = (withDay ? CONST_DAY_NAMES_SHORT[dateSingleton.getDay()] + ", " : "" ) +
+            CONST_MONTH_NAMES_SHORT[dateSingleton.getMonth()] + " " + dateSingleton.getDate();
         if (withDay && config.withYearLabel) {
-            _result = _date.getFullYear() + ", " + _result;
+            _result = dateSingleton.getFullYear() + ", " + _result;
         }
         return _result;
     }
@@ -1083,7 +1084,6 @@ var TeleChart = function (ctxId, config) {
         moveOrLine(vFalse, _xCenter + CONST_PADDING * 1.8, _yCenter - CONST_PADDING * 1.8);
         translate(2, -4);
         endPath();
-        //   setRound(vFalse);
 
         beginPath();
         setFillStyle(envBgColorGrad[100]);
@@ -1153,7 +1153,10 @@ var TeleChart = function (ctxId, config) {
             _k,
             _axisY,
             _xValue,
-            _yValue;
+            _yValue,
+            _lastXValue = -totalWidth,
+            _lastYValue,
+            _needOptimization = ( selectionEndIndexInt - selectionStartIndexInt) / totalWidth >= 1;
 
         if (navigatorNeedUpdateBuffer) {
             clearCanvas(bufferNavigatorContext, totalWidth, navigatorHeight);
@@ -1172,13 +1175,17 @@ var TeleChart = function (ctxId, config) {
             beginPath();
             setStrokeStyle(_axisY.sCg[fParseInt(100 * _axisY.sO)]);
             setLineWidth(config.lineWidth || 3);
-            for (_k = selectionStartIndexInt; _k <= selectionEndIndexInt;) {
+
+            for (_k = selectionStartIndexInt; _k <= selectionEndIndexInt; _k++) {
                 _xValue = (_k - selectionStartIndexFloat) * selectionFactorX;
                 _yValue = selectionBottom + (_axisY.data[_k] - selectionMinY) * selectionFactorY;
-                moveOrLine(_k++ === selectionStartIndexInt, _xValue, _yValue);
+                if (!_needOptimization || _xValue - _lastXValue >= 1 || fMathAbs(_yValue - _lastYValue) >= 1) {
+                    moveOrLine(_k === selectionStartIndexInt, _xValue, _yValue);
+                    _lastXValue = _xValue;
+                    _lastYValue = _yValue;
+                }
             }
             endPath();
-            //     setRound(vFalse);
         }
         navigatorNeedUpdateBuffer = vFalse;
         frameContext.drawImage(bufferNavigatorCanvas, 0, navigatorTop);
@@ -1743,6 +1750,7 @@ var TeleChart = function (ctxId, config) {
      */
     function animationComplete(animationKey) {
         if (animationKey === CONST_SELECTION_FACTOR_Y_ANIMATION_KEY) {
+            calcSmartAxisY();
             animate(smartAxisYOpacity, setAxisYLabelOpacity, 1, 10);
         } else if (animationKey === CONST_AXIS_X_LABEL_OPACITY_ANIMATION_KEY && smartAxisXFrozen) {
             smartAxisXFrozen = vFalse;
