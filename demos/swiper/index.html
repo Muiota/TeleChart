@@ -112,11 +112,16 @@
         }
     }
 
-    function invalidateCharts() {
+    function invalidateCharts(isForce) {
         if (timerId) {
-            clearTimeout(timerId)
+            clearTimeout(timerId);
+            timerId = null;
         }
-        timerId = setTimeout(invalidateChartsCore, 200);
+        if (isForce) {
+            invalidateChartsCore();
+        } else {
+            timerId = setTimeout(invalidateChartsCore, 200);
+        }
     }
 
     function createCharts(data) {
@@ -232,7 +237,7 @@
         } else {
             document.body.classList.remove(color);
         }
-        invalidateCharts();
+        invalidateCharts(true);
     }
 
     //default dark mode for mobile
