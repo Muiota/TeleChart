@@ -1,64 +1,25 @@
 <!DOCTYPE html>
-<html>
+<html xmlns:javascript="http://www.w3.org/1999/xhtml">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Tele chart demo (March Coding Competition)</title>
-    <link rel="stylesheet" href="assets/demo.css">
+    <title>Tele chart demo (custom external data)</title>
+    <link rel="stylesheet" href="../../assets/demo.css">
 </head>
 <body>
 <div class="settings_panel">
     <input type="checkbox" name="dark_mode" id="dark_mode" value="dark">Dark mode<br>
     <input type="checkbox" name="custom_color" id="custom_color" value="dark">Custom color<br>
 </div>
-<span class="im_dialog_peer">Followers</span>
+<a href="/TeleChart" class="im_dialog_peer">Back</a>
+<div class="input_url_container">
+    <input type="text" name="url" id="url" size="35" value="https://api.jsonbin.io/b/5c968dd89c83133c027beb54/1">
+    <a href="#" id="load_url" class="im_dialog_peer">Load</a>
+    <a href="#" id="edit_data" class="im_dialog_peer">Edit</a>
+    <a href="#" id="edit_url" target="_blank" href="#"></a>
+</div>
 <div id="charts_container">
 </div>
-<hr/>
-<div class="about">
-    <h4>Other demos:</h4>
-    <ul>
-        <li><a href="/TeleChart/demos/swiper/index.html">Swiper <small>(preferred for mobile browsers)</small></a></li>
-        <li><a href="/TeleChart/demos/bigdata/index.html">Big data <small>(preferred for desktop browser)</small></a></li>
-        <li><a href="/TeleChart/demos/edit/index.html">Edit json</a></li>
-        <li><a href="/TeleChart/demos/notminified/index.html">Not minified <small>(for debug)</small></a></li>
-    </ul>
-    <h4>Features:</h4>
-    <ul>
-        <li>Pure js (without css)</li>
-        <li>ES5 only (compatible with old browsers)</li>
-        <li>Small size 10kB (~5kB gZip)</li>
-        <ul>
-            <li>Minimized 11.9Kb</li>
-            <li><b>Obfuscated 10.8Kb</b></li>
-        </ul>
-        <li>Advanced navigation/zoom (vertical/horizontal)</li>
-        <li>Smart axes labels</li>
-        <li>Day/night switch</li>
-        <li>High resolution (retina support)</li>
-        <li>Switch series</li>
-        <li>Mobile touches support</li>
-        <li>Material design animations (smooth)</li>
-        <li>Tooltip legend</li>
-        <li>Out of range highlighting</li>
-        <li>Resizible container</li>
-        <li>Transparent background for wallpapers</li>
-    </ul>
-    <h4>Getting Started With Tele chart:</h4>
-    <ul>
-        <li>First of all we need to download <b>telechart.min.js</b> from <a href="https://github.com/Muiota/TeleChart" target="_blank">Tele chart GitHub repository</a></li>
-        <li>Include Tele chart file To Website/App</li>
-        <li>Initialize Tele chart<small><pre><span class="pl-k">var</span> tc <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">TeleChart</span>(id,          <span class="pl-c"><span class="pl-c">//</span>div container id</span>
-    {
-        startAxisAtZero<span class="pl-k">:</span> {<span class="pl-c1">Boolean</span>}, <span class="pl-c"><span class="pl-c">//</span>Start axis-Y at zero, if false will auto calculated (default true)</span>
-        withYearLabel<span class="pl-k">:</span> {<span class="pl-c1">Boolean</span>},   <span class="pl-c"><span class="pl-c">//</span>Year in timestamp legend label (default false)</span>
-        scrollDisabled<span class="pl-k">:</span> {<span class="pl-c1">Boolean</span>},  <span class="pl-c"><span class="pl-c">//</span>Disable scroll in selection window, navigator only (default false)</span>
-        lineWidth<span class="pl-k">:</span> {<span class="pl-c1">Number</span>}         <span class="pl-c"><span class="pl-c">//</span>Line width in selection window (default 3)</span>
-    });
-tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
-    </ul>
-    <a href="https://t.me/Muiota" target="_blank">Contact me on Telegram</a>
-</div>
-<script src="src/telechart.f.min.js"></script>
+<script src="../../src/telechart.f.min.js"></script>
 <script>
     function isMobile() {
         return (/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|ipad|iris|kindle|Android|Silk|lge |maemo|midp|mmp|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows (ce|phone)|xda|xiino/i.test(navigator.userAgent)
@@ -67,22 +28,6 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
 
     var instances = [],
         dataStore;
-
-    function getJSONP(url, callbackName, callback) {
-        var ud = '_' + +new Date,
-            script = document.createElement('script'),
-            head = document.getElementsByTagName('head')[0]
-                || document.documentElement;
-
-        window[callbackName] = function (data) {
-            head.removeChild(script);
-            delete window[callbackName];
-            callback && callback(data);
-        };
-
-        script.src = url + '?callback=' + ud;
-        head.appendChild(script);
-    }
 
     function getJSON(url, callback) {
         var xhr = new XMLHttpRequest();
@@ -133,17 +78,27 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
             tc.draw(dataStore[k]);
             instances.push(tc);
         }
-
     }
 
-    getJSON("https://api.jsonbin.io/b/5c8ab661bb08b22a756b7af7", function (success, resp) {
-        if (success) {
-            createCharts(resp);
-        } else {
-            getJSONP("data.jsonp", "_data", createCharts);
-        }
-    });
 
+
+
+    document.getElementById("load_url").onclick = function (e) {
+        getJSON(document.getElementById("url").value, function (success, resp) {
+            if (success) {
+                createCharts(resp);
+            }
+        });
+    };
+
+    document.getElementById("edit_data").onclick = function (e) {
+        var _edit_url = document.getElementById("edit_url");
+
+        _edit_url.setAttribute("href", document.getElementById("url").value
+            .replace(new RegExp("api\\.", "g"), "")
+            .replace(new RegExp("b\\/", "g"), ""));
+        _edit_url.click();
+    };
 
     var _dark_mode_checkbox = document.getElementById("dark_mode");
     var _custom_color_checkbox = document.getElementById("custom_color");

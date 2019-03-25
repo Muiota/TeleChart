@@ -2,63 +2,19 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Tele chart demo (March Coding Competition)</title>
-    <link rel="stylesheet" href="assets/demo.css">
+    <title>Tele chart demo (not minified for debug)</title>
+    <link rel="stylesheet" href="../../assets/demo.css">
 </head>
 <body>
 <div class="settings_panel">
     <input type="checkbox" name="dark_mode" id="dark_mode" value="dark">Dark mode<br>
     <input type="checkbox" name="custom_color" id="custom_color" value="dark">Custom color<br>
 </div>
-<span class="im_dialog_peer">Followers</span>
+<a href="/TeleChart" class="im_dialog_peer">Back</a>
 <div id="charts_container">
 </div>
-<hr/>
-<div class="about">
-    <h4>Other demos:</h4>
-    <ul>
-        <li><a href="/TeleChart/demos/swiper/index.html">Swiper <small>(preferred for mobile browsers)</small></a></li>
-        <li><a href="/TeleChart/demos/bigdata/index.html">Big data <small>(preferred for desktop browser)</small></a></li>
-        <li><a href="/TeleChart/demos/edit/index.html">Edit json</a></li>
-        <li><a href="/TeleChart/demos/notminified/index.html">Not minified <small>(for debug)</small></a></li>
-    </ul>
-    <h4>Features:</h4>
-    <ul>
-        <li>Pure js (without css)</li>
-        <li>ES5 only (compatible with old browsers)</li>
-        <li>Small size 10kB (~5kB gZip)</li>
-        <ul>
-            <li>Minimized 11.9Kb</li>
-            <li><b>Obfuscated 10.8Kb</b></li>
-        </ul>
-        <li>Advanced navigation/zoom (vertical/horizontal)</li>
-        <li>Smart axes labels</li>
-        <li>Day/night switch</li>
-        <li>High resolution (retina support)</li>
-        <li>Switch series</li>
-        <li>Mobile touches support</li>
-        <li>Material design animations (smooth)</li>
-        <li>Tooltip legend</li>
-        <li>Out of range highlighting</li>
-        <li>Resizible container</li>
-        <li>Transparent background for wallpapers</li>
-    </ul>
-    <h4>Getting Started With Tele chart:</h4>
-    <ul>
-        <li>First of all we need to download <b>telechart.min.js</b> from <a href="https://github.com/Muiota/TeleChart" target="_blank">Tele chart GitHub repository</a></li>
-        <li>Include Tele chart file To Website/App</li>
-        <li>Initialize Tele chart<small><pre><span class="pl-k">var</span> tc <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">TeleChart</span>(id,          <span class="pl-c"><span class="pl-c">//</span>div container id</span>
-    {
-        startAxisAtZero<span class="pl-k">:</span> {<span class="pl-c1">Boolean</span>}, <span class="pl-c"><span class="pl-c">//</span>Start axis-Y at zero, if false will auto calculated (default true)</span>
-        withYearLabel<span class="pl-k">:</span> {<span class="pl-c1">Boolean</span>},   <span class="pl-c"><span class="pl-c">//</span>Year in timestamp legend label (default false)</span>
-        scrollDisabled<span class="pl-k">:</span> {<span class="pl-c1">Boolean</span>},  <span class="pl-c"><span class="pl-c">//</span>Disable scroll in selection window, navigator only (default false)</span>
-        lineWidth<span class="pl-k">:</span> {<span class="pl-c1">Number</span>}         <span class="pl-c"><span class="pl-c">//</span>Line width in selection window (default 3)</span>
-    });
-tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
-    </ul>
-    <a href="https://t.me/Muiota" target="_blank">Contact me on Telegram</a>
-</div>
-<script src="src/telechart.f.min.js"></script>
+
+<script src="../../src/telechart.js"></script>
 <script>
     function isMobile() {
         return (/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|ipad|iris|kindle|Android|Silk|lge |maemo|midp|mmp|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows (ce|phone)|xda|xiino/i.test(navigator.userAgent)
@@ -140,7 +96,7 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
         if (success) {
             createCharts(resp);
         } else {
-            getJSONP("data.jsonp", "_data", createCharts);
+            getJSONP("../../data.jsonp", "_data", createCharts);
         }
     });
 

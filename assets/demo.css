@@ -1,0 +1,141 @@
+body {
+    font: 13px/18px Tahoma, sans-serif, Arial, Helvetica;
+    -webkit-touch-callout: none;
+}
+
+body {
+    color: #222222;
+    background: #fff; /*short test*/
+}
+
+body.dark {
+    background: #242f3e;
+    color: #ffffff;
+}
+
+a {
+    text-decoration: none;
+}
+
+.dark a {
+    color: #3a6d99;
+}
+
+body.custom {
+    background: #f2f6fa;
+    color: #3a6d99;
+}
+
+body.custom.dark {
+    background: #2d4456;
+    color: #f2f6fa;
+}
+
+.im_dialog_peer {
+    font-weight: 700;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    padding-left: 15px;
+}
+
+.settings_panel {
+    float: right;
+}
+
+.settings_panel input {
+    vertical-align: top;
+}
+
+#charts_container {
+    min-height: 20px;
+}
+
+.about {
+    margin-left: 15px;
+}
+
+canvas {
+    -webkit-user-select: none; /* Safari 3.1+ */
+    -moz-user-select: none; /* Firefox 2+ */
+    -ms-user-select: none; /* IE 10+ */
+    user-select: none; /* Standard syntax */
+}
+
+.swiper-container {
+    width: 100%;
+    height: 100%;
+}
+
+.swiper-slide {
+    text-align: center;
+    font-size: 18px;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-box-pack: center;
+    -ms-flex-pack: center;
+    -webkit-justify-content: center;
+    justify-content: center;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    -webkit-align-items: center;
+    align-items: center;
+}
+
+.swiper-slide.video {
+    display: block;
+}
+
+div .title {
+    margin-bottom: 10px;
+    margin-top: 10px;
+}
+
+div .currency-title {
+    margin-left: 15px;
+}
+
+small {
+    opacity: 0.6;
+}
+
+pre {
+    white-space: pre-wrap; /* Since CSS 2.1 */
+    white-space: -moz-pre-wrap; /* Mozilla, since 1999 */
+    white-space: -pre-wrap; /* Opera 4-6 */
+    white-space: -o-pre-wrap; /* Opera 7 */
+    word-wrap: break-word; /* Internet Explorer 5.5+ */
+}
+
+.pl-k {
+    color: #d77c3a;
+}
+
+.pl-en {
+    color: #39a4a5;
+}
+
+.pl-c1 {
+    color: #3a6d99;
+}
+
+.pl-c {
+    color: #6a737d;
+}
+
+.input_url_container {
+    margin-top: 40px;
+    margin-bottom: 10px;
+}
+.input_url_container input
+{
+    margin-right: 5px;
+}
+
+.input_url_container a {
+    display: inline-block;
+    padding-left: 0px;
+    padding-right: 5px;
+    margin-top: 5px;
+}

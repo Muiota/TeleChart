@@ -2,63 +2,19 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Tele chart demo (March Coding Competition)</title>
-    <link rel="stylesheet" href="assets/demo.css">
+    <title>Tele chart demo (Big data)</title>
+    <link rel="stylesheet" href="../../assets/demo.css">
 </head>
 <body>
 <div class="settings_panel">
     <input type="checkbox" name="dark_mode" id="dark_mode" value="dark">Dark mode<br>
     <input type="checkbox" name="custom_color" id="custom_color" value="dark">Custom color<br>
 </div>
-<span class="im_dialog_peer">Followers</span>
+<a href="/TeleChart" class="im_dialog_peer">Back</a>
 <div id="charts_container">
 </div>
 <hr/>
-<div class="about">
-    <h4>Other demos:</h4>
-    <ul>
-        <li><a href="/TeleChart/demos/swiper/index.html">Swiper <small>(preferred for mobile browsers)</small></a></li>
-        <li><a href="/TeleChart/demos/bigdata/index.html">Big data <small>(preferred for desktop browser)</small></a></li>
-        <li><a href="/TeleChart/demos/edit/index.html">Edit json</a></li>
-        <li><a href="/TeleChart/demos/notminified/index.html">Not minified <small>(for debug)</small></a></li>
-    </ul>
-    <h4>Features:</h4>
-    <ul>
-        <li>Pure js (without css)</li>
-        <li>ES5 only (compatible with old browsers)</li>
-        <li>Small size 10kB (~5kB gZip)</li>
-        <ul>
-            <li>Minimized 11.9Kb</li>
-            <li><b>Obfuscated 10.8Kb</b></li>
-        </ul>
-        <li>Advanced navigation/zoom (vertical/horizontal)</li>
-        <li>Smart axes labels</li>
-        <li>Day/night switch</li>
-        <li>High resolution (retina support)</li>
-        <li>Switch series</li>
-        <li>Mobile touches support</li>
-        <li>Material design animations (smooth)</li>
-        <li>Tooltip legend</li>
-        <li>Out of range highlighting</li>
-        <li>Resizible container</li>
-        <li>Transparent background for wallpapers</li>
-    </ul>
-    <h4>Getting Started With Tele chart:</h4>
-    <ul>
-        <li>First of all we need to download <b>telechart.min.js</b> from <a href="https://github.com/Muiota/TeleChart" target="_blank">Tele chart GitHub repository</a></li>
-        <li>Include Tele chart file To Website/App</li>
-        <li>Initialize Tele chart<small><pre><span class="pl-k">var</span> tc <span class="pl-k">=</span> <span class="pl-k">new</span> <span class="pl-en">TeleChart</span>(id,          <span class="pl-c"><span class="pl-c">//</span>div container id</span>
-    {
-        startAxisAtZero<span class="pl-k">:</span> {<span class="pl-c1">Boolean</span>}, <span class="pl-c"><span class="pl-c">//</span>Start axis-Y at zero, if false will auto calculated (default true)</span>
-        withYearLabel<span class="pl-k">:</span> {<span class="pl-c1">Boolean</span>},   <span class="pl-c"><span class="pl-c">//</span>Year in timestamp legend label (default false)</span>
-        scrollDisabled<span class="pl-k">:</span> {<span class="pl-c1">Boolean</span>},  <span class="pl-c"><span class="pl-c">//</span>Disable scroll in selection window, navigator only (default false)</span>
-        lineWidth<span class="pl-k">:</span> {<span class="pl-c1">Number</span>}         <span class="pl-c"><span class="pl-c">//</span>Line width in selection window (default 3)</span>
-    });
-tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
-    </ul>
-    <a href="https://t.me/Muiota" target="_blank">Contact me on Telegram</a>
-</div>
-<script src="src/telechart.f.min.js"></script>
+<script src="../../src/telechart.f.min.js"></script>
 <script>
     function isMobile() {
         return (/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|ipad|iris|kindle|Android|Silk|lge |maemo|midp|mmp|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows (ce|phone)|xda|xiino/i.test(navigator.userAgent)
@@ -68,48 +24,61 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
     var instances = [],
         dataStore;
 
-    function getJSONP(url, callbackName, callback) {
-        var ud = '_' + +new Date,
-            script = document.createElement('script'),
-            head = document.getElementsByTagName('head')[0]
-                || document.documentElement;
-
-        window[callbackName] = function (data) {
-            head.removeChild(script);
-            delete window[callbackName];
-            callback && callback(data);
-        };
-
-        script.src = url + '?callback=' + ud;
-        head.appendChild(script);
-    }
-
-    function getJSON(url, callback) {
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', url, true);
-        xhr.responseType = 'json';
-        xhr.onload = function () {
-            var status = xhr.status;
-            if (status === 200) {
-                callback(true, xhr.response);
-            } else {
-                callback(status, xhr.response);
+    function generateChart(base, fractional, pair) {
+        var columns = [["x"],["ask"],["bid"]];
+        var course = base;
+        var trend = course;
+        var smallTrend;
+        for (var k = 0; k < 10000; k++) {
+            var _spread = 0.3000 + Math.random()/3;
+            if (k % (20 + Math.ceil(Math.random() * 20)) === 0) {
+                course = course + Math.random() - 0.5;
             }
-        };
-        try {
-            xhr.send();
-        } catch (e) {
-            callback(null, xhr.response);
+            if (k % (40 +  Math.ceil(Math.random() * 20))=== 0) {
+                trend = course + (Math.random() - 0.5) * 4;
+            }
+            if (k % (10 + Math.ceil(Math.random() * 20)) === 0) {
+                smallTrend = (Math.random() - 0.5) / 100;
+            }
+
+            course = course + (trend - course) * Math.random() + smallTrend;
+
+            if (Math.abs(course - base) > 5) {
+                smallTrend = (base - course) / 100;
+            }
+
+            columns[0].push(1208908800000 + 86400000 * k)
+            var _ask = (course + Math.random() / 4 + _spread).toFixed(fractional);
+            var _bid = (course + Math.random() / 4 + -_spread).toFixed(fractional);
+            columns[1].push(_ask);
+            columns[2].push(_bid);
         }
+
+
+        var chart = {
+            colors: {ask: "#F34C44", bid: "#3DC23F"},
+            names: {ask: "Ask", bid: "Bid"},
+            types: {x: "x", ask: "line", bid: "line"},
+            columns: columns,
+            title: pair
+        };
+        return chart;
     }
 
-    function createCharts(data) {
+    function generateData() {
+        dataStore = [];
+        dataStore.push(generateChart(64.6523, 4, "USD/RUB"));
+        dataStore.push(generateChart(72.8236, 4, "EUR/RUB"));
+    }
+    generateData();
+    createCharts();
+
+    function createCharts() {
         for (var key in instances) {
             var instance = instances[key];
             instance.destroy();
         }
 
-        dataStore = data;
         var _container = document.getElementById("charts_container");
         instances = [];
         if (!dataStore) {
@@ -121,29 +90,37 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
         }
 
         for (var k = 0; k < dataStore.length; k++) {
+
             var innerContainer = document.createElement('div');
-            innerContainer.id = "chart_" + k;
-            innerContainer.style.display = "inline-block";
-            innerContainer.style.width = isMobile() ? "100%" : "300px";
-            if (!isMobile()) {
-                innerContainer.style.margin = "15px";
+            if (isMobile()) {
+                innerContainer.style.width = "100%";
             }
+            innerContainer.style.display = "inline-block";
+            var title = document.createElement('div');
+            title.innerHTML = dataStore[k].title + "    <small>(" + (dataStore[k].columns[0].length - 1) + " points)</small>";
+            title.classList.add("currency-title");
+            innerContainer.appendChild(title);
+
+            var chartContainer = document.createElement('div');
+            chartContainer.id = "chart_" + k;
+            chartContainer.style.display = "inline-block";
+            chartContainer.style.width = isMobile() ? "100%" : "420px";
+            if (!isMobile()) {
+                chartContainer.style.margin = "15px";
+            }
+            innerContainer.appendChild(chartContainer);
             _container.appendChild(innerContainer);
-            var tc = new TeleChart(innerContainer.id);
+            var tc = new TeleChart(chartContainer.id,
+                {
+                    startAxisAtZero: false,
+                    withYearLabel: true,
+                    lineWidth: 2
+                });
             tc.draw(dataStore[k]);
             instances.push(tc);
         }
 
     }
-
-    getJSON("https://api.jsonbin.io/b/5c8ab661bb08b22a756b7af7", function (success, resp) {
-        if (success) {
-            createCharts(resp);
-        } else {
-            getJSONP("data.jsonp", "_data", createCharts);
-        }
-    });
-
 
     var _dark_mode_checkbox = document.getElementById("dark_mode");
     var _custom_color_checkbox = document.getElementById("custom_color");
