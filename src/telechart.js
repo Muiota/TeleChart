@@ -209,6 +209,9 @@ var TeleChart = function (ctxId, config) {
         if (config.startAxisAtZero === vFalse ? vFalse : vTrue) {
             configMinValueAxisY = 0;
         }
+        config.showTouches = config.showTouches === vFalse ? vFalse : vTrue;
+        config.showBounds = config.showBounds === vFalse ? vFalse : vTrue;
+
         mainCanvas = createCanvas(totalWidth, totalHeight);
         frameContext = mainCanvas.getContext("2d");
         frameContext.lineJoin = "bevel";
@@ -1292,7 +1295,7 @@ var TeleChart = function (ctxId, config) {
      * Draws a touch circle
      */
     function drawPressHighlight() {
-        if (navigatorPressed > 0) {
+        if (navigatorPressed > 0 && config.showTouches) {
             var _x;
 
             if (navigatorPressedRegionType === ENUM_START_SELECTION_HOVER) {
@@ -1311,7 +1314,7 @@ var TeleChart = function (ctxId, config) {
             fill();
 
         }
-        if (boundHighlight) {
+        if (boundHighlight && config.showBounds) {
             drawBoundHighlight(boundHighlight);
         }
 
