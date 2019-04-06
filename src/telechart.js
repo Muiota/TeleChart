@@ -8,9 +8,9 @@ var TeleChart = function (ctxId, config) {
         animation: "animation",
         calcSelectionFactors: "calcSelectionFactors",
         drawNavigatorLayer: "drawNavigatorLayer",
-        drawNavigatorLayerB: "drawNavigatorLayerB",
         drawHorizontalGrid: "drawHorizontalGrid",
         drawSeries: "drawSeries",
+        drawNavigatorLayerB: "drawNavigatorLayerB",
         drawSeriesLegend: "drawSeriesLegend",
         drawButtons: "drawButtons",
         drawPressHighlight: "drawPressHighlight",
@@ -819,7 +819,7 @@ var TeleChart = function (ctxId, config) {
      * @param width {Number=} width in pixels (default 1)
      */
     function setLineWidth(width) {
-        frameContext.lineWidth = width || 1;
+        frameContext.lineWidth = width ||  displayScaleFactor;
     }
 
     /**
@@ -981,7 +981,7 @@ var TeleChart = function (ctxId, config) {
             _yCoordinate;
         beginPath();
         setStrokeStyle(envColorGrad[10]);
-        setLineWidth(2);
+        setLineWidth(displayScaleFactor);
         while (_nextScaleLevel > navigatorHeightHalf) {
             _yCoordinate = fMathCeil(_nextScaleLevel) + CONST_ANTI_BLUR_SHIFT;
             moveOrLine(vTrue, 0, _yCoordinate);
@@ -1109,7 +1109,7 @@ var TeleChart = function (ctxId, config) {
         fill();
 
         setStrokeStyle("#FFFFFF");
-        setLineWidth(4);
+        setLineWidth(2 * displayScaleFactor);
         // setRound(vTrue);
         beginPath();
         translate(-2 * displayScaleFactor, 4 * displayScaleFactor);  //todo without translate and scale it
@@ -1131,8 +1131,8 @@ var TeleChart = function (ctxId, config) {
 
         beginPath();
         setStrokeStyle(envBgColorGrad[fParseInt((1 - axis.bPulse) * 60)]);
-        setLineWidth(10);
-        circle(_xCenter, _yCenter, axis.bPulse * 30);
+        setLineWidth(8 * displayScaleFactor);
+        circle(_xCenter, _yCenter, axis.bPulse*CONST_BTN_RADIUS);
         endPath();
     }
 
@@ -1208,7 +1208,7 @@ var TeleChart = function (ctxId, config) {
             //selection series
             beginPath();
             setStrokeStyle(_axisY.sCg[fParseInt(100 * _axisY.sO)]);
-            setLineWidth(config.lineWidth || 3);
+            setLineWidth(config.lineWidth || 2* displayScaleFactor);
 
             for (_k = selectionStartIndexInt; _k <= selectionEndIndexInt; _k++) {
                 _xValue = (_k - selectionStartIndexFloat) * selectionFactorX;
@@ -1254,7 +1254,7 @@ var TeleChart = function (ctxId, config) {
         moveOrLine(vTrue, _sValueX, 0);
         moveOrLine(vFalse, _sValueX, selectionBottom);
         endPath();
-        setLineWidth(3);
+        setLineWidth(2* displayScaleFactor);
 
         for (_i in yAxisDataRefs) {
             _axisY = yAxisDataRefs[_i];
@@ -1410,6 +1410,7 @@ var TeleChart = function (ctxId, config) {
             setFont(envRegularSmallFont);
             drawNavigatorLayer(vTrue);
             performance.mark(measure.drawNavigatorLayer);
+
 
             drawHorizontalGrid();
             performance.mark(measure.drawHorizontalGrid);
@@ -1802,21 +1803,38 @@ var TeleChart = function (ctxId, config) {
 
 
     function measureDurations() {
+        return false;
+      try {
+          performance.measure("total", measure.start, measure.end);
+          performance.measure("animation", measure.start, measure.animation);
+          performance.measure("calcSelectionFactors", measure.animation, measure.calcSelectionFactors);
+          performance.measure("drawNavigatorLayer", measure.calcSelectionFactors, measure.drawNavigatorLayer);
+          performance.measure("drawHorizontalGrid", measure.drawNavigatorLayer, measure.drawHorizontalGrid);
+          performance.measure("drawSeries", measure.drawHorizontalGrid, measure.drawSeries);
+          performance.measure("drawNavigatorLayerB", measure.drawSeries, measure.drawNavigatorLayerB);
+          performance.measure("drawSeriesLegend", measure.drawNavigatorLayerB, measure.drawSeriesLegend);
+          performance.measure("drawButtons", measure.drawSeriesLegend, measure.drawButtons);
+          performance.measure("drawPressHighlight", measure.drawButtons, measure.drawPressHighlight);
+          performance.measure("end", measure.drawPressHighlight, measure.end);
 
-        performance.measure("total", measure.start, measure.end);
-        var measures = performance.getEntriesByType("measure");
+          var measures = performance.getEntriesByType("measure");
 
-        var y = 50;
+          var y = 50;
 
-        for (var measureIndex in measures) {
-            var meas = measures[measureIndex];
-            frameContext.fillStyle = "rgba(255, 255, 255, 0.8)";
-            frameContext.fillRect(10, y - 20, 200, 20);
-            frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
-            frameContext.fillText(meas.name + " " + meas.duration.toFixed(4), 10, y);
-            y = y + 20;
-        }
-        // Finally, clean up the entries.
+          for (var measureIndex in measures) {
+              var meas = measures[measureIndex];
+              frameContext.fillStyle = "rgba(255, 255, 255, 0.8)";
+              frameContext.fillRect(10, y - 20, 200, 20);
+              frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
+              frameContext.fillText(meas.name + " " + meas.duration.toFixed(4), 10, y);
+              y = y + 20;
+          }
+          // Finally, clean up the entries.
+
+      } catch (e)
+      {
+
+      }
         performance.clearMarks();
         performance.clearMeasures();
     }
@@ -1863,4 +1881,5 @@ var TeleChart = function (ctxId, config) {
         hovered: getMouseHoveredRegionType
     };
 };
+
 
