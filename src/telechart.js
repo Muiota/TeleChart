@@ -1803,7 +1803,6 @@ var TeleChart = function (ctxId, config) {
 
 
     function measureDurations() {
-        return false;
       try {
           performance.measure("total", measure.start, measure.end);
           performance.measure("animation", measure.start, measure.animation);
