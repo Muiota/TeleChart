@@ -3,6 +3,21 @@
 var TeleChart = function (ctxId, config) {
     "use strict";
 
+    var measure = {
+        start: "start",
+        animation: "animation",
+        calcSelectionFactors: "calcSelectionFactors",
+        drawNavigatorLayer: "drawNavigatorLayer",
+        drawNavigatorLayerB: "drawNavigatorLayerB",
+        drawHorizontalGrid: "drawHorizontalGrid",
+        drawSeries: "drawSeries",
+        drawSeriesLegend: "drawSeriesLegend",
+        drawButtons: "drawButtons",
+        drawPressHighlight: "drawPressHighlight",
+        end: "end"
+
+    }
+
     /**
      * External functions & variables (maybe need polyfills)
      */
@@ -26,15 +41,7 @@ var TeleChart = function (ctxId, config) {
      */
     var CONST_NAVIGATOR_HEIGHT_PERCENT = 12,
         CONST_NAVIGATOR_WIDTH_PERCENT = 25,
-        CONST_DISPLAY_SCALE_FACTOR = 1.5,
-        CONST_PADDING = 5,
         CONST_ANTI_BLUR_SHIFT = 0.5,
-        CONST_PADDING_HALF = CONST_PADDING / 2,
-        CONST_PADDING_2 = CONST_PADDING * 2,
-        CONST_PADDING_3 = CONST_PADDING * 3,
-        CONST_PADDING_4 = CONST_PADDING * 4,
-        CONST_BTN_RADIUS = 20,
-        CONST_BTN_RADIUS_2 = CONST_BTN_RADIUS * 2,
         CONST_HUMAN_SCALES = [2, 5, 10],
         CONST_MONTH_NAMES_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
         CONST_DAY_NAMES_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
@@ -60,14 +67,22 @@ var TeleChart = function (ctxId, config) {
      * @type {Number|Array|String|HTMLCanvasElement|CanvasRenderingContext2D|Element|Object|Date}
      */
     var container = vDocument.getElementById(ctxId),                               //canvases container
-        totalWidth = container.offsetWidth * CONST_DISPLAY_SCALE_FACTOR,           //main frame width
+        displayScaleFactor = window.devicePixelRatio,
+
+        CONST_PADDING = 5 * displayScaleFactor,
+        CONST_PADDING_HALF = CONST_PADDING / 2,
+        CONST_PADDING_2 = CONST_PADDING * 2,
+        CONST_PADDING_3 = CONST_PADDING * 3,
+        CONST_PADDING_4 = CONST_PADDING * 4,
+
+        totalWidth = container.offsetWidth * displayScaleFactor,           //main frame width
         navigatorHeight = fParseInt(totalWidth * CONST_NAVIGATOR_HEIGHT_PERCENT / 100), //nav height
         selectionHeight = totalWidth - navigatorHeight - navigatorHeight * 2,      //selection window height
         navigatorHeightHalf = navigatorHeight / 2,                                 //half navigator height
         selectionBottom = selectionHeight + navigatorHeightHalf,                   //selection window bottom
         navigatorTop = selectionHeight + navigatorHeight + CONST_PADDING_4,        //navigator top
         navigatorBottom = navigatorTop + navigatorHeight,                          //navigator bottom
-        totalHeight = navigatorBottom + CONST_PADDING * 10 + CONST_BTN_RADIUS * 4, //main frame height
+        totalHeight = navigatorBottom + CONST_PADDING * 10 + 20 * 4, //main frame height
         needRedraw,                 //main frame invalidated need redraw
         mainCanvas,                 //canvas of the main frame
         bufferNavigatorCanvas,      //canvas of the navigators buffer
@@ -197,7 +212,10 @@ var TeleChart = function (ctxId, config) {
         frameDelay = 0,                 //@type {Number} current repaint time for animation corrections
 
         boundHighlight,                 //@type {Number} out of bounds highlight opacity 0..1
-        dateSingleton = new Date();     //@type {Date} singleton for date format
+        dateSingleton = new Date(),     //@type {Date} singleton for date format
+
+        CONST_BTN_RADIUS = 16 * displayScaleFactor,
+        CONST_BTN_RADIUS_2 = CONST_BTN_RADIUS * 2;
 
     /**
      * Initializes the environment
@@ -229,8 +247,8 @@ var TeleChart = function (ctxId, config) {
         bufferNavigatorCanvas = createCanvas(totalWidth, navigatorHeight);
         bufferNavigatorContext = bufferNavigatorCanvas.getContext("2d");
         bufferNavigatorContext.lineWidth = 2;
-        envSmallTextHeight = fParseInt(_baseFontSize * 1.2);
-        envDefaultTextHeight = fParseInt(_baseFontSize * CONST_DISPLAY_SCALE_FACTOR);
+        envSmallTextHeight = fParseInt(_baseFontSize * 0.8 * displayScaleFactor);
+        envDefaultTextHeight = fParseInt(_baseFontSize * displayScaleFactor);
 
         envRegularSmallFont = envSmallTextHeight + _fontFamilyCombined;
         envRegularDefaultFont = envDefaultTextHeight + _fontFamilyCombined;
@@ -239,8 +257,8 @@ var TeleChart = function (ctxId, config) {
 
         setFont(envRegularSmallFont);
 
-        _mainCanvasStyle[CONST_WIDTH] = fParseInt(totalWidth / CONST_DISPLAY_SCALE_FACTOR) + CONST_PIXEL;
-        _mainCanvasStyle[CONST_HEIGHT] = fParseInt(totalHeight / CONST_DISPLAY_SCALE_FACTOR) + CONST_PIXEL;
+        _mainCanvasStyle[CONST_WIDTH] = fParseInt(totalWidth / displayScaleFactor) + CONST_PIXEL;
+        _mainCanvasStyle[CONST_HEIGHT] = fParseInt(totalHeight / displayScaleFactor) + CONST_PIXEL;
 
         container.appendChild(mainCanvas);
 
@@ -255,9 +273,9 @@ var TeleChart = function (ctxId, config) {
         mainCanvas.ontouchstart = _onMouseDown;
         mainCanvas.ontouchend = _onMouseUp;
 
-        addEventListener("scroll", calcMouseOffset);
-        addEventListener("resize", calcMouseOffset);
-        addEventListener("mouseup", _onMouseUp);
+     //   addEventListener("scroll", calcMouseOffset);
+      //  addEventListener("resize", calcMouseOffset);
+     //   addEventListener("mouseup", handleMouseClick);
         calcMouseOffset();
         invalidate();
     }
@@ -269,6 +287,15 @@ var TeleChart = function (ctxId, config) {
      */
     function addEventListener(name, handler) {
         window.addEventListener(name, handler);
+    }
+
+    /**
+     * Sets up a handler that will be called whenever the event is delivered to the target
+     * @param name {String} name of event
+     * @param handler {Function} callback
+     */
+    function removeEventListener(name, handler) {
+        window.removeEventListener(name, handler);
     }
 
     /**
@@ -384,6 +411,9 @@ var TeleChart = function (ctxId, config) {
      * Destroy chart
      */
     function destroy() {
+        //removeEventListener("scroll", calcMouseOffset);
+        //removeEventListener("resize", calcMouseOffset);
+        //removeEventListener("mouseup", handleMouseClick);
         mainCanvas.parentNode.remove(mainCanvas);
     }
 
@@ -660,8 +690,8 @@ var TeleChart = function (ctxId, config) {
         var _clientX = e.clientX,
             _clientY = e.clientY;
         if (_clientX && _clientY) {
-            mouseX = fParseInt((_clientX - mouseOffsetX) * CONST_DISPLAY_SCALE_FACTOR);
-            mouseY = fParseInt((_clientY - mouseOffsetY) * CONST_DISPLAY_SCALE_FACTOR);
+            mouseX = fParseInt((_clientX - mouseOffsetX) * displayScaleFactor);
+            mouseY = fParseInt((_clientY - mouseOffsetY) * displayScaleFactor);
             if (mouseY >= -CONST_PADDING && mouseX >= -CONST_PADDING &&
                 mouseX <= totalWidth + CONST_PADDING && mouseY <= totalHeight + CONST_PADDING) {
                 mousePressed && !calcOnly ? moveHoveredElement() : calcHoveredElement();
@@ -681,6 +711,7 @@ var TeleChart = function (ctxId, config) {
      * @param withoutPress {Boolean=}
      */
     function handleMouseMove(e, withoutPress) {
+        calcMouseOffset();
         var _touches = e.touches;
         return (_touches && getLength(_touches)) ?
             assignMousePos(_touches[0], withoutPress) :
@@ -889,13 +920,11 @@ var TeleChart = function (ctxId, config) {
      * @param highlighted {Boolean} balloon is highlighted
      * @param opacity {Number} opacity between 0 - 1
      */
-    function drawBalloon(x, y, width, height, highlighted, opacity) {
+    function drawBalloon(x, y, width, height) {
         var _xWidth = x + width,
             _yHeight = y + height;
 
         beginPath();
-        setStrokeStyle(envColorGrad[fParseInt((highlighted ? 40 : 20) * opacity)]);
-        setFillStyle(envBgColorGrad[fParseInt(30 + 60 * opacity)]);
         setLineWidth();
         moveOrLine(vTrue, x + CONST_BTN_RADIUS, y);
         moveOrLine(vFalse, _xWidth - CONST_BTN_RADIUS, y);
@@ -1069,37 +1098,39 @@ var TeleChart = function (ctxId, config) {
             _xCenter = _x + CONST_BTN_RADIUS,
             _yCenter = _y + CONST_BTN_RADIUS;
 
-        drawBalloon(_x, _y, axis.bW, axis.bH, axis.bO, 1);
-
+        setStrokeStyle(axis.sCg[fParseInt((axis.bO ? 80 : 20) )]);
         setFillStyle(_color);
+        drawBalloon(_x, _y, axis.bW, axis.bH);
+
+
         beginPath();
 
         circle(_xCenter, _yCenter, CONST_BTN_RADIUS - CONST_PADDING);
         fill();
 
-        setStrokeStyle(envBgColorGrad[100]);
+        setStrokeStyle("#FFFFFF");
         setLineWidth(4);
         // setRound(vTrue);
         beginPath();
-        translate(-2, 4);
+        translate(-2 * displayScaleFactor, 4 * displayScaleFactor);  //todo without translate and scale it
         moveOrLine(vTrue, _xCenter - CONST_PADDING, _yCenter - CONST_PADDING);
         moveOrLine(vFalse, _xCenter, _yCenter);
         moveOrLine(vFalse, _xCenter + CONST_PADDING * 1.8, _yCenter - CONST_PADDING * 1.8);
-        translate(2, -4);
+        translate(2* displayScaleFactor, -4* displayScaleFactor);
         endPath();
 
         beginPath();
         setFillStyle(envBgColorGrad[100]);
-        circle(_xCenter, _yCenter, 12 * (1 - axis.sO));
+        circle(_xCenter, _yCenter, 10 * displayScaleFactor * (1 - axis.sO));
         fill();
 
-        setFillStyle(envColorGrad[100]);
+        setFillStyle("#FFFFFF");
         setFont(envRegularDefaultFont);
-        fillText(_name, _x + CONST_BTN_RADIUS_2 + CONST_PADDING + 1, _yCenter + envSmallTextHeight / 2 - CONST_PADDING + 4);
+        fillText(_name, _x + CONST_BTN_RADIUS_2 + CONST_PADDING, _yCenter + envSmallTextHeight / 2);
         setFont(envRegularSmallFont);
 
         beginPath();
-        setStrokeStyle(envColorGrad[fParseInt((1 - axis.bPulse) * 40)]);
+        setStrokeStyle(envBgColorGrad[fParseInt((1 - axis.bPulse) * 60)]);
         setLineWidth(10);
         circle(_xCenter, _yCenter, axis.bPulse * 30);
         endPath();
@@ -1263,9 +1294,10 @@ var TeleChart = function (ctxId, config) {
         if (_rightThreshold < 0) {
             _rightThreshold = 0;
         }
-
+        setStrokeStyle(envColorGrad[fParseInt(40* legendBoxOpacity)]);
+        setFillStyle(envBgColorGrad[fParseInt(30 + 60 * legendBoxOpacity)]);
         drawBalloon(_sValueX + legendLeft + _leftThreshold, legendTop,
-            legendWidth - _leftThreshold + _rightThreshold, legendHeight, vTrue, legendBoxOpacity);
+            legendWidth - _leftThreshold + _rightThreshold, legendHeight);
         setFont(envBoldSmallFont);
         setFillStyle(envColorGrad[fParseInt(10 * _legendBoxOpacity)]);
         fillText(legendDateText, _sValueX + legendTextLeft[0], legendDateTop);
@@ -1377,19 +1409,25 @@ var TeleChart = function (ctxId, config) {
         if (xAxisDataRef && yAxisDataRefs) {
             setFont(envRegularSmallFont);
             drawNavigatorLayer(vTrue);
-            drawHorizontalGrid();
-            drawSeries();
-            drawNavigatorLayer();
+            performance.mark(measure.drawNavigatorLayer);
 
+            drawHorizontalGrid();
+            performance.mark(measure.drawHorizontalGrid);
+            drawSeries();
+            performance.mark(measure.drawSeries);
+            drawNavigatorLayer();
+            performance.mark(measure.drawNavigatorLayerB);
             if (seriesMaxOpacity > 0) {
                 drawAxisLabels();
                 if (legendBoxOpacity > 0) {
                     drawSeriesLegend();
                 }
             }
-
+            performance.mark(measure.drawSeriesLegend);
             drawButtons();
+            performance.mark(measure.drawButtons);
             drawPressHighlight();
+            performance.mark(measure.drawPressHighlight);
         }
     }
 
@@ -1516,7 +1554,7 @@ var TeleChart = function (ctxId, config) {
      */
     function calcButtonsParams() {
         var _x = CONST_PADDING_2,
-            _y = navigatorBottom + CONST_PADDING_3 * 2,
+            _y = navigatorBottom + CONST_PADDING_3,
             _height = CONST_BTN_RADIUS_2,
             _axis,
             _width,
@@ -1525,7 +1563,7 @@ var TeleChart = function (ctxId, config) {
         setFont(envRegularDefaultFont);
         for (_i in yAxisDataRefs) {
             _axis = yAxisDataRefs[_i];
-            _width = CONST_BTN_RADIUS * 2 + CONST_PADDING_4 + getTextWidth(_axis.name);
+            _width = CONST_BTN_RADIUS_2 + CONST_PADDING_4 + getTextWidth(_axis.name);
 
             if (_x + _width > totalWidth) {
                 _x = CONST_PADDING_2;
@@ -1762,16 +1800,40 @@ var TeleChart = function (ctxId, config) {
         }
     }
 
+
+    function measureDurations() {
+
+        performance.measure("total", measure.start, measure.end);
+        var measures = performance.getEntriesByType("measure");
+
+        var y = 50;
+
+        for (var measureIndex in measures) {
+            var meas = measures[measureIndex];
+            frameContext.fillStyle = "rgba(255, 255, 255, 0.8)";
+            frameContext.fillRect(10, y - 20, 200, 20);
+            frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
+            frameContext.fillText(meas.name + " " + meas.duration.toFixed(4), 10, y);
+            y = y + 20;
+        }
+        // Finally, clean up the entries.
+        performance.clearMarks();
+        performance.clearMeasures();
+    }
+
     /**
      * Render cycle
      */
     function render() {
+
+        performance.mark(measure.start);
         processAnimations();
+        performance.mark(measure.animation);
         if (selectionNeedUpdateFactorY) {
             selectionNeedUpdateFactorY = vFalse;
             calcSelectionFactors();
         }
-
+        performance.mark(measure.calcSelectionFactors);
         if (needRedraw) {
             needRedraw = vFalse;
             redrawFrame();
@@ -1781,6 +1843,12 @@ var TeleChart = function (ctxId, config) {
             frameDelay = 0.8 * frameDelay + 0.2 * (_proposed - lastPerformance );
         }
         lastPerformance = _proposed;
+        performance.mark(measure.end);
+
+
+            measureDurations();
+
+
         requestAnimationFrame(render);
     }
 

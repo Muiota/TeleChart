@@ -6,13 +6,11 @@
     <link rel="stylesheet" href="assets/demo.css">
 </head>
 <body>
-<div class="settings_panel">
-    <input type="checkbox" name="dark_mode" id="dark_mode" value="dark">Dark mode<br>
-    <input type="checkbox" name="custom_color" id="custom_color" value="dark">Custom color<br>
-</div>
-<span class="im_dialog_peer">Followers</span>
+
+<span class="im_dialog_peer">March Coding Competition</span>
 <div id="charts_container">
 </div>
+<div class="clearfix"></div>
 <hr/>
 <div class="about">
     <h4>Other demos:</h4>
@@ -60,7 +58,11 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
     </ul>
     <a href="https://t.me/Muiota" target="_blank">Contact me on Telegram</a>
 </div>
-<script src="src/telechart.f.min.js"></script>
+<div class="settings_panel">
+    <input type="checkbox" name="dark_mode" id="dark_mode" value="dark">Dark mode<br>
+    <input type="checkbox" name="custom_color" id="custom_color" value="dark">Custom color<br>
+</div>
+<script src="src/telechart.js"></script>
 <script>
     function isMobile() {
         return (/(android|bb\d+|meego).+mobile|avantgo|bada\/|blackberry|blazer|compal|elaine|fennec|hiptop|iemobile|ip(hone|od)|ipad|iris|kindle|Android|Silk|lge |maemo|midp|mmp|netfront|opera m(ob|in)i|palm( os)?|phone|p(ixi|re)\/|plucker|pocket|psp|series(4|6)0|symbian|treo|up\.(browser|link)|vodafone|wap|windows (ce|phone)|xda|xiino/i.test(navigator.userAgent)
@@ -68,6 +70,7 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
     }
 
     var instances = [],
+        _lastWidth = document.body.clientWidth,
         dataStore;
 
     function getJSONP(url, callbackName, callback) {
@@ -125,11 +128,7 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
         for (var k = 0; k < dataStore.length; k++) {
             var innerContainer = document.createElement('div');
             innerContainer.id = "chart_" + k;
-            innerContainer.style.display = "inline-block";
-            innerContainer.style.width = isMobile() ? "100%" : "300px";
-            if (!isMobile()) {
-                innerContainer.style.margin = "15px";
-            }
+            innerContainer.classList.add("chart_container");
             _container.appendChild(innerContainer);
             var tc = new TeleChart(innerContainer.id);
             tc.draw(dataStore[k]);
@@ -149,7 +148,6 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
 
     var _dark_mode_checkbox = document.getElementById("dark_mode");
     var _custom_color_checkbox = document.getElementById("custom_color");
-    var _lastDevicePixelRatio = window.devicePixelRatio;
 
 
     _dark_mode_checkbox.addEventListener("change", function () {
@@ -184,16 +182,17 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
     }
 
     window.addEventListener("resize", function (e, t) {
-        var _proposed = e.currentTarget ? e.currentTarget.devicePixelRatio : undefined;
+        var _proposed =  document.body.clientWidth;
         if (_proposed) {
-            if (_lastDevicePixelRatio !== _proposed) {
+            if (_lastWidth !== _proposed) {
                 setTimeout(function () {
                     createCharts(dataStore);
                 });
             }
-            _lastDevicePixelRatio = _proposed;
+            _lastWidth = _proposed;
         }
     });
+
 
 </script>
 </body>
