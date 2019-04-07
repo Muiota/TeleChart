@@ -44,6 +44,7 @@ var TeleChart = function (ctxId, config) {
         CONST_ANTI_BLUR_SHIFT = 0.5,
         CONST_HUMAN_SCALES = [2, 5, 10],
         CONST_MONTH_NAMES_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+        CONST_MONTH_NAMES_FULL = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
         CONST_DAY_NAMES_SHORT = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
         CONST_CURSORS = ["inherit", "pointer", "col-resize"],
         CONST_TWO_PI = 2 * Math.PI,
@@ -219,10 +220,13 @@ var TeleChart = function (ctxId, config) {
 
         boundHighlight,                 //@type {Number} out of bounds highlight opacity 0..1
         dateSingleton = new Date(),     //@type {Date} singleton for date format
+        dateSingletonFull = new Date(),     //@type {Date} singleton for date format
 
         needUpdateButtonsPanel,
         buttonsPanelTop,
-        isTouchEvent;
+        isTouchEvent,
+
+        rangeSpan;
 
     /**
      * Initializes the environment
@@ -236,6 +240,23 @@ var TeleChart = function (ctxId, config) {
         }
         config.showTouches = config.showTouches === vFalse ? vFalse : vTrue;
         config.showBounds = config.showBounds === vFalse ? vFalse : vTrue;
+
+        var titleContainer = vDocument.createElement('div');
+        titleContainer.id = "title_container_" + ctxId;
+        titleContainer.classList.add("title");
+        titleContainer.style.margin = "5" + CONST_PIXEL;
+        container.appendChild(titleContainer);
+        rangeSpan = vDocument.createElement('div');
+        rangeSpan.id = "title_container_" + ctxId;
+        rangeSpan.style.float = "right";
+        titleContainer.appendChild(rangeSpan);
+
+        var extSpan = vDocument.createElement('div');
+        extSpan.id = "title_container_" + ctxId;
+        extSpan.style.float = "left";
+        extSpan.innerHTML = "Followers";
+        titleContainer.appendChild(extSpan);
+
         mainCanvas = createCanvas();
         bufferNavigatorCanvas = createCanvas();
         bufferButtonsCanvas = createCanvas();
@@ -262,6 +283,16 @@ var TeleChart = function (ctxId, config) {
         invalidate();
     }
 
+    function updateDateRangeText() { //        "1 April 2019 - 30 April 2019";
+        var result = "-";
+        if (xAxisDataRef) {
+            var from = formatDateFull(xAxisDataRef.data[selectionStartIndexInt]);
+            var to = formatDateFull(xAxisDataRef.data[selectionEndIndexInt]);
+            result = from + " - " + to;
+        }
+        rangeSpan.innerHTML = result;
+    }
+    
     function recalculateBounds() {
         displayScaleFactor = window.devicePixelRatio;
         uIGlobalPadding = 5 * displayScaleFactor;
@@ -523,6 +554,20 @@ var TeleChart = function (ctxId, config) {
         }
         return _result;
     }
+
+    /**
+     * Formats a date of UNIX timestamp
+     * @param timestamp {Number} UNIX timestamp
+     * @param withDay {Boolean=} with day of week
+     * @returns {string} Formatted date
+     */
+    function formatDateFull(timestamp) {
+        dateSingletonFull.setTime(timestamp);
+        var _result = dateSingletonFull.getDate() + " " +
+            CONST_MONTH_NAMES_FULL[dateSingletonFull.getMonth()] + " " + dateSingletonFull.getFullYear();
+        return _result;
+    }
+
 
     function getMax(val, prev) {
         return prev === vUndefined || val > prev ? val : prev;
@@ -1679,6 +1724,7 @@ var TeleChart = function (ctxId, config) {
             }
             calcSmartAxisY();
         }
+        setTimeout(updateDateRangeText, 0);
     }
 
     /**
