@@ -382,7 +382,6 @@ var TeleChart = function (ctxId, config) {
 
         setFont(frameContext, envRegularSmallFont);
         setFont(bufferButtonsContext, envRegularDefaultFont);
-
         _mainCanvasStyle[CONST_WIDTH] = fParseInt(totalWidth / displayScaleFactor) + CONST_PIXEL;
         _mainCanvasStyle[CONST_HEIGHT] = fParseInt(totalHeight / displayScaleFactor) + CONST_PIXEL;
         _mainCanvasStyle.marginLeft = "5" + CONST_PIXEL;
@@ -1039,11 +1038,12 @@ var TeleChart = function (ctxId, config) {
 
     /**
      * Width of the specified text, in pixels
+     * @param context {CanvasRenderingContext2D} context for drawing
      * @param text {String} measured text
      * @returns {Number} width in pixels
      */
-    function getTextWidth(text) {
-        return frameContext.measureText(text)[CONST_WIDTH];
+    function getTextWidth(context, text) {
+        return context.measureText(text)[CONST_WIDTH];
     }
 
     /**
@@ -1301,7 +1301,7 @@ var TeleChart = function (ctxId, config) {
 
             setFillStyle(frameContext, _bgColor);
             fillRect(frameContext, uiGlobalPaddingHalf, _labelY - envSmallTextHeight + 2,
-                getTextWidth(_value) + uIGlobalPadding2, envSmallTextHeight);
+                getTextWidth(frameContext, _value) + uIGlobalPadding2, envSmallTextHeight);
             setFillStyle(frameContext, _color);
             fillText(frameContext, _value, uIGlobalPadding, _labelY);
             _nextScaleValue = fParseInt(_nextScaleValue + smartAxisYRangeInt);
@@ -1359,12 +1359,12 @@ var TeleChart = function (ctxId, config) {
         fill(bufferButtonsContext);
 
         setFillStyle(bufferButtonsContext, axis.sCg[100]);
-        setFont(bufferButtonsContext, envRegularDefaultFont);
+
         fillText(bufferButtonsContext, _name, _x + uIBtnRadius2, _yCenter + envDefaultTextHeight / 2 - uIGlobalPadding / 2);
         setFillStyle(bufferButtonsContext, envWhiteColorGrad[fParseInt(100 * axis.sO)]);
 
         fillText(bufferButtonsContext, _name, _x + uIBtnRadius2, _yCenter + envDefaultTextHeight / 2 - uIGlobalPadding / 2);
-        setFont(bufferButtonsContext, envRegularSmallFont);
+
 
         beginPath(bufferButtonsContext);
         setStrokeStyle(bufferButtonsContext, envBgColorGrad[fParseInt((1 - axis.bPulse) * 60)]);
@@ -1800,9 +1800,10 @@ var TeleChart = function (ctxId, config) {
             _width,
             _i,
             _j;
+
         for (_i in yAxisDataRefs) {
             _axis = yAxisDataRefs[_i];
-            _width = uIBtnRadius2 + uIGlobalPadding3 + getTextWidth(_axis.name);
+            _width = uIBtnRadius2 + uIGlobalPadding3 + getTextWidth(bufferButtonsContext, _axis.name);
 
             if (_x + _width > totalWidth) {
                 _x = uIGlobalPadding2;
@@ -2005,9 +2006,9 @@ var TeleChart = function (ctxId, config) {
                 _isEven = (_qnt & 1);
                 _value = _axisY.data[_dataIndex];
                 setFont(frameContext, envBoldDefaultFont);
-                _width[_isEven] = getMax(getTextWidth(_value) + uIGlobalPadding3, _width[_isEven]);
+                _width[_isEven] = getMax(getTextWidth(frameContext, _value) + uIGlobalPadding3, _width[_isEven]);
                 setFont(frameContext, envRegularSmallFont);
-                _width[_isEven] = getMax(getTextWidth(_axisY.name) + uIGlobalPadding3, _width[_isEven]);
+                _width[_isEven] = getMax(getTextWidth(frameContext, _axisY.name) + uIGlobalPadding3, _width[_isEven]);
                 _qnt++;
             }
         }
@@ -2015,7 +2016,7 @@ var TeleChart = function (ctxId, config) {
         legendTextLeft[1] = _width[0];
         _proposedWidth = _width[0] + (_width[1] || 0) + uIGlobalPadding3;
         setFont(frameContext, envBoldDefaultFont);
-        _proposedWidth = getMax(getTextWidth(legendDateText) + uIGlobalPadding3 + CONST_ANTI_BLUR_SHIFT, _proposedWidth);
+        _proposedWidth = getMax(getTextWidth(frameContext, legendDateText) + uIGlobalPadding3 + CONST_ANTI_BLUR_SHIFT, _proposedWidth);
         legendHeight = uIBtnRadius2 + envDefaultTextHeight + uIGlobalPadding2 + fMathCeil(_qnt / 2) * (envDefaultTextHeight + envSmallTextHeight + uIGlobalPadding3);
         animate(legendWidth, setLegendWidth, _proposedWidth);
     }
