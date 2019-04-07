@@ -228,7 +228,9 @@ var TeleChart = function (ctxId, config) {
         dayRangeDiv,
         titleDiv,
         zoomOutDiv,
-        isHoursZoomed ;
+        isHoursZoomed,
+        storedDayModeStartIndex,
+        storedDayModeEndIndex;
 
     function createTitleLabels() {
         var titleContainer = vDocument.createElement('div');
@@ -261,6 +263,8 @@ var TeleChart = function (ctxId, config) {
 
         zoomOutDiv.addEventListener("click", function () {
             isHoursZoomed = vFalse;
+            associateZoomStart(storedDayModeStartIndex, 15);
+            associateZoomEnd(storedDayModeEndIndex, 15);
             updateTitleStatus();
         });
 
@@ -930,6 +934,8 @@ var TeleChart = function (ctxId, config) {
             if (mouseHoveredRegionType === ENUM_LEGEND_HOVER) {
                 isHoursZoomed = vTrue;
                 updateTitleStatus();
+                storedDayModeStartIndex = selectionStartIndexInt;
+                storedDayModeEndIndex = getMin(selectionEndIndexInt, xAxisDataRef.l - 2);
                 associateZoomStart(selectionCurrentIndexFloat - 1, 15);
                 associateZoomEnd(selectionCurrentIndexFloat, 15);
                 animate(legendBoxOpacity, setLegendBoxOpacity, 0);

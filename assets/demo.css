@@ -214,3 +214,7 @@ button, button:hover, button:after, button:focus {
     top: -5px;
     opacity: 0;
 }
+
+svg {
+    fill: currentColor;
+}
