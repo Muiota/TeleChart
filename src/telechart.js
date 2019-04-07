@@ -236,13 +236,7 @@ var TeleChart = function (ctxId, config) {
         var _size = getBodyStyle("font-size"),
             _fontFamilyCombined = CONST_PIXEL + " " + getBodyStyle("font-family"),
             _mainCanvasStyle = mainCanvas.style,
-            _baseFontSize = fParseInt(_size.replace(/\D/g, "")),
-            _onMouseDown = function (e) {
-                handleMouseClick(e, vTrue);
-            },
-            _onMouseUp = function (e) {
-                handleMouseClick(e, vFalse);
-            };
+            _baseFontSize = fParseInt(_size.replace(/\D/g, ""));
 
         bufferNavigatorCanvas = createCanvas(totalWidth, navigatorHeight);
         bufferNavigatorContext = bufferNavigatorCanvas.getContext("2d");
@@ -265,19 +259,25 @@ var TeleChart = function (ctxId, config) {
         mainCanvas.onmousemove = handleMouseMove;
         mainCanvas.ontouchmove = handleMouseMove;
         mainCanvas.onmouseout = handleMouseMove;
-        mainCanvas.onmouseover = _onMouseUp;
-
-        mainCanvas.onmousedown = _onMouseDown;
-        mainCanvas.onmouseup = _onMouseUp;
-
-        mainCanvas.ontouchstart = _onMouseDown;
-        mainCanvas.ontouchend = _onMouseUp;
+        mainCanvas.onmouseover = onMouseUpInner;
+        mainCanvas.onmousedown = onMouseDownInner;
+        mainCanvas.onmouseup = onMouseUpInner;
+        mainCanvas.ontouchstart = onMouseDownInner;
+        mainCanvas.ontouchend = onMouseUpInner;
 
         //   addEventListener("scroll", calcMouseOffset);
         //  addEventListener("resize", calcMouseOffset);
         //   addEventListener("mouseup", handleMouseClick);
         calcMouseOffset();
         invalidate();
+    }
+
+    function onMouseDownInner(e) {
+        handleMouseClick(e, vTrue);
+    }
+
+    function onMouseUpInner(e) {
+        handleMouseClick(e, vFalse);
     }
 
     /**
@@ -414,7 +414,15 @@ var TeleChart = function (ctxId, config) {
         //removeEventListener("scroll", calcMouseOffset);
         //removeEventListener("resize", calcMouseOffset);
         //removeEventListener("mouseup", handleMouseClick);
-        mainCanvas.parentNode.remove(mainCanvas);
+        mainCanvas.onmousemove = vUndefined;
+        mainCanvas.ontouchmove = vUndefined;
+        mainCanvas.onmouseout = vUndefined;
+        mainCanvas.onmouseover = vUndefined;
+        mainCanvas.onmousedown = vUndefined;
+        mainCanvas.onmouseup = vUndefined;
+        mainCanvas.ontouchstart = vUndefined;
+        mainCanvas.ontouchend = vUndefined;
+        container.removeChild(mainCanvas);
     }
 
     /**
@@ -1152,11 +1160,11 @@ var TeleChart = function (ctxId, config) {
         fillText(_name, _x + CONST_BTN_RADIUS_2, _yCenter + envDefaultTextHeight / 2 - CONST_PADDING / 2);
         setFont(envRegularSmallFont);
 
-      //  beginPath();
-     //   setStrokeStyle(envWhiteColorGrad[fParseInt((1 - axis.bPulse) * 60)]);
-     //   setLineWidth(8 * displayScaleFactor);
-      //  circle(_xCenter, _yCenter, axis.bPulse * CONST_BTN_RADIUS);
-      //  endPath();
+        beginPath();
+        setStrokeStyle(envWhiteColorGrad[fParseInt((1 - axis.bPulse)  * 60)]);
+        setLineWidth(8 * displayScaleFactor);
+        circle(_xCenter, _yCenter, axis.bPulse * CONST_BTN_RADIUS);
+        endPath();
     }
 
     /**
@@ -1776,8 +1784,8 @@ var TeleChart = function (ctxId, config) {
      */
     function calcLegendPosition(pos) {
         legendTop = CONST_BTN_RADIUS + CONST_ANTI_BLUR_SHIFT;
-        legendLeft = -25 + CONST_ANTI_BLUR_SHIFT;
-        legendTextLeft[0] = -25 + CONST_PADDING_3;
+        legendLeft = -CONST_BTN_RADIUS + CONST_ANTI_BLUR_SHIFT;
+        legendTextLeft[0] = -CONST_BTN_RADIUS + CONST_PADDING_3;
         legendDateTop = CONST_BTN_RADIUS + CONST_PADDING_3 + envSmallTextHeight + CONST_ANTI_BLUR_SHIFT;
         var _dataIndex = fMathFloor(pos),
             _width = [],
@@ -1794,18 +1802,18 @@ var TeleChart = function (ctxId, config) {
                 _isEven = (_qnt & 1);
                 _value = _axisY.data[_dataIndex];
                 setFont(envBoldDefaultFont);
-                _width[_isEven] = getMax(getTextWidth(_value) + CONST_PADDING, _width[_isEven]);
+                _width[_isEven] = getMax(getTextWidth(_value) + CONST_PADDING_3, _width[_isEven]);
                 setFont(envRegularSmallFont);
-                _width[_isEven] = getMax(getTextWidth(_axisY.name) + CONST_PADDING, _width[_isEven]);
+                _width[_isEven] = getMax(getTextWidth(_axisY.name) + CONST_PADDING_3, _width[_isEven]);
                 _qnt++;
             }
         }
 
         legendTextLeft[1] = _width[0];
-        _proposedWidth = _width[0] + (_width[1] || 0) + CONST_PADDING_3 * 2;
-
-        _proposedWidth = getMax(getTextWidth(legendDateText) + CONST_PADDING_3 * 3 + CONST_ANTI_BLUR_SHIFT, _proposedWidth);
-        legendHeight = 36 + envDefaultTextHeight + fMathCeil(_qnt / 2) * (envDefaultTextHeight + envSmallTextHeight + CONST_PADDING_4);
+        _proposedWidth = _width[0] + (_width[1] || 0) + CONST_PADDING_3;
+        setFont(envBoldDefaultFont);
+        _proposedWidth = getMax(getTextWidth(legendDateText) + CONST_PADDING_3  + CONST_ANTI_BLUR_SHIFT, _proposedWidth);
+        legendHeight =CONST_BTN_RADIUS_2+ envDefaultTextHeight +CONST_PADDING_2+ fMathCeil(_qnt / 2) * (envDefaultTextHeight + envSmallTextHeight + CONST_PADDING_3);
         animate(legendWidth, setLegendWidth, _proposedWidth);
     }
 
@@ -1842,14 +1850,12 @@ var TeleChart = function (ctxId, config) {
             var measures = performance.getEntriesByType("measure");
 
             var y = 50;
-
+            setFont(envRegularSmallFont);
+            setFillStyle(envColorGrad[30])
             for (var measureIndex in measures) {
                 var meas = measures[measureIndex];
-                frameContext.fillStyle = "rgba(255, 255, 255, 0.8)";
-                frameContext.fillRect(10, y - 20, 200, 20);
-                frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
-                frameContext.fillText(meas.name + " " + meas.duration.toFixed(4), 10, y);
-                y = y + 20;
+                frameContext.fillText(meas.name + " " + meas.duration.toFixed(4), CONST_BTN_RADIUS_2, y);
+                y = y + envSmallTextHeight+CONST_PADDING;
             }
             // Finally, clean up the entries.
 
