@@ -280,7 +280,7 @@ var TeleChart = function (ctxId, config) {
         titleDiv.style.float = "left";
         titleDiv.classList.add("animate");
         titleDiv.classList.add("top");
-        titleDiv.innerHTML = "Followers";
+        titleDiv.innerHTML = config.title || "";
         titleContainer.appendChild(titleDiv);
     }
 
@@ -679,6 +679,12 @@ var TeleChart = function (ctxId, config) {
 
         if (mouseY < navigatorTop && selectionFactorX) { //Selection hovered
             var _sValueX = (selectionCurrentIndexFloat - selectionStartIndexFloat  ) * selectionFactorX + legendLeft;
+
+            if (_sValueX > totalWidth - legendWidth) {
+                _sValueX = totalWidth - legendWidth;
+            } else if (_sValueX < 0) {
+                _sValueX = 0;
+            }
             if (legendBoxOpacity === 1 &&
                 mouseY > legendTop &&
                 mouseY < legendTop + legendHeight &&

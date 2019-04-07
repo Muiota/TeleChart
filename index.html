@@ -72,9 +72,7 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
     }
 
     var instances = [],
-        _lastWidth = document.body.clientWidth,
-        darkMode = isMobile(),
-        dataStore;
+        darkMode = isMobile();
 
     function getJSONP(url, callbackName, callback) {
         var ud = '_' + +new Date,
@@ -111,43 +109,67 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
         }
     }
 
-    function createCharts(data) {
-        for (var key in instances) {
-            var instance = instances[key];
-            instance.destroy();
-        }
-
-        dataStore = data;
+    function createCharts(data, name) {
         var _container = document.getElementById("charts_container");
-        instances = [];
-        if (!dataStore) {
+        if (!data) {
             return;
         }
 
-        if (!Array.isArray(dataStore)) {
-            dataStore = JSON.parse(dataStore);
+        if (data instanceof String) {
+            data = JSON.parse(data);
         }
 
-        for (var k = 0; k < dataStore.length; k++) {
+      //  for (var k = 0; k < dataStore.length; k++) {
             var innerContainer = document.createElement('div');
-            innerContainer.id = "chart_" + k;
+            innerContainer.id = "chart_" + name;
             innerContainer.classList.add("chart_container");
             _container.appendChild(innerContainer);
-            var tc = new TeleChart(innerContainer.id);
-            tc.draw(dataStore[k]);
+            var tc = new TeleChart(innerContainer.id, {title: name});
+            tc.draw(data);
             instances.push(tc);
-        }
+       // }
 
     }
 
-    getJSON("https://api.jsonbin.io/b/5c8ab661bb08b22a756b7af7", function (success, resp) {
+    getJSON("https://muiota.github.io/TeleChart/data/1/overview.json", function (success, resp) {
         if (success) {
-            createCharts(resp);
+            createCharts(resp, "Followers");
         } else {
             getJSONP("data.jsonp", "_data", createCharts);
         }
     });
 
+    getJSON("https://muiota.github.io/TeleChart/data/2/overview.json", function (success, resp) {
+        if (success) {
+            createCharts(resp, "Views");
+        } else {
+            getJSONP("data.jsonp", "_data", createCharts);
+        }
+    });
+
+    getJSON("https://muiota.github.io/TeleChart/data/3/overview.json", function (success, resp) {
+        if (success) {
+            createCharts(resp, "Apps");
+        } else {
+            getJSONP("data.jsonp", "_data", createCharts);
+        }
+    });
+
+    getJSON("https://muiota.github.io/TeleChart/data/4/overview.json", function (success, resp) {
+        if (success) {
+            createCharts(resp, "Appgs");
+        } else {
+            getJSONP("data.jsonp", "_data", createCharts);
+        }
+    });
+
+    getJSON("https://muiota.github.io/TeleChart/data/5/overview.json", function (success, resp) {
+        if (success) {
+            createCharts(resp, "Appges");
+        } else {
+            getJSONP("data.jsonp", "_data", createCharts);
+        }
+    });
 
     var dark_mode_button = document.getElementById("btn_dark_mode");
     var custom_color_checkbox = document.getElementById("custom_color");
