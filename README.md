@@ -49,6 +49,19 @@ tc.draw(data);
  - GlobalAlpha performance issue
  - fillText cache tiles (getTextWidth cache)
  - drawButton cache
+
+
+ video 1
+  - label on top
+  - zoom in 168-hour timeline
+  - zoom out
+  
+ video 2
+  -   
+ 
+ - stacked bar type
+ - Zoom in and zoom out
+ - Label on top
 ````
 ##### Desktop:
 <img src="https://i.imgur.com/D1GVf9l.png?raw=true" alt="Desktop" width="998" height="556">

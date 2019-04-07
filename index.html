@@ -11,6 +11,10 @@
 <div id="charts_container">
 </div>
 <div class="clearfix"></div>
+<div id="buttons">
+    <button id="btn_dark_mode" onclick="onChangeTheme(event)"></button>
+
+</div>
 <hr/>
 <div class="about">
     <h4>Other demos:</h4>
@@ -59,7 +63,6 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
     <a href="https://t.me/Muiota" target="_blank">Contact me on Telegram</a>
 </div>
 <div class="settings_panel">
-    <input type="checkbox" name="dark_mode" id="dark_mode" value="dark">Dark mode<br>
     <input type="checkbox" name="custom_color" id="custom_color" value="dark">Custom color<br>
 </div>
 <script src="src/telechart.js"></script>
@@ -71,6 +74,7 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
 
     var instances = [],
         _lastWidth = document.body.clientWidth,
+        darkMode = isMobile(),
         dataStore;
 
     function getJSONP(url, callbackName, callback) {
@@ -146,20 +150,15 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
     });
 
 
-    var _dark_mode_checkbox = document.getElementById("dark_mode");
-    var _custom_color_checkbox = document.getElementById("custom_color");
+    var dark_mode_button = document.getElementById("btn_dark_mode");
+    var custom_color_checkbox = document.getElementById("custom_color");
 
-
-    _dark_mode_checkbox.addEventListener("change", function () {
-        changeClass.call(this, "dark");
-    });
-
-    _custom_color_checkbox.addEventListener("change", function () {
+    custom_color_checkbox.addEventListener("change", function () {
         changeClass.call(this, "custom");
     });
 
-    function changeClass(color) {
-        if (this.checked) {
+    function changeClass(color ,checked) {
+        if (checked) {
             document.body.classList.add(color);
         } else {
             document.body.classList.remove(color);
@@ -167,18 +166,6 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
         for (var k = 0; k < instances.length; k++) {
             instances[k].invalidate();
         }
-    }
-
-    //default dark mode for mobile
-    if (isMobile()) {
-        _dark_mode_checkbox.checked = true;
-        if ("createEvent" in document) {
-            var _evt = document.createEvent("HTMLEvents");
-            _evt.initEvent("change", false, true);
-            _dark_mode_checkbox.dispatchEvent(_evt);
-        }
-        else
-            _dark_mode_checkbox.fireEvent("onchange");
     }
 
     window.addEventListener("resize", function (e, t) {
@@ -192,6 +179,25 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
             _lastWidth = _proposed;
         }
     });
+
+    function switchButton(target) {
+        if (!darkMode) {
+            target.innerText = 'Switch to Night Mode';
+            changeClass("dark", false);
+        } else {
+            target.innerText = 'Switch to Day Mode';
+            changeClass("dark", true);
+        }
+    }
+
+    switchButton(dark_mode_button);
+
+    function onChangeTheme(e) {
+        e = e || window.event;
+        var target = e.target || e.srcElement;
+        darkMode = !darkMode;
+        switchButton(target);
+    }
 
 
 </script>

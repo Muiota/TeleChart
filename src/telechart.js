@@ -74,7 +74,8 @@ var TeleChart = function (ctxId, config) {
         CONST_PADDING_2 = CONST_PADDING * 2,
         CONST_PADDING_3 = CONST_PADDING * 3,
         CONST_PADDING_4 = CONST_PADDING * 4,
-
+        CONST_BTN_RADIUS = 16 * displayScaleFactor,
+        CONST_BTN_RADIUS_2 = CONST_BTN_RADIUS * 2,
         totalWidth = container.offsetWidth * displayScaleFactor,           //main frame width
         navigatorHeight = fParseInt(totalWidth * CONST_NAVIGATOR_HEIGHT_PERCENT / 100), //nav height
         selectionHeight = totalWidth - navigatorHeight - navigatorHeight * 2,      //selection window height
@@ -82,7 +83,7 @@ var TeleChart = function (ctxId, config) {
         selectionBottom = selectionHeight + navigatorHeightHalf,                   //selection window bottom
         navigatorTop = selectionHeight + navigatorHeight + CONST_PADDING_4,        //navigator top
         navigatorBottom = navigatorTop + navigatorHeight,                          //navigator bottom
-        totalHeight = navigatorBottom + CONST_PADDING * 10 + 20 * 4, //main frame height
+        totalHeight = navigatorBottom + CONST_PADDING_3 * 3 + CONST_BTN_RADIUS_2 * 2, //main frame height
         needRedraw,                 //main frame invalidated need redraw
         mainCanvas,                 //canvas of the main frame
         bufferNavigatorCanvas,      //canvas of the navigators buffer
@@ -202,6 +203,7 @@ var TeleChart = function (ctxId, config) {
         envSmallTextHeight,             //@type {Number} small font height
         envDefaultTextHeight,           //@type {Number} regular font height
         envColorGrad = [],              //@type {Array of numbers} array of opacity by environment color 0..1 step 0.01
+        envWhiteColorGrad = [],         //@type {Array of numbers} array of opacity by white color 0..1
         envBgColorGrad = [],            //@type {Array of numbers} array of opacity by environment background color 0..1
         envRegularSmallFont,            //@type {String} regular small font
         envBoldSmallFont,               //@type {String} bold small font
@@ -212,10 +214,8 @@ var TeleChart = function (ctxId, config) {
         frameDelay = 0,                 //@type {Number} current repaint time for animation corrections
 
         boundHighlight,                 //@type {Number} out of bounds highlight opacity 0..1
-        dateSingleton = new Date(),     //@type {Date} singleton for date format
+        dateSingleton = new Date();     //@type {Date} singleton for date format
 
-        CONST_BTN_RADIUS = 16 * displayScaleFactor,
-        CONST_BTN_RADIUS_2 = CONST_BTN_RADIUS * 2;
 
     /**
      * Initializes the environment
@@ -273,9 +273,9 @@ var TeleChart = function (ctxId, config) {
         mainCanvas.ontouchstart = _onMouseDown;
         mainCanvas.ontouchend = _onMouseUp;
 
-     //   addEventListener("scroll", calcMouseOffset);
-      //  addEventListener("resize", calcMouseOffset);
-     //   addEventListener("mouseup", handleMouseClick);
+        //   addEventListener("scroll", calcMouseOffset);
+        //  addEventListener("resize", calcMouseOffset);
+        //   addEventListener("mouseup", handleMouseClick);
         calcMouseOffset();
         invalidate();
     }
@@ -318,7 +318,7 @@ var TeleChart = function (ctxId, config) {
     function getMouseHoveredRegionType() {
         return mouseHoveredRegionType;
     }
-    
+
     //======== setters for animation ========
     function setSelectionFactorY(val) {
         selectionFactorY = val;
@@ -436,6 +436,7 @@ var TeleChart = function (ctxId, config) {
             _opacity = _i / 100;
             envColorGrad[_i] = getRGBA(_envColor, _opacity);
             envBgColorGrad[_i] = getRGBA(_envBgColor, _opacity);
+            envWhiteColorGrad[_i] = getRGBA("#FFFFFF", _opacity);
         }
         calcMouseOffset();
         invalidateInner();
@@ -711,6 +712,12 @@ var TeleChart = function (ctxId, config) {
      * @param withoutPress {Boolean=}
      */
     function handleMouseMove(e, withoutPress) {
+        if (mouseHoveredRegionType === ENUM_ZOOM_HOVER ||
+            mouseHoveredRegionType === ENUM_START_SELECTION_HOVER ||
+            mouseHoveredRegionType === ENUM_END_SELECTION_HOVER ||
+            mouseHoveredRegionType === ENUM_BUTTON_HOVER) {
+            stopPropagation(e);
+        }
         calcMouseOffset();
         var _touches = e.touches;
         return (_touches && getLength(_touches)) ?
@@ -819,7 +826,7 @@ var TeleChart = function (ctxId, config) {
      * @param width {Number=} width in pixels (default 1)
      */
     function setLineWidth(width) {
-        frameContext.lineWidth = width ||  displayScaleFactor;
+        frameContext.lineWidth = width || displayScaleFactor;
     }
 
     /**
@@ -1086,6 +1093,21 @@ var TeleChart = function (ctxId, config) {
         }
     }
 
+    function drawButtonBackground(axis, constbtnradius) {
+        var _x = axis.bX,
+            _y = axis.bY,
+            _innerWidth = axis.bW - CONST_BTN_RADIUS * 2,
+            _xCenter = _x + CONST_BTN_RADIUS,
+            _yCenter = _y + CONST_BTN_RADIUS;
+
+        beginPath();
+        circle(_xCenter, _yCenter, constbtnradius);
+        var number = (CONST_BTN_RADIUS - constbtnradius);
+        fillRect(_xCenter, _y + number, _innerWidth, axis.bH-number*2);
+        circle(_xCenter + _innerWidth, _yCenter, constbtnradius);
+        fill();
+    }
+
     /**
      * Draws a button
      * @param axis {Object} Y-data series
@@ -1098,42 +1120,43 @@ var TeleChart = function (ctxId, config) {
             _xCenter = _x + CONST_BTN_RADIUS,
             _yCenter = _y + CONST_BTN_RADIUS;
 
-        setStrokeStyle(axis.sCg[fParseInt((axis.bO ? 80 : 20) )]);
+        setStrokeStyle(axis.sCg[fParseInt((axis.bO ? 80 : 20))]);
         setFillStyle(_color);
-        drawBalloon(_x, _y, axis.bW, axis.bH);
+        drawButtonBackground(axis, CONST_BTN_RADIUS);
 
 
-        beginPath();
-
-        circle(_xCenter, _yCenter, CONST_BTN_RADIUS - CONST_PADDING);
-        fill();
-
-        setStrokeStyle("#FFFFFF");
+        setStrokeStyle(envWhiteColorGrad[100]);
         setLineWidth(2 * displayScaleFactor);
         // setRound(vTrue);
         beginPath();
-        translate(-2 * displayScaleFactor, 4 * displayScaleFactor);  //todo without translate and scale it
-        moveOrLine(vTrue, _xCenter - CONST_PADDING, _yCenter - CONST_PADDING);
-        moveOrLine(vFalse, _xCenter, _yCenter);
-        moveOrLine(vFalse, _xCenter + CONST_PADDING * 1.8, _yCenter - CONST_PADDING * 1.8);
-        translate(2* displayScaleFactor, -4* displayScaleFactor);
+        var _translateX = _xCenter - 2 * displayScaleFactor + CONST_PADDING * 0.1;
+        var _translateY = _yCenter + 4 * displayScaleFactor - CONST_PADDING * 0.1;
+        translate(_translateX, _translateY);  //todo without translate and scale it
+        moveOrLine(vTrue, -CONST_PADDING * 0.8, -CONST_PADDING * 0.8);
+        moveOrLine(vFalse, 0, 0);
+        moveOrLine(vFalse, +CONST_PADDING * 1.5, -CONST_PADDING * 1.5);
+        translate(-_translateX, -_translateY);
         endPath();
 
         beginPath();
         setFillStyle(envBgColorGrad[100]);
-        circle(_xCenter, _yCenter, 10 * displayScaleFactor * (1 - axis.sO));
+        drawButtonBackground(axis, (CONST_BTN_RADIUS - CONST_PADDING / 2) * (1 - axis.sO));
+  //      circle(_xCenter, _yCenter, 10 * displayScaleFactor * (1 - axis.sO));
         fill();
 
-        setFillStyle("#FFFFFF");
+        setFillStyle(axis.sCg[100]);
         setFont(envRegularDefaultFont);
-        fillText(_name, _x + CONST_BTN_RADIUS_2 + CONST_PADDING, _yCenter + envSmallTextHeight / 2);
+        fillText(_name, _x + CONST_BTN_RADIUS_2, _yCenter + envDefaultTextHeight / 2 - CONST_PADDING / 2);
+        setFillStyle(envWhiteColorGrad[fParseInt(100 * axis.sO)]);
+
+        fillText(_name, _x + CONST_BTN_RADIUS_2, _yCenter + envDefaultTextHeight / 2 - CONST_PADDING / 2);
         setFont(envRegularSmallFont);
 
-        beginPath();
-        setStrokeStyle(envBgColorGrad[fParseInt((1 - axis.bPulse) * 60)]);
-        setLineWidth(8 * displayScaleFactor);
-        circle(_xCenter, _yCenter, axis.bPulse*CONST_BTN_RADIUS);
-        endPath();
+      //  beginPath();
+     //   setStrokeStyle(envWhiteColorGrad[fParseInt((1 - axis.bPulse) * 60)]);
+     //   setLineWidth(8 * displayScaleFactor);
+      //  circle(_xCenter, _yCenter, axis.bPulse * CONST_BTN_RADIUS);
+      //  endPath();
     }
 
     /**
@@ -1208,7 +1231,7 @@ var TeleChart = function (ctxId, config) {
             //selection series
             beginPath();
             setStrokeStyle(_axisY.sCg[fParseInt(100 * _axisY.sO)]);
-            setLineWidth(config.lineWidth || 2* displayScaleFactor);
+            setLineWidth(config.lineWidth || 2 * displayScaleFactor);
 
             for (_k = selectionStartIndexInt; _k <= selectionEndIndexInt; _k++) {
                 _xValue = (_k - selectionStartIndexFloat) * selectionFactorX;
@@ -1254,7 +1277,7 @@ var TeleChart = function (ctxId, config) {
         moveOrLine(vTrue, _sValueX, 0);
         moveOrLine(vFalse, _sValueX, selectionBottom);
         endPath();
-        setLineWidth(2* displayScaleFactor);
+        setLineWidth(2 * displayScaleFactor);
 
         for (_i in yAxisDataRefs) {
             _axisY = yAxisDataRefs[_i];
@@ -1294,7 +1317,7 @@ var TeleChart = function (ctxId, config) {
         if (_rightThreshold < 0) {
             _rightThreshold = 0;
         }
-        setStrokeStyle(envColorGrad[fParseInt(40* legendBoxOpacity)]);
+        setStrokeStyle(envColorGrad[fParseInt(40 * legendBoxOpacity)]);
         setFillStyle(envBgColorGrad[fParseInt(30 + 60 * legendBoxOpacity)]);
         drawBalloon(_sValueX + legendLeft + _leftThreshold, legendTop,
             legendWidth - _leftThreshold + _rightThreshold, legendHeight);
@@ -1342,7 +1365,7 @@ var TeleChart = function (ctxId, config) {
             beginPath();
             setFillStyle(envColorGrad[fParseInt(navigatorPressed * 20)]);
 
-            circle(_x, navigatorTop + navigatorHeightHalf, navigatorPressed * 35);
+            circle(_x, navigatorTop + navigatorHeightHalf, navigatorPressed * 20* displayScaleFactor);
             fill();
 
         }
@@ -1564,7 +1587,7 @@ var TeleChart = function (ctxId, config) {
         setFont(envRegularDefaultFont);
         for (_i in yAxisDataRefs) {
             _axis = yAxisDataRefs[_i];
-            _width = CONST_BTN_RADIUS_2 + CONST_PADDING_4 + getTextWidth(_axis.name);
+            _width = CONST_BTN_RADIUS_2 + CONST_PADDING_3 + getTextWidth(_axis.name);
 
             if (_x + _width > totalWidth) {
                 _x = CONST_PADDING_2;
@@ -1803,37 +1826,36 @@ var TeleChart = function (ctxId, config) {
 
 
     function measureDurations() {
-      try {
-          performance.measure("total", measure.start, measure.end);
-          performance.measure("animation", measure.start, measure.animation);
-          performance.measure("calcSelectionFactors", measure.animation, measure.calcSelectionFactors);
-          performance.measure("drawNavigatorLayer", measure.calcSelectionFactors, measure.drawNavigatorLayer);
-          performance.measure("drawHorizontalGrid", measure.drawNavigatorLayer, measure.drawHorizontalGrid);
-          performance.measure("drawSeries", measure.drawHorizontalGrid, measure.drawSeries);
-          performance.measure("drawNavigatorLayerB", measure.drawSeries, measure.drawNavigatorLayerB);
-          performance.measure("drawSeriesLegend", measure.drawNavigatorLayerB, measure.drawSeriesLegend);
-          performance.measure("drawButtons", measure.drawSeriesLegend, measure.drawButtons);
-          performance.measure("drawPressHighlight", measure.drawButtons, measure.drawPressHighlight);
-          performance.measure("end", measure.drawPressHighlight, measure.end);
+        try {
+            performance.measure("total", measure.start, measure.end);
+            performance.measure("animation", measure.start, measure.animation);
+            performance.measure("calcSelectionFactors", measure.animation, measure.calcSelectionFactors);
+            performance.measure("drawNavigatorLayer", measure.calcSelectionFactors, measure.drawNavigatorLayer);
+            performance.measure("drawHorizontalGrid", measure.drawNavigatorLayer, measure.drawHorizontalGrid);
+            performance.measure("drawSeries", measure.drawHorizontalGrid, measure.drawSeries);
+            performance.measure("drawNavigatorLayerB", measure.drawSeries, measure.drawNavigatorLayerB);
+            performance.measure("drawSeriesLegend", measure.drawNavigatorLayerB, measure.drawSeriesLegend);
+            performance.measure("drawButtons", measure.drawSeriesLegend, measure.drawButtons);
+            performance.measure("drawPressHighlight", measure.drawButtons, measure.drawPressHighlight);
+            performance.measure("end", measure.drawPressHighlight, measure.end);
 
-          var measures = performance.getEntriesByType("measure");
+            var measures = performance.getEntriesByType("measure");
 
-          var y = 50;
+            var y = 50;
 
-          for (var measureIndex in measures) {
-              var meas = measures[measureIndex];
-              frameContext.fillStyle = "rgba(255, 255, 255, 0.8)";
-              frameContext.fillRect(10, y - 20, 200, 20);
-              frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
-              frameContext.fillText(meas.name + " " + meas.duration.toFixed(4), 10, y);
-              y = y + 20;
-          }
-          // Finally, clean up the entries.
+            for (var measureIndex in measures) {
+                var meas = measures[measureIndex];
+                frameContext.fillStyle = "rgba(255, 255, 255, 0.8)";
+                frameContext.fillRect(10, y - 20, 200, 20);
+                frameContext.fillStyle = "rgba(0, 0, 0, 0.2)";
+                frameContext.fillText(meas.name + " " + meas.duration.toFixed(4), 10, y);
+                y = y + 20;
+            }
+            // Finally, clean up the entries.
 
-      } catch (e)
-      {
+        } catch (e) {
 
-      }
+        }
         performance.clearMarks();
         performance.clearMeasures();
     }
@@ -1863,7 +1885,7 @@ var TeleChart = function (ctxId, config) {
         performance.mark(measure.end);
 
 
-            measureDurations();
+        measureDurations();
 
 
         requestAnimationFrame(render);
