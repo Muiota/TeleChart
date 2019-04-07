@@ -221,7 +221,8 @@ var TeleChart = function (ctxId, config) {
         dateSingleton = new Date(),     //@type {Date} singleton for date format
 
         needUpdateButtonsPanel,
-        buttonsPanelTop;
+        buttonsPanelTop,
+        isTouchEvent;
 
     /**
      * Initializes the environment
@@ -562,6 +563,9 @@ var TeleChart = function (ctxId, config) {
             //Set cursor
             if (mouseHoveredRegionType === ENUM_SELECTION_HOVER) { //most likely
                 animate(legendCursorOpacity, setLegendCursorOpacity, 1);
+                if (force) {
+                    animate(legendBoxOpacity, setLegendBoxOpacity, 1);
+                }
                 setCursor(0);
             } else if (mouseHoveredRegionType === ENUM_ZOOM_HOVER ||
                 mouseHoveredRegionType === ENUM_BUTTON_HOVER ||
@@ -598,7 +602,7 @@ var TeleChart = function (ctxId, config) {
                 invalidateInner();
             }
             else {
-                if (legendBoxOpacity === 0 && !force) {
+                if ((legendBoxOpacity === 0 && !force) || isTouchEvent) {
                     var _proposed = fMathRound(mouseX / selectionFactorX + selectionStartIndexFloat);
                     _proposed = getMin(getMax(1, _proposed), xAxisDataRef.l - 1);
                     calcLegendPosition(_proposed);
@@ -773,13 +777,13 @@ var TeleChart = function (ctxId, config) {
         }
         calcMouseOffset();
         var _touches = e.touches;
-        var _isTouch = _touches && getLength(_touches);
+        isTouchEvent = _touches && getLength(_touches);
 
-        var newVar = _isTouch ?
+        var newVar = isTouchEvent ?
             assignMousePos(_touches[0], withoutPress) :
             assignMousePos(e, withoutPress);
 
-        if (_isTouch && mouseHoveredRegionType === ENUM_SELECTION_HOVER) {
+        if (isTouchEvent && mouseHoveredRegionType === ENUM_SELECTION_HOVER && withoutPress) {
             newVar = false;
         }
         return newVar;
@@ -823,7 +827,7 @@ var TeleChart = function (ctxId, config) {
                 animate(navigatorPressed, setNavigatorPressed, 1, 15);
                 navigatorPressedRegionType = mouseHoveredRegionType;
             } else if (mouseHoveredRegionType === ENUM_SELECTION_HOVER) {
-                if (legendBoxOpacity === 0) {
+                if (legendBoxOpacity === 0 ) {
                     animate(legendBoxOpacity, setLegendBoxOpacity, 1);
                 } else {
                     animate(legendBoxOpacity, setLegendBoxOpacity, 0);
@@ -1373,7 +1377,7 @@ var TeleChart = function (ctxId, config) {
             _axisY = yAxisDataRefs[_i];
             _sValueYFrom = _selectionAxis + (_axisY.data[_from] - selectionMinY) * selectionFactorY;
             _opacity = _axisY.sO;
-            if (_from === selectionCurrentIndexFloat || _to >= selectionEndIndexFloat) {
+            if (_from === selectionCurrentIndexFloat || _to >= xAxisDataRef.l) {
                 _sValueY = _sValueYFrom;
             } else {
                 _sValueYTo = _selectionAxis + (_axisY.data[_to] - selectionMinY) * selectionFactorY;
