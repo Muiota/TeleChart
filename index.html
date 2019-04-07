@@ -170,7 +170,7 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
 
     window.addEventListener("resize", function (e, t) {
         for (var k = 0; k < instances.length; k++) {
-            instances[k].invalidate();
+            instances[k].invalidate(true);
         }
     });
 

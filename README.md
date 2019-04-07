@@ -52,7 +52,7 @@ tc.draw(data);
 
 
  video 1
-  - label on top
+  - label on top (name "Followers" and range "1 April 2019 - 30 April 2019")
   - zoom in 168-hour timeline
   - zoom out
   
@@ -63,8 +63,8 @@ tc.draw(data);
  - Zoom in and zoom out
  - Label on top
  
- 
- - document resize problem
+
+ - 
 ````
 ##### Desktop:
 <img src="https://i.imgur.com/D1GVf9l.png?raw=true" alt="Desktop" width="998" height="556">

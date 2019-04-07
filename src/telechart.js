@@ -68,22 +68,22 @@ var TeleChart = function (ctxId, config) {
      * @type {Number|Array|String|HTMLCanvasElement|CanvasRenderingContext2D|Element|Object|Date}
      */
     var container = vDocument.getElementById(ctxId),                               //canvases container
-        displayScaleFactor = window.devicePixelRatio,
-        CONST_PADDING = 5 * displayScaleFactor,
-        CONST_PADDING_HALF = CONST_PADDING / 2,
-        CONST_PADDING_2 = CONST_PADDING * 2,
-        CONST_PADDING_3 = CONST_PADDING * 3,
-        CONST_PADDING_4 = CONST_PADDING * 4,
-        CONST_BTN_RADIUS = 16 * displayScaleFactor,
-        CONST_BTN_RADIUS_2 = CONST_BTN_RADIUS * 2,
-        totalWidth = container.offsetWidth * displayScaleFactor,           //main frame width
-        navigatorHeight = fParseInt(totalWidth * CONST_NAVIGATOR_HEIGHT_PERCENT / 100), //nav height
-        selectionHeight = totalWidth - navigatorHeight - navigatorHeight * 2,      //selection window height
-        navigatorHeightHalf = navigatorHeight / 2,                                 //half navigator height
-        selectionBottom = selectionHeight + navigatorHeightHalf,                   //selection window bottom
-        navigatorTop = selectionHeight + navigatorHeight + CONST_PADDING_4,        //navigator top
-        navigatorBottom = navigatorTop + navigatorHeight,                          //navigator bottom
-        totalHeight = navigatorBottom + CONST_PADDING_3 * 3 + CONST_BTN_RADIUS_2 * 2, //main frame height
+        displayScaleFactor,
+        uIGlobalPadding,
+        uiGlobalPaddingHalf,
+        uIGlobalPadding2,
+        uIGlobalPadding3,
+        uIGlobalPadding4,
+        uIBtnRadius,
+        uIBtnRadius2,
+        totalWidth,           //main frame width
+        navigatorHeight, //nav height
+        selectionHeight,      //selection window height
+        navigatorHeightHalf,                                 //half navigator height
+        selectionBottom,                   //selection window bottom
+        navigatorTop,        //navigator top
+        navigatorBottom,                          //navigator bottom
+        totalHeight, //main frame height
         needRedraw,                 //main frame invalidated need redraw
         mainCanvas,                 //canvas of the main frame
         bufferNavigatorCanvas,      //canvas of the navigators buffer
@@ -230,31 +230,12 @@ var TeleChart = function (ctxId, config) {
         }
         config.showTouches = config.showTouches === vFalse ? vFalse : vTrue;
         config.showBounds = config.showBounds === vFalse ? vFalse : vTrue;
-
-        mainCanvas = createCanvas(totalWidth, totalHeight);
+        mainCanvas = createCanvas();
+        bufferNavigatorCanvas = createCanvas();
         frameContext = mainCanvas.getContext("2d");
-        frameContext.lineJoin = "bevel";
-        var _size = getBodyStyle("font-size"),
-            _fontFamilyCombined = CONST_PIXEL + " " + getBodyStyle("font-family"),
-            _mainCanvasStyle = mainCanvas.style,
-            _baseFontSize = fParseInt(_size.replace(/\D/g, ""));
 
-        bufferNavigatorCanvas = createCanvas(totalWidth, navigatorHeight);
-        bufferNavigatorContext = bufferNavigatorCanvas.getContext("2d");
-        bufferNavigatorContext.lineWidth = 2;
-        envSmallTextHeight = fParseInt(_baseFontSize * 0.8 * displayScaleFactor);
-        envDefaultTextHeight = fParseInt(_baseFontSize * displayScaleFactor);
 
-        envRegularSmallFont = envSmallTextHeight + _fontFamilyCombined;
-        envRegularDefaultFont = envDefaultTextHeight + _fontFamilyCombined;
-        envBoldSmallFont = CONST_BOLD_PREFIX + envRegularSmallFont;
-        envBoldDefaultFont = CONST_BOLD_PREFIX + envRegularDefaultFont;
-
-        setFont(envRegularSmallFont);
-
-        _mainCanvasStyle[CONST_WIDTH] = fParseInt(totalWidth / displayScaleFactor) + CONST_PIXEL;
-        _mainCanvasStyle[CONST_HEIGHT] = fParseInt(totalHeight / displayScaleFactor) + CONST_PIXEL;
-
+        recalcBounds();
         container.appendChild(mainCanvas);
 
         mainCanvas.onmousemove = handleMouseMove;
@@ -271,6 +252,58 @@ var TeleChart = function (ctxId, config) {
         //   addEventListener("mouseup", handleMouseClick);
         calcMouseOffset();
         invalidate();
+    }
+
+    function recalcBounds() {
+        displayScaleFactor = window.devicePixelRatio;
+        uIGlobalPadding = 5 * displayScaleFactor;
+        uiGlobalPaddingHalf = uIGlobalPadding / 2;
+        uIGlobalPadding2 = uIGlobalPadding * 2;
+        uIGlobalPadding3 = uIGlobalPadding * 3;
+        uIGlobalPadding4 = uIGlobalPadding * 4;
+        uIBtnRadius = 16 * displayScaleFactor;
+        uIBtnRadius2 = uIBtnRadius * 2;
+        totalWidth = container.offsetWidth * displayScaleFactor - uIGlobalPadding2;           //main frame width
+        navigatorHeight = fParseInt(totalWidth * CONST_NAVIGATOR_HEIGHT_PERCENT / 100); //nav height
+        selectionHeight = totalWidth - navigatorHeight - navigatorHeight * 2;      //selection window height
+        navigatorHeightHalf = navigatorHeight / 2;                                 //half navigator height
+        selectionBottom = selectionHeight + navigatorHeightHalf;                   //selection window bottom
+        navigatorTop = selectionHeight + navigatorHeight + uIGlobalPadding4;        //navigator top
+        navigatorBottom = navigatorTop + navigatorHeight;                          //navigator bottom
+        totalHeight = navigatorBottom + uIGlobalPadding3 * 3 + uIBtnRadius2 * 2; //main frame height
+
+        mainCanvas[CONST_WIDTH] = totalWidth;
+        mainCanvas[CONST_HEIGHT] = totalHeight;
+
+        bufferNavigatorCanvas[CONST_WIDTH] = totalWidth;
+        bufferNavigatorCanvas[CONST_HEIGHT] = navigatorHeight;
+
+        var _size = getBodyStyle("font-size"),
+            _fontFamilyCombined = CONST_PIXEL + " " + getBodyStyle("font-family"),
+            _mainCanvasStyle = mainCanvas.style,
+            _baseFontSize = fParseInt(_size.replace(/\D/g, ""));
+
+
+        bufferNavigatorContext = bufferNavigatorCanvas.getContext("2d");
+
+        bufferNavigatorContext.lineWidth = displayScaleFactor;
+        envSmallTextHeight = fParseInt(_baseFontSize * 0.8 * displayScaleFactor);
+        envDefaultTextHeight = fParseInt(_baseFontSize * displayScaleFactor);
+
+        envRegularSmallFont = envSmallTextHeight + _fontFamilyCombined;
+        envRegularDefaultFont = envDefaultTextHeight + _fontFamilyCombined;
+        envBoldSmallFont = CONST_BOLD_PREFIX + envRegularSmallFont;
+        envBoldDefaultFont = CONST_BOLD_PREFIX + envRegularDefaultFont;
+
+        setFont(envRegularSmallFont);
+
+        _mainCanvasStyle[CONST_WIDTH] = fParseInt(totalWidth / displayScaleFactor) + CONST_PIXEL;
+        _mainCanvasStyle[CONST_HEIGHT] = fParseInt(totalHeight / displayScaleFactor) + CONST_PIXEL;
+        _mainCanvasStyle.marginLeft = "5" + CONST_PIXEL;
+        navigatorNeedUpdateBuffer = vTrue;
+        selectionNeedUpdateFactorY = vTrue;
+        frameContext.lineJoin = "bevel";
+        calcNavigatorFactors(vTrue);
     }
 
     function onMouseDownInner(e) {
@@ -305,10 +338,8 @@ var TeleChart = function (ctxId, config) {
      * @param height {Number} height of canvas
      * @returns {Element}
      */
-    function createCanvas(width, height) {
+    function createCanvas() {
         var _canvas = vDocument.createElement("canvas");
-        _canvas[CONST_WIDTH] = width;
-        _canvas[CONST_HEIGHT] = height;
         return _canvas;
     }
 
@@ -440,7 +471,14 @@ var TeleChart = function (ctxId, config) {
     /**
      * Invalidates the canvas & prepare environment colors
      */
-    function invalidate() {
+    function invalidate(full) {
+
+        if (full) {
+            recalcBounds();
+            calcButtonsParams();
+
+        }
+
         var _envColor = getBodyStyle("color"),
             _envBgColor = getBodyStyle("background-color"),
             _opacity,
@@ -590,9 +628,9 @@ var TeleChart = function (ctxId, config) {
                 _startZShift = _startZoom - mouseX,
                 _endZShift = _endZoom - mouseX;
 
-            if (fMathAbs(_startZShift + CONST_PADDING_2) < CONST_PADDING_4) { //Navigator start edge hovered
+            if (fMathAbs(_startZShift + uIGlobalPadding2) < uIGlobalPadding4) { //Navigator start edge hovered
                 _result = ENUM_START_SELECTION_HOVER;
-            } else if (fMathAbs(_endZShift - CONST_PADDING_2) < CONST_PADDING_4) { //Navigator end edge hovered
+            } else if (fMathAbs(_endZShift - uIGlobalPadding2) < uIGlobalPadding4) { //Navigator end edge hovered
                 _result = ENUM_END_SELECTION_HOVER;
             } else if (mouseX > _startZoom && mouseX < _endZoom) { //Navigator center hovered
                 mouseFrame.nS = _startZShift / navigatorFactorX;
@@ -722,8 +760,8 @@ var TeleChart = function (ctxId, config) {
         if (_clientX && _clientY) {
             mouseX = fParseInt((_clientX - mouseOffsetX) * displayScaleFactor);
             mouseY = fParseInt((_clientY - mouseOffsetY) * displayScaleFactor);
-            if (mouseY >= -CONST_PADDING && mouseX >= -CONST_PADDING &&
-                mouseX <= totalWidth + CONST_PADDING && mouseY <= totalHeight + CONST_PADDING) {
+            if (mouseY >= -uIGlobalPadding && mouseX >= -uIGlobalPadding &&
+                mouseX <= totalWidth + uIGlobalPadding && mouseY <= totalHeight + uIGlobalPadding) {
                 mousePressed && !calcOnly ? moveHoveredElement() : calcHoveredElement();
                 invalidateInner();
                 return vTrue;
@@ -981,15 +1019,15 @@ var TeleChart = function (ctxId, config) {
 
         beginPath();
         setLineWidth();
-        moveOrLine(vTrue, x + CONST_BTN_RADIUS, y);
-        moveOrLine(vFalse, _xWidth - CONST_BTN_RADIUS, y);
-        quadraticCurveTo(_xWidth, y, _xWidth, y + CONST_BTN_RADIUS);
-        moveOrLine(vFalse, _xWidth, _yHeight - CONST_BTN_RADIUS);
-        quadraticCurveTo(_xWidth, _yHeight, _xWidth - CONST_BTN_RADIUS, _yHeight);
-        moveOrLine(vFalse, x + CONST_BTN_RADIUS, _yHeight);
-        quadraticCurveTo(x, _yHeight, x, _yHeight - CONST_BTN_RADIUS);
-        moveOrLine(vFalse, x, y + CONST_BTN_RADIUS);
-        quadraticCurveTo(x, y, x + CONST_BTN_RADIUS, y);
+        moveOrLine(vTrue, x + uIBtnRadius, y);
+        moveOrLine(vFalse, _xWidth - uIBtnRadius, y);
+        quadraticCurveTo(_xWidth, y, _xWidth, y + uIBtnRadius);
+        moveOrLine(vFalse, _xWidth, _yHeight - uIBtnRadius);
+        quadraticCurveTo(_xWidth, _yHeight, _xWidth - uIBtnRadius, _yHeight);
+        moveOrLine(vFalse, x + uIBtnRadius, _yHeight);
+        quadraticCurveTo(x, _yHeight, x, _yHeight - uIBtnRadius);
+        moveOrLine(vFalse, x, y + uIBtnRadius);
+        quadraticCurveTo(x, y, x + uIBtnRadius, y);
         closePath();
         fill();
         endPath();
@@ -1104,7 +1142,7 @@ var TeleChart = function (ctxId, config) {
             }
             _opacity = envColorGrad[fParseInt(50 * _opacity * seriesMaxOpacity * smartAxisXOpacity)];
         }
-        _labelY = _selectionAxis + CONST_PADDING * 5;
+        _labelY = _selectionAxis + uIGlobalPadding * 5;
 
         setLineWidth();
         for (_i = _nextItem - _axisRange; _i <= selectionEndIndexInt; _i += _axisRange) {
@@ -1121,7 +1159,7 @@ var TeleChart = function (ctxId, config) {
         //Y-axis labels ============================
         _color = envColorGrad[fParseInt(50 * getMin(seriesMaxOpacity, smartAxisYOpacity))];
         while (_selectionAxis > navigatorHeightHalf) {
-            _labelY = fParseInt(_selectionAxis) + CONST_ANTI_BLUR_SHIFT - CONST_PADDING;
+            _labelY = fParseInt(_selectionAxis) + CONST_ANTI_BLUR_SHIFT - uIGlobalPadding;
             _value = _nextScaleValue.toString();
             _textLength = getLength(_value);
             if (_textLength > 6) {
@@ -1132,10 +1170,10 @@ var TeleChart = function (ctxId, config) {
             }
 
             setFillStyle(_bgColor);
-            fillRect(CONST_PADDING_HALF, _labelY - envSmallTextHeight + 2,
-                getTextWidth(_value) + CONST_PADDING_2, envSmallTextHeight);
+            fillRect(uiGlobalPaddingHalf, _labelY - envSmallTextHeight + 2,
+                getTextWidth(_value) + uIGlobalPadding2, envSmallTextHeight);
             setFillStyle(_color);
-            fillText(_value, CONST_PADDING, _labelY);
+            fillText(_value, uIGlobalPadding, _labelY);
             _nextScaleValue = fParseInt(_nextScaleValue + smartAxisYRangeInt);
             _selectionAxis = _selectionAxis + smartAxisYRangeFloat * selectionFactorY;
         }
@@ -1144,13 +1182,13 @@ var TeleChart = function (ctxId, config) {
     function drawButtonBackground(axis, constbtnradius) {
         var _x = axis.bX,
             _y = axis.bY,
-            _innerWidth = axis.bW - CONST_BTN_RADIUS * 2,
-            _xCenter = _x + CONST_BTN_RADIUS,
-            _yCenter = _y + CONST_BTN_RADIUS;
+            _innerWidth = axis.bW - uIBtnRadius * 2,
+            _xCenter = _x + uIBtnRadius,
+            _yCenter = _y + uIBtnRadius;
 
         beginPath();
         circle(_xCenter, _yCenter, constbtnradius);
-        var number = fParseInt(CONST_BTN_RADIUS - constbtnradius);
+        var number = fParseInt(uIBtnRadius - constbtnradius);
         fillRect(_xCenter, _y + number, _innerWidth, axis.bH - number * 2);
         circle(_xCenter + _innerWidth, _yCenter, constbtnradius);
         fill();
@@ -1165,45 +1203,45 @@ var TeleChart = function (ctxId, config) {
             _y = axis.bY,
             _color = axis.color,
             _name = axis.name,
-            _xCenter = _x + CONST_BTN_RADIUS,
-            _yCenter = _y + CONST_BTN_RADIUS;
+            _xCenter = _x + uIBtnRadius,
+            _yCenter = _y + uIBtnRadius;
 
         setStrokeStyle(axis.sCg[fParseInt((axis.bO ? 80 : 20))]);
         setFillStyle(_color);
-        drawButtonBackground(axis, CONST_BTN_RADIUS);
+        drawButtonBackground(axis, uIBtnRadius);
 
 
         setStrokeStyle(envWhiteColorGrad[100]);
         setLineWidth(2 * displayScaleFactor);
         // setRound(vTrue);
         beginPath();
-        var _translateX = _xCenter - 2 * displayScaleFactor + CONST_PADDING * 0.1;
-        var _translateY = _yCenter + 4 * displayScaleFactor - CONST_PADDING * 0.1;
+        var _translateX = _xCenter - 2 * displayScaleFactor + uIGlobalPadding * 0.1;
+        var _translateY = _yCenter + 4 * displayScaleFactor - uIGlobalPadding * 0.1;
         translate(_translateX, _translateY);  //todo without translate and scale it
-        moveOrLine(vTrue, -CONST_PADDING * 0.8, -CONST_PADDING * 0.8);
+        moveOrLine(vTrue, -uIGlobalPadding * 0.8, -uIGlobalPadding * 0.8);
         moveOrLine(vFalse, 0, 0);
-        moveOrLine(vFalse, +CONST_PADDING * 1.5, -CONST_PADDING * 1.5);
+        moveOrLine(vFalse, +uIGlobalPadding * 1.5, -uIGlobalPadding * 1.5);
         translate(-_translateX, -_translateY);
         endPath();
 
         beginPath();
         setFillStyle(envBgColorGrad[100]);
-        drawButtonBackground(axis, (CONST_BTN_RADIUS - 2 * displayScaleFactor) * (1 - axis.sO));
+        drawButtonBackground(axis, (uIBtnRadius - 2 * displayScaleFactor) * (1 - axis.sO));
         //      circle(_xCenter, _yCenter, 10 * displayScaleFactor * (1 - axis.sO));
         fill();
 
         setFillStyle(axis.sCg[100]);
         setFont(envRegularDefaultFont);
-        fillText(_name, _x + CONST_BTN_RADIUS_2, _yCenter + envDefaultTextHeight / 2 - CONST_PADDING / 2);
+        fillText(_name, _x + uIBtnRadius2, _yCenter + envDefaultTextHeight / 2 - uIGlobalPadding / 2);
         setFillStyle(envWhiteColorGrad[fParseInt(100 * axis.sO)]);
 
-        fillText(_name, _x + CONST_BTN_RADIUS_2, _yCenter + envDefaultTextHeight / 2 - CONST_PADDING / 2);
+        fillText(_name, _x + uIBtnRadius2, _yCenter + envDefaultTextHeight / 2 - uIGlobalPadding / 2);
         setFont(envRegularSmallFont);
 
         beginPath();
         setStrokeStyle(envBgColorGrad[fParseInt((1 - axis.bPulse) * 60)]);
         setLineWidth(8 * displayScaleFactor);
-        circle(_xCenter, _yCenter, axis.bPulse * CONST_BTN_RADIUS);
+        circle(_xCenter, _yCenter, axis.bPulse * uIBtnRadius);
         endPath();
     }
 
@@ -1229,7 +1267,7 @@ var TeleChart = function (ctxId, config) {
             _needOptimization = xAxisDataRef.l / totalWidth >= 1;
 
         bufferNavigatorContext.beginPath();
-        bufferNavigatorContext.lineWidth = displayScaleFactor;
+
         bufferNavigatorContext.strokeStyle = series.sCg[100];
         bufferNavigatorContext.globalAlpha = series.sO;
         for (_k = 1; _k < xAxisDataRef.l;) {
@@ -1361,7 +1399,7 @@ var TeleChart = function (ctxId, config) {
             else {
                 _overlap = _leftThreshold + legendWidth - totalWidth + displayScaleFactor * 4;
                 if (_overlap > 0) {
-                    _rightThreshold = _overlap - legendWidth + CONST_BTN_RADIUS_2;
+                    _rightThreshold = _overlap - legendWidth + uIBtnRadius2;
                     _sValueX = totalWidth - legendLeft - legendWidth - displayScaleFactor * 2;
                 }
                 _leftThreshold = 0;
@@ -1378,7 +1416,7 @@ var TeleChart = function (ctxId, config) {
             setFillStyle(envColorGrad[fParseInt(legendBoxOpacity * _legendCursorOpacity)]);
             fillText(legendDateText, _sValueX + legendTextLeft[0], legendDateTop);
 
-            _sValueY = CONST_BTN_RADIUS + CONST_PADDING_2;
+            _sValueY = uIBtnRadius + uIGlobalPadding2;
             for (_i in yAxisDataRefs) {
                 _axisY = yAxisDataRefs[_i];
                 _value = _axisY.data[fMathRound(selectionCurrentIndexFloat)];
@@ -1386,14 +1424,14 @@ var TeleChart = function (ctxId, config) {
                     _isEven = (_qnt & 1);
                     _shiftX = legendTextLeft[_isEven];
                     if (!_isEven) {
-                        _sValueY += (envDefaultTextHeight + envSmallTextHeight + CONST_PADDING_4);
+                        _sValueY += (envDefaultTextHeight + envSmallTextHeight + uIGlobalPadding4);
                     }
                     setFillStyle(_axisY.sCg[fParseInt(legendBoxOpacity * _legendCursorOpacity)]);
                     setFont(envBoldDefaultFont);
                     fillText(_value, _sValueX + _shiftX, _sValueY);
                     setFont(envRegularSmallFont);
                     fillText(_axisY.name, _sValueX + _shiftX,
-                        _sValueY + envDefaultTextHeight + CONST_PADDING);
+                        _sValueY + envDefaultTextHeight + uIGlobalPadding);
                     _qnt++;
                 }
             }
@@ -1436,13 +1474,13 @@ var TeleChart = function (ctxId, config) {
      */
     function drawBoundHighlight(overflow) {
         if (overflow !== 0) {
-            var _x = overflow < 0 ? 0 : totalWidth - CONST_BTN_RADIUS,
+            var _x = overflow < 0 ? 0 : totalWidth - uIBtnRadius,
                 _grd;
-            _grd = frameContext.createLinearGradient(_x, 0, _x + CONST_BTN_RADIUS, 0);
+            _grd = frameContext.createLinearGradient(_x, 0, _x + uIBtnRadius, 0);
             _grd.addColorStop(_x ? 0 : 1, envColorGrad[0]);
             _grd.addColorStop(_x ? 1 : 0, envColorGrad[fParseInt(20 * fMathAbs(overflow))]);
             setFillStyle(_grd);
-            fillRect(_x, 0, CONST_BTN_RADIUS, selectionBottom);
+            fillRect(_x, 0, uIBtnRadius, selectionBottom);
         }
     }
 
@@ -1455,8 +1493,8 @@ var TeleChart = function (ctxId, config) {
             setFillStyle(envColorGrad[30]);
             fillRect(zoomStartInt, navigatorTop, zoomEndInt - zoomStartInt, navigatorHeight);
             setFillStyle(envBgColorGrad[100]);
-            fillRect(zoomStartInt + CONST_PADDING_2, navigatorTop + CONST_PADDING_HALF, zoomEndInt -
-                zoomStartInt - CONST_PADDING_4, navigatorHeight - CONST_PADDING);
+            fillRect(zoomStartInt + uIGlobalPadding2, navigatorTop + uiGlobalPaddingHalf, zoomEndInt -
+                zoomStartInt - uIGlobalPadding4, navigatorHeight - uIGlobalPadding);
         } else {
             setFillStyle(envColorGrad[10]);
             fillRect(0, navigatorTop, zoomStartInt, navigatorHeight);
@@ -1512,12 +1550,22 @@ var TeleChart = function (ctxId, config) {
     /**
      * Calculates the navigator factors
      */
-    function calcNavigatorFactors(withoutAnimation) {
+    function calcNavigatorFactors(isReset) {
         var _max = vUndefined,
             _min = configMinValueAxisY,
             _i,
             _axisY,
-            _navigatorFactorY;
+            _navigatorFactorY,
+            _endOfSeries;
+        if (!xAxisDataRef || xAxisDataRef.l <= 2) {
+            return;
+        }
+        _endOfSeries = xAxisDataRef.l - 2;
+        navigatorFactorX = totalWidth / _endOfSeries;
+        if (isReset) {
+            associateZoomEnd(_endOfSeries);
+            associateZoomStart(_endOfSeries - (_endOfSeries) * CONST_NAVIGATOR_WIDTH_PERCENT / 100);
+        }
         for (_i in yAxisDataRefs) {
             _axisY = yAxisDataRefs[_i];
             if (_axisY.bOn) {
@@ -1527,7 +1575,7 @@ var TeleChart = function (ctxId, config) {
         }
         if (_max) {
             _navigatorFactorY = -(navigatorHeight - 2) / (_max - _min);
-            if (withoutAnimation) {
+            if (isReset) {
                 navigatorMinY = _min;
                 setNavigationFactorY(_navigatorFactorY);
                 smartAxisYOpacity = 1;
@@ -1631,9 +1679,9 @@ var TeleChart = function (ctxId, config) {
      * Calculates the buttons params
      */
     function calcButtonsParams() {
-        var _x = CONST_PADDING_2,
-            _y = navigatorBottom + CONST_PADDING_3,
-            _height = CONST_BTN_RADIUS_2,
+        var _x = uIGlobalPadding2,
+            _y = navigatorBottom + uIGlobalPadding3,
+            _height = uIBtnRadius2,
             _axis,
             _width,
             _i,
@@ -1641,18 +1689,18 @@ var TeleChart = function (ctxId, config) {
         setFont(envRegularDefaultFont);
         for (_i in yAxisDataRefs) {
             _axis = yAxisDataRefs[_i];
-            _width = CONST_BTN_RADIUS_2 + CONST_PADDING_3 + getTextWidth(_axis.name);
+            _width = uIBtnRadius2 + uIGlobalPadding3 + getTextWidth(_axis.name);
 
             if (_x + _width > totalWidth) {
-                _x = CONST_PADDING_2;
-                _y += _height + CONST_PADDING_3;
+                _x = uIGlobalPadding2;
+                _y += _height + uIGlobalPadding3;
             }
             _axis.bX = _x;
             _axis.bY = _y;
             _axis.bW = _width;
             _axis.bH = _height;
             _axis.sCg = [];
-            _x += _width + CONST_PADDING_3;
+            _x += _width + uIGlobalPadding3;
             for (_j = 0; _j <= 100; _j++) {
                 _axis.sCg[_j] = getRGBA(_axis.color, _j / 100);
             }
@@ -1712,10 +1760,6 @@ var TeleChart = function (ctxId, config) {
                             min: _min,
                             max: _max
                         };
-                        _endOfSeries = _dataLen - 2;
-                        navigatorFactorX = (totalWidth) / (_endOfSeries);
-                        associateZoomEnd(_endOfSeries);
-                        associateZoomStart(_endOfSeries - (_endOfSeries) * CONST_NAVIGATOR_WIDTH_PERCENT / 100);
                     } else {
                         yAxisDataRefs.push(
                             {
@@ -1829,10 +1873,10 @@ var TeleChart = function (ctxId, config) {
      *  Calculate legend in cache once before show
      */
     function calcLegendPosition(pos) {
-        legendTop = CONST_BTN_RADIUS + CONST_ANTI_BLUR_SHIFT;
-        legendLeft = -CONST_BTN_RADIUS + CONST_ANTI_BLUR_SHIFT;
-        legendTextLeft[0] = -CONST_BTN_RADIUS + CONST_PADDING_3;
-        legendDateTop = CONST_BTN_RADIUS + CONST_PADDING_3 + envSmallTextHeight + CONST_ANTI_BLUR_SHIFT;
+        legendTop = uIBtnRadius + CONST_ANTI_BLUR_SHIFT;
+        legendLeft = -uIBtnRadius + CONST_ANTI_BLUR_SHIFT;
+        legendTextLeft[0] = -uIBtnRadius + uIGlobalPadding3;
+        legendDateTop = uIBtnRadius + uIGlobalPadding3 + envSmallTextHeight + CONST_ANTI_BLUR_SHIFT;
         var _dataIndex = fMathFloor(pos),
             _width = [],
             _isEven,
@@ -1848,18 +1892,18 @@ var TeleChart = function (ctxId, config) {
                 _isEven = (_qnt & 1);
                 _value = _axisY.data[_dataIndex];
                 setFont(envBoldDefaultFont);
-                _width[_isEven] = getMax(getTextWidth(_value) + CONST_PADDING_3, _width[_isEven]);
+                _width[_isEven] = getMax(getTextWidth(_value) + uIGlobalPadding3, _width[_isEven]);
                 setFont(envRegularSmallFont);
-                _width[_isEven] = getMax(getTextWidth(_axisY.name) + CONST_PADDING_3, _width[_isEven]);
+                _width[_isEven] = getMax(getTextWidth(_axisY.name) + uIGlobalPadding3, _width[_isEven]);
                 _qnt++;
             }
         }
 
         legendTextLeft[1] = _width[0];
-        _proposedWidth = _width[0] + (_width[1] || 0) + CONST_PADDING_3;
+        _proposedWidth = _width[0] + (_width[1] || 0) + uIGlobalPadding3;
         setFont(envBoldDefaultFont);
-        _proposedWidth = getMax(getTextWidth(legendDateText) + CONST_PADDING_3 + CONST_ANTI_BLUR_SHIFT, _proposedWidth);
-        legendHeight = CONST_BTN_RADIUS_2 + envDefaultTextHeight + CONST_PADDING_2 + fMathCeil(_qnt / 2) * (envDefaultTextHeight + envSmallTextHeight + CONST_PADDING_3);
+        _proposedWidth = getMax(getTextWidth(legendDateText) + uIGlobalPadding3 + CONST_ANTI_BLUR_SHIFT, _proposedWidth);
+        legendHeight = uIBtnRadius2 + envDefaultTextHeight + uIGlobalPadding2 + fMathCeil(_qnt / 2) * (envDefaultTextHeight + envSmallTextHeight + uIGlobalPadding3);
         animate(legendWidth, setLegendWidth, _proposedWidth);
     }
 
@@ -1900,8 +1944,8 @@ var TeleChart = function (ctxId, config) {
             setFillStyle(envColorGrad[30])
             for (var measureIndex in measures) {
                 var meas = measures[measureIndex];
-                frameContext.fillText(meas.name + " " + meas.duration.toFixed(4), CONST_BTN_RADIUS_2, y);
-                y = y + envSmallTextHeight + CONST_PADDING;
+                frameContext.fillText(meas.name + " " + meas.duration.toFixed(4), uIBtnRadius2, y);
+                y = y + envSmallTextHeight + uIGlobalPadding;
             }
             // Finally, clean up the entries.
 

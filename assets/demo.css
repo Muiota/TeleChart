@@ -153,15 +153,13 @@ pre {
 
 @media (min-width: 700px) {
     .chart_container {
-        width: 49%;
-        margin: 0.5%;
+        width: 50%;
     }
 }
 
 @media (min-width: 1000px) {
     .chart_container {
-        width: 32%;
-        margin: 0.5%;
+        width: 33%;
     }
 }
 
