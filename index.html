@@ -169,14 +169,14 @@ tc.<span class="pl-en">draw</span>(data);  </pre></small></li>
     }
 
     window.addEventListener("resize", function (e, t) {
-        var _proposed =  document.body.clientWidth;
-        if (_proposed) {
-            if (_lastWidth !== _proposed) {
-                setTimeout(function () {
-                    createCharts(dataStore);
-                });
-            }
-            _lastWidth = _proposed;
+        for (var k = 0; k < instances.length; k++) {
+            instances[k].invalidate();
+        }
+    });
+
+    window.addEventListener("scroll", function (e, t) {
+        for (var k = 0; k < instances.length; k++) {
+            instances[k].invalidate();
         }
     });
 

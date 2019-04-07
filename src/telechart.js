@@ -60,7 +60,8 @@ var TeleChart = function (ctxId, config) {
         ENUM_END_SELECTION_HOVER = 3,
         ENUM_ZOOM_HOVER = 4,
         ENUM_BUTTON_HOVER = 5,
-        ENUM_SELECTION_HOVER = 6;
+        ENUM_SELECTION_HOVER = 6,
+        ENUM_LEGEND_HOVER = 7;
 
     /**
      * Global members
@@ -68,7 +69,6 @@ var TeleChart = function (ctxId, config) {
      */
     var container = vDocument.getElementById(ctxId),                               //canvases container
         displayScaleFactor = window.devicePixelRatio,
-
         CONST_PADDING = 5 * displayScaleFactor,
         CONST_PADDING_HALF = CONST_PADDING / 2,
         CONST_PADDING_2 = CONST_PADDING * 2,
@@ -198,6 +198,7 @@ var TeleChart = function (ctxId, config) {
         legendLeft,                     //@type {Number} left of legend
         legendTextLeft = [],            //@type {Array of number} left coords of columns in legend
         legendDateTop,                  //@type {Number} top of X-axis value legend text
+        legendCursorOpacity = 0,           //@type {Number} opacity of legend container
         legendBoxOpacity = 0,           //@type {Number} opacity of legend container
 
         envSmallTextHeight,             //@type {Number} small font height
@@ -361,7 +362,11 @@ var TeleChart = function (ctxId, config) {
         selectionCurrentIndexFloat = val;
     }
 
-    function setLegendOpacity(val) {
+    function setLegendCursorOpacity(val) {
+        legendCursorOpacity = val;
+    }
+
+    function setLegendBoxOpacity(val) {
         legendBoxOpacity = val;
     }
 
@@ -516,8 +521,10 @@ var TeleChart = function (ctxId, config) {
         if (mouseHoveredRegionType !== proposed || force) {
             mouseHoveredRegionType = proposed;
 
-            if (mouseHoveredRegionType !== ENUM_SELECTION_HOVER) {
-                animate(legendBoxOpacity, setLegendOpacity, 0);
+            if (mouseHoveredRegionType !== ENUM_SELECTION_HOVER &&
+                mouseHoveredRegionType !== ENUM_LEGEND_HOVER) {
+                animate(legendCursorOpacity, setLegendCursorOpacity, 0);
+                animate(legendBoxOpacity, setLegendBoxOpacity, 0);
             } else if (mouseHoveredRegionType !== ENUM_BUTTON_HOVER) {
                 //reset all hovered once
                 for (var _i in yAxisDataRefs) {
@@ -527,10 +534,11 @@ var TeleChart = function (ctxId, config) {
 
             //Set cursor
             if (mouseHoveredRegionType === ENUM_SELECTION_HOVER) { //most likely
-                animate(legendBoxOpacity, setLegendOpacity, 1);
+                animate(legendCursorOpacity, setLegendCursorOpacity, 1);
                 setCursor(0);
             } else if (mouseHoveredRegionType === ENUM_ZOOM_HOVER ||
-                mouseHoveredRegionType === ENUM_BUTTON_HOVER) {
+                mouseHoveredRegionType === ENUM_BUTTON_HOVER ||
+                mouseHoveredRegionType === ENUM_LEGEND_HOVER) {
                 setCursor(1);
             } else if (mouseHoveredRegionType === ENUM_START_SELECTION_HOVER ||
                 mouseHoveredRegionType === ENUM_END_SELECTION_HOVER) {
@@ -553,15 +561,28 @@ var TeleChart = function (ctxId, config) {
         }
 
         if (mouseY < navigatorTop && selectionFactorX) { //Selection hovered
-            var _proposed = fMathRound(mouseX / selectionFactorX + selectionStartIndexFloat);
-            _proposed = getMin(getMax(1, _proposed), xAxisDataRef.l - 1);
-            calcLegendPosition(_proposed);
-            animate(selectionCurrentIndexFloat, setSelectionCurrentIndexFloat, _proposed);
-            mouseFrame.tS = zoomStartFloat;
-            mouseFrame.tE = zoomEndFloat;
-            mouseFrame.tF = mouseX;
-            _result = ENUM_SELECTION_HOVER;
-            invalidateInner();
+            var _sValueX = (selectionCurrentIndexFloat - selectionStartIndexFloat  ) * selectionFactorX + legendLeft;
+            if (legendBoxOpacity === 1 &&
+                mouseY > legendTop &&
+                mouseY < legendTop + legendHeight &&
+                mouseX > _sValueX &&
+                mouseX < _sValueX + legendWidth) { //Legend hovered
+                _result = ENUM_LEGEND_HOVER;
+                invalidateInner();
+            }
+            else {
+                if (legendBoxOpacity === 0 && !force) {
+                    var _proposed = fMathRound(mouseX / selectionFactorX + selectionStartIndexFloat);
+                    _proposed = getMin(getMax(1, _proposed), xAxisDataRef.l - 1);
+                    calcLegendPosition(_proposed);
+                    animate(selectionCurrentIndexFloat, setSelectionCurrentIndexFloat, _proposed);
+                    mouseFrame.tS = zoomStartFloat;
+                    mouseFrame.tE = zoomEndFloat;
+                    mouseFrame.tF = mouseX;
+                }
+                _result = ENUM_SELECTION_HOVER;
+                invalidateInner();
+            }
         } else if (mouseY > navigatorTop && mouseY < navigatorBottom) { //Navigator hovered
             _result = ENUM_NAVIGATOR_HOVER;
             var _startZoom = ( zoomStartFloat) * navigatorFactorX,
@@ -605,18 +626,18 @@ var TeleChart = function (ctxId, config) {
      * Setter for start navigator edge
      * @param val {Number} value
      */
-    function associateZoomStart(val) {
+    function associateZoomStart(val, frameCount) {
         zoomStartInt = val * navigatorFactorX;
-        animate(zoomStartFloat, setZoomStart, val);
+        animate(zoomStartFloat, setZoomStart, val, frameCount);
     }
 
     /**
      * Setter for end navigator edge
      * @param val {Number} value
      */
-    function associateZoomEnd(val) {
+    function associateZoomEnd(val, frameCount) {
         zoomEndInt = val * navigatorFactorX;
-        animate(zoomEndFloat, setZoomEnd, val);
+        animate(zoomEndFloat, setZoomEnd, val, frameCount);
     }
 
     /**
@@ -679,11 +700,11 @@ var TeleChart = function (ctxId, config) {
     function moveHoveredElement() {
         if (xAxisDataRef) {
             if (mouseHoveredRegionType === ENUM_SELECTION_HOVER) {
-                if (!config.scrollDisabled) {
-                    var _interval = ( mouseFrame.tF - mouseX ) / selectionFactorX,
-                        _maxProposedX = xAxisDataRef.l - 2;
-                    moveNavigatorFrame(_interval, _maxProposedX, mouseFrame.tS, mouseFrame.tE);
-                }
+                //   if (!config.scrollDisabled) {
+                //       var _interval = ( mouseFrame.tF - mouseX ) / selectionFactorX,
+                //           _maxProposedX = xAxisDataRef.l - 2;
+                //       moveNavigatorFrame(_interval, _maxProposedX, mouseFrame.tS, mouseFrame.tE);
+                //   }
             } else {
                 navigateChart();
             }
@@ -728,9 +749,16 @@ var TeleChart = function (ctxId, config) {
         }
         calcMouseOffset();
         var _touches = e.touches;
-        return (_touches && getLength(_touches)) ?
+        var _isTouch = _touches && getLength(_touches);
+
+        var newVar = _isTouch ?
             assignMousePos(_touches[0], withoutPress) :
             assignMousePos(e, withoutPress);
+
+        if (_isTouch && mouseHoveredRegionType === ENUM_SELECTION_HOVER) {
+            newVar = false;
+        }
+        return newVar;
     }
 
     /**
@@ -770,6 +798,18 @@ var TeleChart = function (ctxId, config) {
                 stopPropagation(e);
                 animate(navigatorPressed, setNavigatorPressed, 1, 15);
                 navigatorPressedRegionType = mouseHoveredRegionType;
+            } else if (mouseHoveredRegionType === ENUM_SELECTION_HOVER) {
+                if (legendBoxOpacity === 0) {
+                    animate(legendBoxOpacity, setLegendBoxOpacity, 1);
+                } else {
+                    animate(legendBoxOpacity, setLegendBoxOpacity, 0);
+                }
+
+            }
+            if (mouseHoveredRegionType === ENUM_LEGEND_HOVER) {
+                associateZoomStart(selectionCurrentIndexFloat - 1, 15);
+                associateZoomEnd(selectionCurrentIndexFloat, 15);
+                animate(legendBoxOpacity, setLegendBoxOpacity, 0);
             }
         } else {
             animate(navigatorPressed, setNavigatorPressed, 0, 15);
@@ -1110,8 +1150,8 @@ var TeleChart = function (ctxId, config) {
 
         beginPath();
         circle(_xCenter, _yCenter, constbtnradius);
-        var number = (CONST_BTN_RADIUS - constbtnradius);
-        fillRect(_xCenter, _y + number, _innerWidth, axis.bH-number*2);
+        var number = fParseInt(CONST_BTN_RADIUS - constbtnradius);
+        fillRect(_xCenter, _y + number, _innerWidth, axis.bH - number * 2);
         circle(_xCenter + _innerWidth, _yCenter, constbtnradius);
         fill();
     }
@@ -1148,8 +1188,8 @@ var TeleChart = function (ctxId, config) {
 
         beginPath();
         setFillStyle(envBgColorGrad[100]);
-        drawButtonBackground(axis, (CONST_BTN_RADIUS - CONST_PADDING / 2) * (1 - axis.sO));
-  //      circle(_xCenter, _yCenter, 10 * displayScaleFactor * (1 - axis.sO));
+        drawButtonBackground(axis, (CONST_BTN_RADIUS - 2 * displayScaleFactor) * (1 - axis.sO));
+        //      circle(_xCenter, _yCenter, 10 * displayScaleFactor * (1 - axis.sO));
         fill();
 
         setFillStyle(axis.sCg[100]);
@@ -1161,7 +1201,7 @@ var TeleChart = function (ctxId, config) {
         setFont(envRegularSmallFont);
 
         beginPath();
-        setStrokeStyle(envWhiteColorGrad[fParseInt((1 - axis.bPulse)  * 60)]);
+        setStrokeStyle(envBgColorGrad[fParseInt((1 - axis.bPulse) * 60)]);
         setLineWidth(8 * displayScaleFactor);
         circle(_xCenter, _yCenter, axis.bPulse * CONST_BTN_RADIUS);
         endPath();
@@ -1189,6 +1229,7 @@ var TeleChart = function (ctxId, config) {
             _needOptimization = xAxisDataRef.l / totalWidth >= 1;
 
         bufferNavigatorContext.beginPath();
+        bufferNavigatorContext.lineWidth = displayScaleFactor;
         bufferNavigatorContext.strokeStyle = series.sCg[100];
         bufferNavigatorContext.globalAlpha = series.sO;
         for (_k = 1; _k < xAxisDataRef.l;) {
@@ -1263,13 +1304,14 @@ var TeleChart = function (ctxId, config) {
         var _selectionAxis = selectionBottom,
             _sValueX = (selectionCurrentIndexFloat - selectionStartIndexFloat  ) * selectionFactorX,
             _sValueY,
-            _leftThreshold = _sValueX + legendLeft - 3,
+            _leftThreshold = _sValueX + legendLeft - displayScaleFactor * 2,
             _rightThreshold = 0,
             _from = fMathFloor(selectionCurrentIndexFloat),
             _to = _from + 1,
             _i,
             _axisY,
-            _legendBoxOpacity = 10 * legendBoxOpacity,
+            _legendCursorOpacity = 100 * legendCursorOpacity,
+
             _qnt = 0,
             _overlap,
             _sValueYFrom,
@@ -1280,7 +1322,7 @@ var TeleChart = function (ctxId, config) {
             _value;
 
         beginPath();
-        setStrokeStyle(envColorGrad[fParseInt(40 * legendBoxOpacity)]);
+        setStrokeStyle(envColorGrad[fParseInt(40 * legendCursorOpacity)]);
         setLineWidth();
         moveOrLine(vTrue, _sValueX, 0);
         moveOrLine(vFalse, _sValueX, selectionBottom);
@@ -1299,57 +1341,61 @@ var TeleChart = function (ctxId, config) {
             }
 
             beginPath();
-            setFillStyle(envBgColorGrad[fParseInt(10 * _legendBoxOpacity * _opacity)]);
-            circle(_sValueX, _sValueY, 4);
+            setFillStyle(envBgColorGrad[fParseInt(_legendCursorOpacity * _opacity)]);
+            circle(_sValueX, _sValueY, 3 * displayScaleFactor);
             fill();
 
             beginPath();
-            setStrokeStyle(_axisY.sCg[fParseInt(10 * _legendBoxOpacity * _opacity)]);
+            setStrokeStyle(_axisY.sCg[fParseInt(_legendCursorOpacity * _opacity)]);
 
-            circle(_sValueX, _sValueY, 5);
+            circle(_sValueX, _sValueY, 4 * displayScaleFactor);
             endPath();
         }
 
-        if (_leftThreshold < 0) {
-            _sValueX = 3 - legendLeft;
-        }
-        else {
-            _overlap = _leftThreshold + legendWidth - totalWidth + 6;
-            if (_overlap > 0) {
-                _rightThreshold = _overlap - legendWidth + CONST_BTN_RADIUS_2;
-                _sValueX = totalWidth - legendLeft - legendWidth - 3;
+
+        if (legendBoxOpacity > 0) {
+
+            if (_leftThreshold < 0) {
+                _sValueX = displayScaleFactor * 2 - legendLeft;
             }
-            _leftThreshold = 0;
-        }
-
-        if (_rightThreshold < 0) {
-            _rightThreshold = 0;
-        }
-        setStrokeStyle(envColorGrad[fParseInt(40 * legendBoxOpacity)]);
-        setFillStyle(envBgColorGrad[fParseInt(30 + 60 * legendBoxOpacity)]);
-        drawBalloon(_sValueX + legendLeft + _leftThreshold, legendTop,
-            legendWidth - _leftThreshold + _rightThreshold, legendHeight);
-        setFont(envBoldSmallFont);
-        setFillStyle(envColorGrad[fParseInt(10 * _legendBoxOpacity)]);
-        fillText(legendDateText, _sValueX + legendTextLeft[0], legendDateTop);
-
-        _sValueY = CONST_BTN_RADIUS + CONST_PADDING_2;
-        for (_i in yAxisDataRefs) {
-            _axisY = yAxisDataRefs[_i];
-            _value = _axisY.data[fMathRound(selectionCurrentIndexFloat)];
-            if (_axisY.bOn) {
-                _isEven = (_qnt & 1);
-                _shiftX = legendTextLeft[_isEven];
-                if (!_isEven) {
-                    _sValueY += (envDefaultTextHeight + envSmallTextHeight + CONST_PADDING_4);
+            else {
+                _overlap = _leftThreshold + legendWidth - totalWidth + displayScaleFactor * 4;
+                if (_overlap > 0) {
+                    _rightThreshold = _overlap - legendWidth + CONST_BTN_RADIUS_2;
+                    _sValueX = totalWidth - legendLeft - legendWidth - displayScaleFactor * 2;
                 }
-                setFillStyle(_axisY.sCg[fParseInt(10 * _legendBoxOpacity)]);
-                setFont(envBoldDefaultFont);
-                fillText(_value, _sValueX + _shiftX, _sValueY);
-                setFont(envRegularSmallFont);
-                fillText(_axisY.name, _sValueX + _shiftX,
-                    _sValueY + envDefaultTextHeight + CONST_PADDING);
-                _qnt++;
+                _leftThreshold = 0;
+            }
+
+            if (_rightThreshold < 0) {
+                _rightThreshold = 0;
+            }
+            setStrokeStyle(envColorGrad[fParseInt(40 * legendBoxOpacity * legendCursorOpacity)]);
+            setFillStyle(envBgColorGrad[fParseInt(30 + 60 * legendBoxOpacity * legendCursorOpacity)]);
+            drawBalloon(_sValueX + legendLeft + _leftThreshold, legendTop,
+                legendWidth - _leftThreshold + _rightThreshold, legendHeight);
+            setFont(envBoldSmallFont);
+            setFillStyle(envColorGrad[fParseInt(legendBoxOpacity * _legendCursorOpacity)]);
+            fillText(legendDateText, _sValueX + legendTextLeft[0], legendDateTop);
+
+            _sValueY = CONST_BTN_RADIUS + CONST_PADDING_2;
+            for (_i in yAxisDataRefs) {
+                _axisY = yAxisDataRefs[_i];
+                _value = _axisY.data[fMathRound(selectionCurrentIndexFloat)];
+                if (_axisY.bOn) {
+                    _isEven = (_qnt & 1);
+                    _shiftX = legendTextLeft[_isEven];
+                    if (!_isEven) {
+                        _sValueY += (envDefaultTextHeight + envSmallTextHeight + CONST_PADDING_4);
+                    }
+                    setFillStyle(_axisY.sCg[fParseInt(legendBoxOpacity * _legendCursorOpacity)]);
+                    setFont(envBoldDefaultFont);
+                    fillText(_value, _sValueX + _shiftX, _sValueY);
+                    setFont(envRegularSmallFont);
+                    fillText(_axisY.name, _sValueX + _shiftX,
+                        _sValueY + envDefaultTextHeight + CONST_PADDING);
+                    _qnt++;
+                }
             }
         }
     }
@@ -1373,7 +1419,7 @@ var TeleChart = function (ctxId, config) {
             beginPath();
             setFillStyle(envColorGrad[fParseInt(navigatorPressed * 20)]);
 
-            circle(_x, navigatorTop + navigatorHeightHalf, navigatorPressed * 20* displayScaleFactor);
+            circle(_x, navigatorTop + navigatorHeightHalf, navigatorPressed * 20 * displayScaleFactor);
             fill();
 
         }
@@ -1451,7 +1497,7 @@ var TeleChart = function (ctxId, config) {
             performance.mark(measure.drawNavigatorLayerB);
             if (seriesMaxOpacity > 0) {
                 drawAxisLabels();
-                if (legendBoxOpacity > 0) {
+                if (legendCursorOpacity > 0) {
                     drawSeriesLegend();
                 }
             }
@@ -1812,8 +1858,8 @@ var TeleChart = function (ctxId, config) {
         legendTextLeft[1] = _width[0];
         _proposedWidth = _width[0] + (_width[1] || 0) + CONST_PADDING_3;
         setFont(envBoldDefaultFont);
-        _proposedWidth = getMax(getTextWidth(legendDateText) + CONST_PADDING_3  + CONST_ANTI_BLUR_SHIFT, _proposedWidth);
-        legendHeight =CONST_BTN_RADIUS_2+ envDefaultTextHeight +CONST_PADDING_2+ fMathCeil(_qnt / 2) * (envDefaultTextHeight + envSmallTextHeight + CONST_PADDING_3);
+        _proposedWidth = getMax(getTextWidth(legendDateText) + CONST_PADDING_3 + CONST_ANTI_BLUR_SHIFT, _proposedWidth);
+        legendHeight = CONST_BTN_RADIUS_2 + envDefaultTextHeight + CONST_PADDING_2 + fMathCeil(_qnt / 2) * (envDefaultTextHeight + envSmallTextHeight + CONST_PADDING_3);
         animate(legendWidth, setLegendWidth, _proposedWidth);
     }
 
@@ -1855,7 +1901,7 @@ var TeleChart = function (ctxId, config) {
             for (var measureIndex in measures) {
                 var meas = measures[measureIndex];
                 frameContext.fillText(meas.name + " " + meas.duration.toFixed(4), CONST_BTN_RADIUS_2, y);
-                y = y + envSmallTextHeight+CONST_PADDING;
+                y = y + envSmallTextHeight + CONST_PADDING;
             }
             // Finally, clean up the entries.
 

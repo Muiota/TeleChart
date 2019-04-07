@@ -62,6 +62,9 @@ tc.draw(data);
  - stacked bar type
  - Zoom in and zoom out
  - Label on top
+ 
+ 
+ - document resize problem
 ````
 ##### Desktop:
 <img src="https://i.imgur.com/D1GVf9l.png?raw=true" alt="Desktop" width="998" height="556">
