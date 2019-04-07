@@ -1326,7 +1326,7 @@ var TeleChart = function (ctxId, config) {
             setStrokeStyle(frameContext, _axisY.sCg[fParseInt(100 * _axisY.sO)]);
             setLineWidth(frameContext, config.lineWidth || 2 * displayScaleFactor);
 
-            for (_k = selectionStartIndexInt; _k <= selectionEndIndexInt; _k++) {
+            for (_k = selectionStartIndexInt; _k <= selectionEndIndexInt;) {
                 _xValue = (_k - selectionStartIndexFloat) * selectionFactorX;
                 _yValue = selectionBottom + (_axisY.data[_k] - selectionMinY) * selectionFactorY;
                 moveOrLine(frameContext, _k++ === selectionStartIndexInt, _xValue, _yValue);
