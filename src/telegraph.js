@@ -666,9 +666,9 @@ var Telegraph = function (ctxId, config) {
                 _startZShift = _startZoom - mouseX,
                 _endZShift = _endZoom - mouseX;
 
-            if (fMathAbs(_startZShift + uIGlobalPadding2) < uIGlobalPadding4) { //Navigator start edge hovered
+            if (fMathAbs(_startZShift) < uIGlobalPadding2) { //Navigator start edge hovered
                 _result = ENUM_START_SELECTION_HOVER;
-            } else if (fMathAbs(_endZShift - uIGlobalPadding2) < uIGlobalPadding4) { //Navigator end edge hovered
+            } else if (fMathAbs(_endZShift ) < uIGlobalPadding2) { //Navigator end edge hovered
                 _result = ENUM_END_SELECTION_HOVER;
             } else if (mouseX > _startZoom && mouseX < _endZoom) { //Navigator center hovered
                 mouseFrame.nS = _startZShift / navigatorFactorX;
