@@ -3,7 +3,7 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Telegraph demo (March Coding Competition)</title>
-    <link rel="stylesheet" href="assets/demo.css">
+    <link rel="stylesheet" href="assets/css/telegraph.css">
 </head>
 <body>
 
@@ -27,6 +27,7 @@
     var BASE_URL = "https://muiota.github.io/TeleChart";
 
     var instances = [],
+        counter = 0,
         darkMode = isMobile();
 
     /*
@@ -54,6 +55,9 @@
         xhr.onload = function () {
             var status = xhr.status;
             if (status === 200) {
+                if (!(xhr.response instanceof Object)) {
+                    xhr.response = JSON.parse(xhr.response);
+                }
                 callback(true, xhr.response);
             } else {
                 callback(status, xhr.response);
@@ -66,25 +70,36 @@
         }
     }
 
-    function createCharts(data, subUrl,  name) {
+    function createCharts(data, subUrl, name) {
         var _container = document.getElementById("charts_container");
         if (!data) {
             return;
         }
 
-        if (data instanceof String) {
-            data = JSON.parse(data);
-        }
-
         var _innerContainer = document.createElement('div');
-        _innerContainer.id = "chart_" + name;
+        _innerContainer.id = "chart_" + counter++;
         _innerContainer.classList.add("chart_container");
         _container.appendChild(_innerContainer);
         var tc = new Telegraph(_innerContainer.id, {title: name});
         tc.draw(data);
+        tc.setLoadDetailsCallback(function (timeStamp, successCallback, failCallback) {
+            try {
+                var _date = new Date(timeStamp);
+                getJSON(BASE_URL + subUrl + "/" +
+                    _date.getFullYear() + "-" +
+                    ('0' + (_date.getMonth() + 1)).slice(-2) + "/" +
+                    ('0' + _date.getDate()).slice(-2) + ".json", function (success, resp) {
+                    if (success) {
+                        successCallback(resp, timeStamp);
+                    } else
+                        failCallback(resp, timeStamp);
+                });
+            } catch (e) {
+                failCallback(e, timeStamp);
+            }
+        })
         instances.push(tc);
     }
-
 
     function loadChart(subUrl, title) {
         getJSON(BASE_URL + subUrl + "/overview.json", function (success, resp) {
@@ -93,12 +108,13 @@
             }
         });
     }
+
     loadChart("/data/1", "Followers");
     loadChart("/data/2", "Views");
     loadChart("/data/3", "Apps");
     loadChart("/data/4", "Apps");
     loadChart("/data/5", "Apps");
-    //"2019-04/05.json"
+
 
     var dark_mode_button = document.getElementById("btn_dark_mode");
 

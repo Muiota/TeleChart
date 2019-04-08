@@ -224,7 +224,18 @@ var Telegraph = function (ctxId, config) {
         storedDayModeEndIndex,
 
         updateDateRangeTextTimer,
-        buttonsContainer;
+        buttonsContainer,
+        loadDetailsCallback,
+        dataStore = {
+            days: {
+                xAxisData: null,
+                yAxisData: null
+            },
+            hours: {
+                xAxisData: null,
+                yAxisData: null
+            }
+        };
 
 
     /**
@@ -352,6 +363,11 @@ var Telegraph = function (ctxId, config) {
     function getMouseHoveredRegionType() {
         return mouseHoveredRegionType;
     }
+
+    function setLoadDetailsCallback(callback) {
+        loadDetailsCallback = callback;
+    }
+
 
     //======== setters for animation ========
     function setSelectionFactorY(val) {
@@ -805,6 +821,49 @@ var Telegraph = function (ctxId, config) {
         }
     }
 
+    function drawDetailData(data, timeStamp) {
+        isHoursZoomed = vTrue;
+               updateTitleStatus();
+        storedDayModeStartIndex = selectionStartIndexInt;
+        storedDayModeEndIndex = getMin(selectionEndIndexInt, xAxisDataRef.l - 2);
+        updateHoveredInfo(vNull);
+        associateZoomStart(selectionCurrentIndexFloat - 1, 15);
+        associateZoomEnd(selectionCurrentIndexFloat, 15);
+        prepareCaches(data, vTrue);
+       // invalidateInner();
+    }
+
+    function zoomOutToDays() {
+        isHoursZoomed = vFalse;
+        xAxisDataRef = dataStore.days.xAxisData;
+        yAxisDataRefs = dataStore.days.yAxisData;
+        calcNavigatorFactors(vTrue);
+        associateZoomStart(storedDayModeStartIndex, 15);
+        associateZoomEnd(storedDayModeEndIndex, 15);
+        updateTitleStatus();
+    }
+
+    function loadHoursDataSuccess(data, timeStamp) {
+        xAxisDataRef.detailCache[timeStamp] = data;
+        drawDetailData(data, timeStamp);
+    }
+
+    function loadHoursDataFail() {
+        isHoursZoomed = vFalse;
+    }
+
+    function checkHourData() {
+        var _currentPosition = fParseInt(selectionCurrentIndexFloat);
+        var _currentTimeStamp = xAxisDataRef.data[_currentPosition];
+        var _detailCache = xAxisDataRef.detailCache[_currentTimeStamp];
+        if (_detailCache) {
+            drawDetailData(_detailCache, _currentTimeStamp);
+        } else {
+            loadDetailsCallback(_currentTimeStamp,
+                loadHoursDataSuccess, loadHoursDataFail);
+        }
+    }
+
     /**
      * Handles the mouse click
      * @param e {Object} event
@@ -838,14 +897,8 @@ var Telegraph = function (ctxId, config) {
                 }
 
             } else if (mouseHoveredRegionType === ENUM_LEGEND_HOVER) {
-                if (!isHoursZoomed) {
-                    isHoursZoomed = vTrue;
-                    updateTitleStatus();
-                    storedDayModeStartIndex = selectionStartIndexInt;
-                    storedDayModeEndIndex = getMin(selectionEndIndexInt, xAxisDataRef.l - 2);
-                    updateHoveredInfo(vNull);
-                    associateZoomStart(selectionCurrentIndexFloat - 1, 15);
-                    associateZoomEnd(selectionCurrentIndexFloat, 15);
+                if (!isHoursZoomed && loadDetailsCallback) {
+                    checkHourData();
                 }
             }
         } else {
@@ -1476,7 +1529,7 @@ var Telegraph = function (ctxId, config) {
     /**
      * Calculates the navigator factors
      */
-    function calcNavigatorFactors(isReset) {
+    function calcNavigatorFactors( isReset) {
         var _max = vUndefined,
             _min = configMinValueAxisY,
             _i,
@@ -1650,12 +1703,7 @@ var Telegraph = function (ctxId, config) {
             "</svg>";
 
 
-        zoomOutDiv.addEventListener("click", function () { //todo
-            isHoursZoomed = vFalse;
-            associateZoomStart(storedDayModeStartIndex, 15);
-            associateZoomEnd(storedDayModeEndIndex, 15);
-            updateTitleStatus();
-        });
+        zoomOutDiv.addEventListener("click", zoomOutToDays);
 
         var zoomOutText = createElement("span",
             "zoom_out_text_", [], {}, zoomOutDiv);
@@ -1681,6 +1729,8 @@ var Telegraph = function (ctxId, config) {
         calcSelectionFactors();
     }
 
+
+    
     function createButton(index) { //todo remove all buttons before
         var _axis = yAxisDataRefs[index];
         var title = _axis.name;
@@ -1719,6 +1769,7 @@ var Telegraph = function (ctxId, config) {
      * Calculates the buttons params
      */
     function createButtons() {
+        buttonsContainer.innerHTML = ""; //todo
         for (var _i in yAxisDataRefs) {
             var _axis = yAxisDataRefs[_i];
             _axis.sCg = [];
@@ -1734,14 +1785,14 @@ var Telegraph = function (ctxId, config) {
      * @param source {Object} data
      * @param field {String} target field of data
      */
-    function assignAxisProperty(source, field) {
+    function assignAxisProperty(store, source, field) {
         if (source) {
             var _axis,
                 _i,
                 _yAxisRef;
             for (_axis in source) {
-                for (_i in  yAxisDataRefs) {
-                    _yAxisRef = yAxisDataRefs[_i];
+                for (_i in  store.yAxisData) {
+                    _yAxisRef = store.yAxisData[_i];
                     if (_yAxisRef.alias === _axis) {
                         _yAxisRef[field] = source[_axis];
                     }
@@ -1754,14 +1805,17 @@ var Telegraph = function (ctxId, config) {
      * Prepares the data caches
      * @param src {JSON} data for prepare
      */
-    function prepareCaches(src) {
-        clear();
+    function prepareCaches(src, isHours) {
+        if (!isHours) {
+            clear();
+        }
         if (src) {
             var columns = src.columns,
                 _i,
                 _k,
-                _endOfSeries;
+                _store = isHours ? dataStore.hours : dataStore.days;
             if (columns) {
+                _store.yAxisData = [];
                 for (_i in columns) {
                     var _column = columns[_i],
                         _dataLen = getLength(_column),
@@ -1775,14 +1829,15 @@ var Telegraph = function (ctxId, config) {
                     }
 
                     if (_alias === "x") {
-                        xAxisDataRef = {
+                        _store.xAxisData = {
                             data: _column,
                             l: _dataLen,
                             min: _min,
-                            max: _max
+                            max: _max,
+                            detailCache: {}
                         };
                     } else {
-                        yAxisDataRefs.push(
+                        _store.yAxisData.push(
                             {
                                 alias: _alias,
                                 data: _column, //without realloc mem
@@ -1795,11 +1850,15 @@ var Telegraph = function (ctxId, config) {
                     }
                 }
 
-                assignAxisProperty(src.types, "type");
-                assignAxisProperty(src.colors, "color");
-                assignAxisProperty(src.names, "name");
-                calcNavigatorFactors(vTrue);
-                createButtons();
+                assignAxisProperty(_store, src.types, "type");
+                assignAxisProperty(_store, src.colors, "color");
+                assignAxisProperty(_store, src.names, "name");
+                if (!isHours) {
+                    xAxisDataRef = _store.xAxisData;
+                    yAxisDataRefs = _store.yAxisData;
+                    calcNavigatorFactors(vTrue);
+                    createButtons();
+                }
             }
         }
     }
@@ -2014,7 +2073,8 @@ var Telegraph = function (ctxId, config) {
         invalidate: invalidate,
         clear: clear,
         destroy: destroy,
-        hovered: getMouseHoveredRegionType
+        hovered: getMouseHoveredRegionType,
+        setLoadDetailsCallback: setLoadDetailsCallback
     };
 };
 

@@ -54,6 +54,7 @@ tc.draw(data);
  video 1
   - label on top (name "Followers" and range "1 April 2019 - 30 April 2019")
   - zoom in 168-hour timeline
+  - zoom in navigator 
   - zoom out
   
  video 2
