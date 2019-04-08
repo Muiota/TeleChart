@@ -40,17 +40,17 @@ tc.draw(data);
 ```
 
 #### Road map:
-- Area type of series 
+- Area, bar, pie type of series 
 - Performance, minimize & fixes
-```` 
- - Date format config
- - Zoom chart in selection window for mobile 
- - Cleanup code 
- - GlobalAlpha performance issue
- - fillText cache tiles (getTextWidth cache)
- - drawButton cache
-
-
+````      
+ - GlobalAlpha performance issue 
+ - Click on selection in desktop
+ - Ramer–Douglas–Peucker algorithm when animate
+ - Tooltip in DOM
+ - Change text animation
+ - Svg to outer files
+ - Css to outer file
+ 
  video 1
   - label on top (name "Followers" and range "1 April 2019 - 30 April 2019")
   - zoom in 168-hour timeline

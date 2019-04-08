@@ -1,6 +1,6 @@
 /*jslint browser: true*/
 /*global window*/
-var TeleChart = function (ctxId, config) {
+var Telegraph = function (ctxId, config) {
     "use strict";
 
     var measure = {

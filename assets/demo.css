@@ -55,6 +55,11 @@ body.custom.dark {
     margin-left: 15px;
 }
 
+.chart_container
+{
+    float: left;
+}
+
 .chart_container,
 .chart_container canvas {
     -webkit-user-select: none; /* Safari 3.1+ */
@@ -93,11 +98,6 @@ body.custom.dark {
 
 .swiper-slide.video {
     display: block;
-}
-
-div .title {
-    margin-bottom: 10px;
-    margin-top: 10px;
 }
 
 div .currency-title {
@@ -201,8 +201,35 @@ button, button:hover, button:after, button:focus {
     display: block;
 }
 
+.title-container
+{
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+.title-container .day-range
+{
+    float: right;
+}
+
+.title-container .title {
+    float: left
+}
+
+.title-container .zoom-out {
+    float: left;
+    cursor: pointer;
+    color: #108BE3;
+}
+
+.title-container .zoom-out svg {
+    margin-right: 5px;
+}
+
+
 .animate {
-    top: 5px;
+    top: 0px;
+    left: 5px;
     opacity: 1;
     position: absolute;
     -webkit-transition: opacity 0.2s ease-in-out, top 0.2s ease-in-out;
@@ -213,18 +240,19 @@ button, button:hover, button:after, button:focus {
 }
 
 .animate.hidden {
-    top: 15px;
+    top: 10px;
     opacity: 0;
 }
 
 .animate.hidden.top {
-    top: -5px;
+    top: -10px;
     opacity: 0;
 }
 
 svg {
     fill: currentColor;
 }
+
 
 .button {
     margin: 5px;
@@ -286,3 +314,4 @@ svg {
 {
     margin-left: 5px;
 }
+
