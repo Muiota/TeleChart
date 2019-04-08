@@ -55,11 +55,18 @@ body.custom.dark {
     margin-left: 15px;
 }
 
-canvas {
+.chart_container,
+.chart_container canvas {
     -webkit-user-select: none; /* Safari 3.1+ */
     -moz-user-select: none; /* Firefox 2+ */
     -ms-user-select: none; /* IE 10+ */
     user-select: none; /* Standard syntax */
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.chart_container:focus {
+    outline: none !important;
 }
 
 .swiper-container {
@@ -217,4 +224,53 @@ button, button:hover, button:after, button:focus {
 
 svg {
     fill: currentColor;
+}
+.button .button-text
+{
+    margin-left: 5px;
+}
+
+.button {
+    margin: 5px;
+    display: inline-block;
+    border-radius: 30px;
+    padding: 5px 10px;
+    line-height: 18px;
+    cursor: pointer;
+    -webkit-transition:  all 0.2s ease-in-out;
+    -moz-transition:  all 0.2s ease-in-out;
+    -ms-transition:  all 0.2s ease-in-out;
+    -o-transition: all 0.2s ease-in-out;
+    transition: all 0.2s ease-in-out;
+}
+
+.button:not(.checked) {
+    background-color: transparent !important;
+}
+
+.button.checked {
+    color: white !important;
+}
+
+.button .button-icon {
+    vertical-align: middle;
+    display: inline-block;
+    -webkit-transform: scale(0);
+    -moz-transform: scale(0);
+    -ms-transform: scale(0);
+    transform: scale(0);
+    width: 0;
+    -webkit-transition: all 0.2s ease-in-out;
+    -moz-transition: all 0.2s ease-in-out;
+    -ms-transition: all 0.2s ease-in-out;
+    -o-transition: all 0.2s ease-in-out;
+    transition: all 0.2s ease-in-out;
+}
+
+.button.checked .button-icon {
+    -webkit-transform: scale(1.0);
+    -moz-transform: scale(1.0);
+    -ms-transform: scale(1.0);
+    transform: scale(1.0);
+    width: 12px;
 }
