@@ -225,10 +225,6 @@ button, button:hover, button:after, button:focus {
 svg {
     fill: currentColor;
 }
-.button .button-text
-{
-    margin-left: 5px;
-}
 
 .button {
     margin: 5px;
@@ -237,11 +233,11 @@ svg {
     padding: 5px 10px;
     line-height: 18px;
     cursor: pointer;
-    -webkit-transition:  all 0.2s ease-in-out;
-    -moz-transition:  all 0.2s ease-in-out;
-    -ms-transition:  all 0.2s ease-in-out;
-    -o-transition: all 0.2s ease-in-out;
-    transition: all 0.2s ease-in-out;
+    -webkit-transition:  background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+    -moz-transition:  background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+    -ms-transition:  background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+    -o-transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+    transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
 }
 
 .button:not(.checked) {
@@ -260,11 +256,11 @@ svg {
     -ms-transform: scale(0);
     transform: scale(0);
     width: 0;
-    -webkit-transition: all 0.2s ease-in-out;
-    -moz-transition: all 0.2s ease-in-out;
-    -ms-transition: all 0.2s ease-in-out;
-    -o-transition: all 0.2s ease-in-out;
-    transition: all 0.2s ease-in-out;
+    -webkit-transition: transform  0.2s ease-in-out, width  0.2s ease-in-out;
+    -moz-transition: transform  0.2s ease-in-out, width  0.2s ease-in-out;
+    -ms-transition: transform  0.2s ease-in-out, width  0.2s ease-in-out;
+    -o-transition: transform  0.2s ease-in-out, width  0.2s ease-in-out;
+    transition: transform  0.2s ease-in-out, width  0.2s ease-in-out;
 }
 
 .button.checked .button-icon {
@@ -273,4 +269,20 @@ svg {
     -ms-transform: scale(1.0);
     transform: scale(1.0);
     width: 12px;
+}
+
+.button .button-text
+{
+    -webkit-transition: margin-left 0.2s ease-in-out;
+    -moz-transition: margin-left 0.2s ease-in-out;
+    -ms-transition: margin-left 0.2s ease-in-out;
+    -o-transition: margin-left 0.2s ease-in-out;
+    transition: margin-left 0.2s ease-in-out;
+    margin-left: 0px;
+}
+
+
+.button.checked .button-text
+{
+    margin-left: 5px;
 }
