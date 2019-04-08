@@ -27,26 +27,9 @@
     var BASE_URL = "https://muiota.github.io/TeleChart";
 
     var instances = [],
+        loaded = {},
         counter = 0,
         darkMode = isMobile();
-
-    /*
-    function getJSONP(url, callbackName, callback) {
-        var ud = '_' + +new Date,
-            script = document.createElement('script'),
-            head = document.getElementsByTagName('head')[0]
-                || document.documentElement;
-
-        window[callbackName] = function (data) {
-            head.removeChild(script);
-            delete window[callbackName];
-            callback && callback(data);
-        };
-
-        script.src = url + '?callback=' + ud;
-        head.appendChild(script);
-    }
-   */
 
     function getJSON(url, callback) {
         var xhr = new XMLHttpRequest();
@@ -70,7 +53,14 @@
         }
     }
 
-    function createCharts(data, subUrl, name) {
+    function createCharts(sn, data, subUrl, name) {
+        if (sn > 1 && !loaded[sn - 1]) {
+            setTimeout(function () {
+                createCharts(sn, data, subUrl, name);
+            }, 50);
+            return;
+        }
+
         var _container = document.getElementById("charts_container");
         if (!data) {
             return;
@@ -99,21 +89,30 @@
             }
         })
         instances.push(tc);
+        loaded[sn] = true;
+        if (sn === 5) {
+            setTimeout(function () {
+                for (var k = 0; k < instances.length; k++) {
+                    instances[k].invalidate(true);
+                }
+            }, 0);
+
+        }
     }
 
-    function loadChart(subUrl, title) {
+    function loadChart(sn, subUrl, title) {
         getJSON(BASE_URL + subUrl + "/overview.json", function (success, resp) {
             if (success) {
-                createCharts(resp, subUrl, title);
+                createCharts(sn, resp, subUrl, title);
             }
         });
     }
 
-    loadChart("/data/1", "Followers");
-    loadChart("/data/2", "Views");
-    loadChart("/data/3", "Apps");
-    loadChart("/data/4", "Apps");
-    loadChart("/data/5", "Apps");
+    loadChart(1, "/data/1", "Followers");
+    loadChart(2, "/data/2", "Views");
+    loadChart(3, "/data/3", "Messages");
+    loadChart(4, "/data/4", "Apps");
+    loadChart(5, "/data/5", "Apps");
 
 
     var dark_mode_button = document.getElementById("btn_dark_mode");
