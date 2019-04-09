@@ -788,10 +788,10 @@ var Telegraph = function (ctxId, config) {
         delete animations[CONST_AXIS_X_LABEL_OPACITY_ANIMATION_KEY];
         setAxisXLabelOpacity(1);
 
-        associateZoomEnd(dataStore.hours.to - 1, 30);
-        associateZoomStart(dataStore.hours.from - 1, 30);
+        associateZoomEnd(dataStore.hours.to - 1, 15);
+        associateZoomStart(dataStore.hours.from - 1, 15);
         animationCounter = 0;
-        animate(animationCounter, setAnimationCounter, 1, 30);
+        animate(animationCounter, setAnimationCounter, 1, 15);
         // invalidateInner();
     }
 
@@ -807,10 +807,10 @@ var Telegraph = function (ctxId, config) {
         dataStore.hours.from = zoomStartFloat + 1;
         dataStore.hours.to = zoomEndFloat + 1;
         calcNavigatorFactors();
-        associateZoomStart(dataStore.days.startIndex, 30);
-        associateZoomEnd(dataStore.days.endIndex, 30);
+        associateZoomStart(dataStore.days.startIndex, 15);
+        associateZoomEnd(dataStore.days.endIndex, 15);
         animationCounter = 1;
-        animate(animationCounter, setAnimationCounter, 0, 30);
+        animate(animationCounter, setAnimationCounter, 0, 15);
         updateTitleStatus();
     }
 
