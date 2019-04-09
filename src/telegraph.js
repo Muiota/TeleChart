@@ -96,41 +96,11 @@ var Telegraph = function (ctxId, config) {
         bufferNavigatorCanvas,      //canvas of the navigators buffer
         frameContext,               //drawing context of the main frame canvas
         bufferNavigatorContext,     //drawing context of the navigators buffer
-        /** X-Axis data object
-         {
-         data: {Array of timestamp}
-         l: {Number}  length of data array
-         max: {Number} max of X value
-         min: {Number} min of X value
-         }
-         @type {Object}
-         */
+
         xAxisDataRef,
-        /** Array of Y-Axis data objects
-         {
-         alias: {String}"",        //Alias of series
-         bOn: {Boolean},           //Series enabled
-         color: {String},          //Series color "#3DC23F"
-         data: {Array of number},  //Series Y-data
-         max: {Number},            //Max value of series
-         min: {Number},            //Min value of series
-         name: {String},           //Name of series
-         sCg: {Array of Number},   //Array of opacity by color 0..1 step 0.01
-         sO: 1,                    //Series opacity 0..1
-         type: "line"              //Type of series
-         }
-         @type {Array}
-         */
+
         yAxisDataRefs = [],
-        /** Assoc array of animation objects
-         {
-            c: {Function}             //callback for set value
-            i: {Number}               //initial value
-            o: {Object}               //callback context (may be undefined)
-            p: {Number}               //proposed value
-            s: {Number}               //number of frames to transform
-            @type {Object}
-         */
+
         animations = {},
         configMinValueAxisY,    //@type {Number} Min value for Y-axes (if undefined then will be auto calculated)
 
@@ -140,19 +110,7 @@ var Telegraph = function (ctxId, config) {
         mouseOffsetY,           //@type {Number} mouse Y-coord offset
         mouseHoveredRegionType, //@type {Number} type of region hovered (ENUM_..._HOVERED const)
         mousePressed,           //@type {Boolean} mouse pressed (touched)
-        /**
-         Object for zoom frame proposed coordinates (xAxisDataRef.data)
-         {
-            tF: {Number},       //index of mouse cursor (xAxisDataRef.data)
-            tS: {Number},       //proposed left bound index in selection window (xAxisDataRef.data)
-            tE: {Number},       //proposed right bound index  in selection window (xAxisDataRef.data)
 
-            //And separated (tS,tE) due to animations
-            nS: {Number},       //proposed left bound index of data in navigator
-            nE: {Number},       //proposed right bound index of data in navigator (xAxisDataRef.data)
-         }
-         * @type {{}}
-         */
         mouseFrame = {},
 
         zoomStartFloat,                 //@type {Number} floated left bound index of data in navigator
@@ -166,7 +124,8 @@ var Telegraph = function (ctxId, config) {
         selectionEndIndexInt,           //@type {Number} natural right bound index of data in selection window
 
         selectionCurrentIndexFloat,     //@type {Number} floated under cursor index of data under cursor
-        selectionCurrentIndexChanged,
+        selectionCurrentIndexPinned,
+        isSelectionCurrentIndexChanged,
 
         selectionFactorX,               //@type {Number} ratio factor of X-axis in selection window
         selectionFactorY,               //@type {Number} ratio factor of Y-axis in selection window
@@ -222,6 +181,8 @@ var Telegraph = function (ctxId, config) {
         dateSingleton = new Date(),     //@type {Date} singleton for date format
         dateSingletonFull = new Date(),     //@type {Date} singleton for date format
 
+        timeZoneOffset = +dateSingleton.getTimezoneOffset() * 60 * 1000,
+
         isTouchEvent,
         dayRangeDiv,
         titleDiv,
@@ -231,6 +192,7 @@ var Telegraph = function (ctxId, config) {
         updateDateRangeTextTimer,
         buttonsContainer,
         loadDetailsCallback,
+        animationCounter,
         dataStore = {
             days: {
                 xAxisData: vNull,
@@ -283,9 +245,6 @@ var Telegraph = function (ctxId, config) {
         mainCanvas.ontouchstart = onMouseDownInner;
         mainCanvas.ontouchend = onMouseUpInner;
 
-        //   addEventListener("scroll", calcMouseOffset);
-        //  addEventListener("resize", calcMouseOffset);
-        //   addEventListener("mouseup", handleMouseClick);
         calcMouseOffset();
         invalidate();
     }
@@ -455,6 +414,10 @@ var Telegraph = function (ctxId, config) {
         smartAxisXRatio = val;
     }
 
+    function setAnimationCounter(val) {
+        animationCounter = val;
+    }
+
     function setBoundHighlight(val) {
         boundHighlight = val;
     }
@@ -525,11 +488,7 @@ var Telegraph = function (ctxId, config) {
         }
     }
 
-    /**
-     * Gets a style property from document body
-     * @param propertyName {String} property name
-     * @returns {String} property value
-     */
+
     function getBodyStyle(propertyName) {
         var _el = vDocument.body,
             _currentStyle = _el.currentStyle;
@@ -539,14 +498,8 @@ var Telegraph = function (ctxId, config) {
     }
 
 
-    /**
-     * Formats a date of UNIX timestamp
-     * @param timestamp {Number} UNIX timestamp
-     * @param withDay {Boolean=} with day of week
-     * @returns {string} Formatted date
-     */
     function formatDate(timestamp, withDay) {  //Jan 29
-        dateSingleton.setTime(timestamp);
+        dateSingleton.setTime(timestamp + timeZoneOffset);
         var _result = (withDay ? CONST_DAY_NAMES_SHORT[dateSingleton.getDay()] + ", " : "" ) +
             CONST_MONTH_NAMES_SHORT[dateSingleton.getMonth()] + " " + dateSingleton.getDate();
         if (withDay && config.withYearLabel) {
@@ -555,14 +508,15 @@ var Telegraph = function (ctxId, config) {
         return _result;
     }
 
-    /**
-     * Formats a date of UNIX timestamp
-     * @param timestamp {Number} UNIX timestamp
-     * @param withDay {Boolean=} with day of week
-     * @returns {string} Formatted date
-     */
+
+    function formatTime(timestamp) {  //Jan 29
+        dateSingleton.setTime(timestamp + timeZoneOffset);
+        return ("0" + (dateSingleton.getHours())).slice(-2) + ":" + ("0" + (dateSingleton.getMinutes())).slice(-2);
+    }
+
+
     function formatDateFull(timestamp) {
-        dateSingletonFull.setTime(timestamp);
+        dateSingletonFull.setTime(timestamp + timeZoneOffset);
         var _result = dateSingletonFull.getDate() + " " +
             CONST_MONTH_NAMES_FULL[dateSingletonFull.getMonth()] + " " + dateSingletonFull.getFullYear();
         return _result;
@@ -577,33 +531,29 @@ var Telegraph = function (ctxId, config) {
         return prev === vUndefined || val < prev ? val : prev;
     }
 
-    /**
-     * Sets the canvas cursor
-     * @param cursorIndex {Number} cursor index of CONST_CURSORS
-     */
+
     function setCursor(cursorIndex) {
         mainCanvas.style.cursor = CONST_CURSORS[cursorIndex];
     }
 
-    /**
-     * Sets the mouseHovered variable & fire events
-     * @param proposed {Number} type of hovered element
-     * @param force {Boolean=} force fire events
-     */
+
     function updateHoveredInfo(proposed, force) {
         if (mouseHoveredRegionType !== proposed || force) {
             mouseHoveredRegionType = proposed;
 
             if (mouseHoveredRegionType !== ENUM_SELECTION_HOVER &&
                 mouseHoveredRegionType !== ENUM_LEGEND_HOVER) {
+                selectionCurrentIndexPinned = vFalse;
                 animate(legendCursorOpacity, setLegendCursorOpacity, 0);
                 animate(legendBoxOpacity, setLegendBoxOpacity, 0);
             }
 
             //Set cursor
             if (mouseHoveredRegionType === ENUM_SELECTION_HOVER) { //most likely
-                animate(legendCursorOpacity, setLegendCursorOpacity, 1);
-                setCursor(0);
+                if (currentZoomState !== STATE_ZOOM_TRANSFORM_TO_HOURS) {
+                    animate(legendCursorOpacity, setLegendCursorOpacity, 1);
+                    setCursor(0);
+                }
             } else if (mouseHoveredRegionType === ENUM_ZOOM_HOVER ||
                 mouseHoveredRegionType === ENUM_LEGEND_HOVER) {
                 setCursor(1);
@@ -620,8 +570,7 @@ var Telegraph = function (ctxId, config) {
      * @param force {Boolean=} force calculate hovered if region not changed
      */
     function calcHoveredElement(force) {
-        var _result = vNull,
-            _i;
+        var _result = vNull;
 
         if (!navigatorFactorX) {
             return;
@@ -644,14 +593,12 @@ var Telegraph = function (ctxId, config) {
                 invalidateInner();
             }
             else {
-                if ((legendBoxOpacity === 0 && !force) || isTouchEvent) {
+                if ((legendBoxOpacity === 0 && !force) || !selectionCurrentIndexPinned || mousePressed) {
                     var _proposed = fMathRound(mouseX / selectionFactorX + selectionStartIndexFloat);
                     _proposed = getMin(getMax(1, _proposed), xAxisDataRef.l - 1);
+                    isSelectionCurrentIndexChanged = _proposed !== selectionCurrentIndexFloat;
                     calcLegendPosition(_proposed);
-                    if (_proposed !== selectionCurrentIndexFloat) {
-                        selectionCurrentIndexChanged = vTrue;
-                    }
-                    animate(selectionCurrentIndexFloat, setSelectionCurrentIndexFloat, _proposed);
+                    animate(selectionCurrentIndexFloat, setSelectionCurrentIndexFloat, _proposed, 3);
                     mouseFrame.tS = zoomStartFloat;
                     mouseFrame.tE = zoomEndFloat;
                     mouseFrame.tF = mouseX;
@@ -668,7 +615,7 @@ var Telegraph = function (ctxId, config) {
 
             if (fMathAbs(_startZShift) < uIGlobalPadding2) { //Navigator start edge hovered
                 _result = ENUM_START_SELECTION_HOVER;
-            } else if (fMathAbs(_endZShift ) < uIGlobalPadding2) { //Navigator end edge hovered
+            } else if (fMathAbs(_endZShift) < uIGlobalPadding2) { //Navigator end edge hovered
                 _result = ENUM_END_SELECTION_HOVER;
             } else if (mouseX > _startZoom && mouseX < _endZoom) { //Navigator center hovered
                 mouseFrame.nS = _startZShift / navigatorFactorX;
@@ -679,42 +626,25 @@ var Telegraph = function (ctxId, config) {
         updateHoveredInfo(_result, force);
     }
 
-    /**
-     * Stops propagation DOM events
-     * @param e {Object} event
-     */
+
     function stopPropagation(e) {
         e.preventDefault();
         e.stopPropagation();
     }
 
-    /**
-     * Setter for start navigator edge
-     * @param val {Number} value
-     * @param frameCount {Number=} buber of frames for animation
-     */
+
     function associateZoomStart(val, frameCount) {
         zoomStartInt = val * navigatorFactorX;
         animate(zoomStartFloat, setZoomStart, val, frameCount);
     }
 
-    /**
-     * Setter for end navigator edge
-     * @param val {Number} value
-     * @param frameCount {Number=} buber of frames for animation
-     */
+
     function associateZoomEnd(val, frameCount) {
         zoomEndInt = val * navigatorFactorX;
         animate(zoomEndFloat, setZoomEnd, val, frameCount);
     }
 
-    /**
-     * Move navigator frame
-     * @param shift
-     * @param maxX
-     * @param start
-     * @param end
-     */
+
     function moveNavigatorFrame(shift, maxX, start, end) {
         var _start = shift + start,
             _end = shift + end;
@@ -797,11 +727,7 @@ var Telegraph = function (ctxId, config) {
         return vFalse;
     }
 
-    /**
-     * Handles the mouse move
-     * @param e {Object}
-     * @param withoutPress {Boolean=}
-     */
+
     function handleMouseMove(e, withoutPress) {
 
         if (mouseHoveredRegionType === ENUM_ZOOM_HOVER ||
@@ -812,6 +738,17 @@ var Telegraph = function (ctxId, config) {
         calcMouseOffset();
         var _touches = e.touches;
         isTouchEvent = _touches && getLength(_touches);
+
+        if (mouseHoveredRegionType === ENUM_SELECTION_HOVER) {
+            withoutPress = vTrue;
+            if (currentZoomState !== STATE_ZOOM_TRANSFORM_TO_HOURS &&
+                legendBoxOpacity === 0 && (selectionCurrentIndexPinned || isTouchEvent)) {
+                if (isTouchEvent) {
+                    selectionCurrentIndexPinned = vFalse;
+                }
+                animate(legendBoxOpacity, setLegendBoxOpacity, 1);
+            }
+        }
 
         var newVar = isTouchEvent ?
             assignMousePos(_touches[0], withoutPress) :
@@ -839,6 +776,7 @@ var Telegraph = function (ctxId, config) {
         updateTitleStatus();
         dataStore.days.startIndex = selectionStartIndexInt;
         dataStore.days.endIndex = getMin(selectionEndIndexInt, xAxisDataRef.l - 2);
+        dataStore.days.factorY = selectionFactorY;
         dataStore.hours.from = fParseInt(selectionCurrentIndexFloat);
         dataStore.hours.to = dataStore.hours.from + 1;
         prepareCaches(pData, vTrue);
@@ -852,7 +790,8 @@ var Telegraph = function (ctxId, config) {
 
         associateZoomEnd(dataStore.hours.to - 1, 30);
         associateZoomStart(dataStore.hours.from - 1, 30);
-
+        animationCounter = 0;
+        animate(animationCounter, setAnimationCounter, 1, 30);
         // invalidateInner();
     }
 
@@ -860,9 +799,18 @@ var Telegraph = function (ctxId, config) {
         currentZoomState = STATE_ZOOM_TRANSFORM_TO_DAYS;
         xAxisDataRef = dataStore.days.xAxisData;
         yAxisDataRefs = dataStore.days.yAxisData;
-        calcNavigatorFactors(vTrue);
-        associateZoomStart(dataStore.days.startIndex, 15);
-        associateZoomEnd(dataStore.days.endIndex, 15);
+        selectionFactorY = dataStore.days.factorY;
+        zoomStartInt = dataStore.days.startIndexOff * navigatorFactorX;
+        zoomEndInt = dataStore.days.endIndexOff * navigatorFactorX;
+        zoomStartFloat = dataStore.days.startIndexOff;
+        zoomEndFloat = dataStore.days.endIndexOff;
+        dataStore.hours.from = zoomStartFloat + 1;
+        dataStore.hours.to = zoomEndFloat + 1;
+        calcNavigatorFactors();
+        associateZoomStart(dataStore.days.startIndex, 30);
+        associateZoomEnd(dataStore.days.endIndex, 30);
+        animationCounter = 1;
+        animate(animationCounter, setAnimationCounter, 0, 30);
         updateTitleStatus();
     }
 
@@ -887,11 +835,7 @@ var Telegraph = function (ctxId, config) {
         }
     }
 
-    /**
-     * Handles the mouse click
-     * @param e {Object} event
-     * @param pressed {Boolean} left button pressed
-     */
+
     function handleMouseClick(e, pressed) {
         if (!handleMouseMove(e, vTrue)) {
             pressed = vFalse;
@@ -911,18 +855,18 @@ var Telegraph = function (ctxId, config) {
                 stopPropagation(e);
                 animate(navigatorPressed, setNavigatorPressed, 1, 15);
                 navigatorPressedRegionType = mouseHoveredRegionType;
-            } else if (mouseHoveredRegionType === ENUM_SELECTION_HOVER) {
-                if (legendBoxOpacity === 0 || selectionCurrentIndexChanged) {
-                    animate(legendBoxOpacity, setLegendBoxOpacity, 1);
-                    selectionCurrentIndexChanged = vFalse;
-                } else {
-                    animate(legendBoxOpacity, setLegendBoxOpacity, 0);
-                }
-
             } else if (mouseHoveredRegionType === ENUM_LEGEND_HOVER) {
                 if (currentZoomState === STATE_ZOOM_DAYS && loadDetailsCallback) {
+                    animate(legendBoxOpacity, setLegendBoxOpacity, 0);
+                    animate(legendBoxOpacity, setLegendCursorOpacity, 0);
                     lookupHourData();
                 }
+            } else if (mouseHoveredRegionType === ENUM_SELECTION_HOVER) {
+                selectionCurrentIndexPinned = isTouchEvent ? vFalse : !selectionCurrentIndexPinned;
+                if (legendBoxOpacity === 1 && !selectionCurrentIndexPinned && !isTouchEvent && !isSelectionCurrentIndexChanged) {
+                    animate(legendBoxOpacity, setLegendBoxOpacity, 0);
+                }
+                isSelectionCurrentIndexChanged = vFalse;
             }
         } else {
             animate(navigatorPressed, setNavigatorPressed, 0, 15);
@@ -950,12 +894,7 @@ var Telegraph = function (ctxId, config) {
         invalidateInner();
     }
 
-    /**
-     * Gets rgba color from hex
-     * @param color {String} color in HEX or rgb
-     * @param opacity {Number} opacity
-     * @returns {String} color in rgba
-     */
+
     function getRGBA(color, opacity) {
         if (opacity < 1) {
             if (color.indexOf("#") !== -1) {
@@ -982,98 +921,51 @@ var Telegraph = function (ctxId, config) {
         return color;
     }
 
-    /**
-     * Sets the current line width
-     * @param context {CanvasRenderingContext2D} context for drawing
-     * @param width {Number=} width in pixels (default 1)
-     */
+
     function setLineWidth(context, width) {
         context.lineWidth = width || displayScaleFactor;
     }
 
-    /**
-     * @param context {CanvasRenderingContext2D} context for drawing
-     * Begins a path, or resets the current path
-     */
+
     function beginPath(context) {
         context.beginPath();
     }
 
-    /**
-     * @param context {CanvasRenderingContext2D} context for drawing
-     * Creates a path from the current point back to the starting point
-     */
+
     function endPath(context) {
         context.stroke();
     }
 
-    /**
-     * @param context {CanvasRenderingContext2D} context for drawing
-     * Creates a path from the current point back to the starting point
-     */
+
     function closePath(context) {
         context.closePath();
     }
 
-    /**
-     * Width of the specified text, in pixels
-     * @param context {CanvasRenderingContext2D} context for drawing
-     * @param text {String} measured text
-     * @returns {Number} width in pixels
-     */
+
     function getTextWidth(context, text) {
         return context.measureText(text)[CONST_WIDTH];
     }
 
-    /**
-     * Draws filled text on the canvas
-     * @param context {CanvasRenderingContext2D} context for drawing
-     * @param text {String} text that will be written on the canvas
-     * @param x {Number} x coordinate where to start painting the text
-     * @param y {Number} y coordinate where to start painting the text
-     */
+
     function fillText(context, text, x, y) {
         context.fillText(text, x, y);
     }
 
-    /**
-     * Creates a line TO that point or moves FROM the last specified point
-     * @param context {CanvasRenderingContext2D} context for drawing
-     * @param isMove {Boolean} move only
-     * @param x {Number} x coordinate in pixels
-     * @param y {Number} y coordinate in pixels
-     */
     function moveOrLine(context, isMove, x, y) {
         isMove ? context.moveTo(x, y) : context.lineTo(x, y);
     }
 
-    /**
-     * Adds a point to the current path by using the specified control points that represent a quadratic Bézier curve
-     * @param context {CanvasRenderingContext2D} context for drawing
-     * @param cpx {Number} The x-coordinate of the Bézier control point
-     * @param cpy {Number} The y-coordinate of the Bézier control point
-     * @param x {Number} The x-coordinate of the ending point
-     * @param y {Number} The y-coordinate of the ending point
-     */
+
     function quadraticCurveTo(context, cpx, cpy, x, y) {
         context.quadraticCurveTo(cpx, cpy, x, y);
     }
 
-    /**
-     * Fills the current drawing (path)
-     * @param context {CanvasRenderingContext2D} context for drawing
-     */
+
     function fill(context) {
         context.fill();
     }
 
-    /**
-     * Creates an circle
-     * @param context {CanvasRenderingContext2D} context for drawing
-     * @param x {Number} the x-coordinate of the center of the circle
-     * @param y {Number} the y-coordinate of the center of the circle
-     * @param radius {Number} the radius of the circle
-     */
+
     function circle(context, x, y, radius) {
         context.arc(x, y, radius, 0, CONST_TWO_PI);
     }
@@ -1251,7 +1143,11 @@ var Telegraph = function (ctxId, config) {
                 setFillStyle(frameContext, _opacity) :
                 setFillStyle(frameContext, _color);
             if (_nextItem > 0) {
-                fillText(frameContext, formatDate(xAxisDataRef.data[_nextItem]), _labelX, _labelY);
+                var _text = currentZoomState !== STATE_ZOOM_HOURS ?
+                    formatDate(xAxisDataRef.data[_nextItem]) :
+                    formatTime(xAxisDataRef.data[_nextItem]);// formatDate(xAxisDataRef.data[_nextItem]);
+
+                fillText(frameContext, _text, _labelX, _labelY);
             }
         }
 
@@ -1334,16 +1230,17 @@ var Telegraph = function (ctxId, config) {
                 _yValue = selectionBottom + (_axisY.data[_k] - selectionMinY) * selectionFactorY;
                 moveOrLine(frameContext, _k++ === selectionStartIndexInt, _xValue, _yValue);
 
-                if (currentZoomState === STATE_ZOOM_TRANSFORM_TO_HOURS) {
+                if (currentZoomState === STATE_ZOOM_TRANSFORM_TO_HOURS ||
+                    currentZoomState === STATE_ZOOM_TRANSFORM_TO_DAYS) {
                     var _currentLeft = _xValue;
+                    var _currentTop = _yValue;
                     if (_k - 1 === dataStore.hours.from) {
-                        console.log(dataStore.hours.factors);
-                        for (_j = dataStore.hours.startIndex; _j <= dataStore.hours.endIndex;_j++) {
+                        for (_j = dataStore.hours.startIndex; _j <= dataStore.hours.endIndex; _j++) {
                             _xValue = _currentLeft + (_j - dataStore.hours.startIndex) * dataStore.hours.factors.factorX;
                             _yValue = selectionBottom + ( dataStore.hours.yAxisData[_i].data[_j] - dataStore.hours.factors.minY) * dataStore.hours.factors.factorY;
-                            moveOrLine(frameContext, vFalse, _xValue, _yValue);
+                            var _resultY = _currentTop * (1 - animationCounter) + _yValue * animationCounter;
+                            moveOrLine(frameContext, vFalse, _xValue, _resultY);
                         }
-
                     }
                 }
 
@@ -1671,7 +1568,7 @@ var Telegraph = function (ctxId, config) {
             return {
                 maxY: _max,
                 minY: _min,
-                axisHeight: (_max - _localMin) * _factorY, //todo no need
+                axisHeight: (_max - _localMin) * _factorY,
                 factorY: -(height - 2) / (_max - _min),
                 factorX: width / (endIndex - startIndex)
             };
@@ -1707,7 +1604,7 @@ var Telegraph = function (ctxId, config) {
             if (configMinValueAxisY !== vUndefined || _result.minY === selectionMinY) {
                 selectionMinY = _result.minY;
                 animate(selectionFactorY, setSelectionFactorY, _result.factorY,
-                    (withoutAnimations? 1: vNull), vUndefined, vTrue);
+                    (withoutAnimations ? 1 : vNull), vUndefined, vTrue);
             } else {
                 animate(selectionMinY * 1, setSelectionMinY, _result.minY,
                     vNull, vUndefined, vTrue);
@@ -1720,7 +1617,8 @@ var Telegraph = function (ctxId, config) {
         }
         updateDateRangeTextTimer = setTimeout(updateDateRangeText, 20);
 
-        if (currentZoomState === STATE_ZOOM_TRANSFORM_TO_HOURS) {
+        if (currentZoomState === STATE_ZOOM_TRANSFORM_TO_HOURS ||
+            currentZoomState === STATE_ZOOM_TRANSFORM_TO_DAYS) {
             dataStore.hours.factors = calcSelectionFactors(dataStore.hours.yAxisData,
                 dataStore.hours.startIndex,
                 dataStore.hours.endIndex, selectionFactorX, selectionHeight);
@@ -1872,8 +1770,7 @@ var Telegraph = function (ctxId, config) {
             _to = _store.to,
             _fromTimestamp = xAxisDataRef.data[_from],
             _toTimestamp = xAxisDataRef.data[_to],
-            _k,
-            _i;
+            _k;
         _store.startIndex = vUndefined;
         _store.endIndex = vUndefined;
         for (_k = 1; _k < _store.xAxisData.l; _k++) {
@@ -1889,14 +1786,15 @@ var Telegraph = function (ctxId, config) {
                 }
             }
         }
-
+        if (_store.endIndex >= _store.xAxisData.l) {
+            _store.endIndex = _store.xAxisData.l;
+        }
+        if (_store.startIndex >= _store.endIndex) {
+            _store.startIndex = _store.endIndex - 1;
+        }
         return _k;
     }
 
-    /**
-     * Prepares the data caches
-     * @param src {JSON} data for prepare
-     */
     function prepareCaches(src, isHours) {
         if (!isHours) {
             clear();
@@ -1965,19 +1863,10 @@ var Telegraph = function (ctxId, config) {
         }
     }
 
-    /**
-     * Gets the name of function
-     * @param f {Function} callback function
-     * @returns {String} function name
-     */
     function getFunctionName(f) {
         return f.name || f.toString().substring(9, 32);
     }
 
-    /**
-     * Length of array
-     * @param a {Object}
-     */
     function getLength(a) {
         return a.length;
     }
@@ -2108,8 +1997,9 @@ var Telegraph = function (ctxId, config) {
             if (!animations[CONST_SET_ZOOM_START_ANIMATION_KEY] &&
                 !animations[CONST_SET_ZOOM_END_ANIMATION_KEY]) {
                 if (currentZoomState === STATE_ZOOM_TRANSFORM_TO_HOURS) {
-                    if (smartAxisXFrozen)
-                    {
+                    dataStore.days.startIndexOff = selectionStartIndexInt;
+                    dataStore.days.endIndexOff = getMin(selectionEndIndexInt, xAxisDataRef.l - 2);
+                    if (smartAxisXFrozen) {
                         smartAxisXFrozen = vFalse;
                         animate(smartAxisXRatio, setSmartAxisRatio, 0, 1);
                         animate(smartAxisXOpacity, setAxisXLabelOpacity, 1, 5);
@@ -2122,10 +2012,10 @@ var Telegraph = function (ctxId, config) {
                     calcNavigatorFactors(vTrue);
                     delete animations[CONST_SELECTION_FACTOR_Y_ANIMATION_KEY];
                     selectionFactorY = dataStore.hours.factors.factorY;
-                    associateZoomStart(dataStore.hours.startIndex + 1, 1);
-                    associateZoomEnd(dataStore.hours.endIndex + 1, 1);
-                  //  assignSelectionFactors(vTrue);
-                   //
+                    associateZoomStart(dataStore.hours.startIndex - 1, 1);
+                    associateZoomEnd(dataStore.hours.endIndex - 1, 1);
+                    //  assignSelectionFactors(vTrue);
+                    //
 
                 } else if (currentZoomState === STATE_ZOOM_TRANSFORM_TO_DAYS) {
                     currentZoomState = STATE_ZOOM_DAYS;
@@ -2209,6 +2099,3 @@ var Telegraph = function (ctxId, config) {
         setLoadDetailsCallback: setLoadDetailsCallback
     };
 };
-
-
-
