@@ -70,24 +70,32 @@
         _innerContainer.id = "chart_" + counter++;
         _innerContainer.classList.add("chart_container");
         _container.appendChild(_innerContainer);
-        var tc = new Telegraph(_innerContainer.id, {title: name});
-        tc.draw(data);
-        tc.setLoadDetailsCallback(function (timeStamp, successCallback, failCallback) {
-            try {
-                var _date = new Date(timeStamp);
-                getJSON(BASE_URL + subUrl + "/" +
-                    _date.getFullYear() + "-" +
-                    ('0' + (_date.getMonth() + 1)).slice(-2) + "/" +
-                    ('0' + _date.getDate()).slice(-2) + ".json", function (success, resp) {
-                    if (success) {
-                        successCallback(resp, timeStamp);
-                    } else
-                        failCallback(resp, timeStamp);
-                });
-            } catch (e) {
-                failCallback(e, timeStamp);
+        var config = {
+            title: name,
+            loadCallback : function (timeStamp, successCallback, failCallback) {
+                try {
+                    var _date = new Date(timeStamp);
+                    getJSON(BASE_URL + subUrl + "/" +
+                        _date.getFullYear() + "-" +
+                        ('0' + (_date.getMonth() + 1)).slice(-2) + "/" +
+                        ('0' + _date.getDate()).slice(-2) + ".json", function (success, resp) {
+                        if (success) {
+                            successCallback(resp, timeStamp);
+                        } else
+                            failCallback(resp, timeStamp);
+                    });
+                } catch (e) {
+                    failCallback(e, timeStamp);
+                }
             }
-        })
+        };
+
+        if (sn === 2) {
+            config.splitAxisY = true;
+        }
+
+        var tc = new Telegraph(_innerContainer.id, config);
+        tc.draw(data);
         instances.push(tc);
         loaded[sn] = true;
     }

@@ -742,10 +742,6 @@ var Telegraph = function (ctxId, config) {
         return mouseHoveredRegionType;
     }
 
-    function setLoadDetailsCallback(callback) {
-        loadDetailsCallback = callback;
-    }
-
 
     //======== setters for animation ========
     function setSelectionFactorY(val) {
@@ -1233,7 +1229,7 @@ var Telegraph = function (ctxId, config) {
         if (_detailCache) {
             zoomInToHours(_detailCache, _currentTimeStamp);
         } else {
-            loadDetailsCallback(_currentTimeStamp,
+            config.loadCallback(_currentTimeStamp,
                 loadHoursDataSuccess, loadHoursDataFail);
         }
     }
@@ -1259,7 +1255,7 @@ var Telegraph = function (ctxId, config) {
                 animate(navigatorPressed, setNavigatorPressed, 1, 15);
                 navigatorPressedRegionType = mouseHoveredRegionType;
             } else if (mouseHoveredRegionType === ENUM_LEGEND_HOVER) {
-                if (currentZoomState === STATE_ZOOM_DAYS && loadDetailsCallback) {
+                if (currentZoomState === STATE_ZOOM_DAYS && config.loadCallback) {
                     animate(legendBoxOpacity, setLegendBoxOpacity, 0);
                     animate(legendBoxOpacity, setLegendCursorOpacity, 0);
                     lookupHourData();
@@ -1761,6 +1757,7 @@ var Telegraph = function (ctxId, config) {
      * Calculates the navigator factors
      */
     function calcNavigatorFactors(isReset) {
+
         var _max = vUndefined,
             _min = configMinValueAxisY,
             _i,
@@ -2036,14 +2033,14 @@ var Telegraph = function (ctxId, config) {
                 _store.yAxisData = [];
                 for (_i in columns) {
                     var _column = columns[_i],
-                        _dataLen = getLength(_column),
+                        _dataLen = _column.length,
                         _max = vUndefined,
                         _min = vUndefined,
                         _alias = _column[0];
                     for (_k = 1; _k < _dataLen; _k++) {
                         var _elementVal = _column[_k];
                         _max = getMax(_elementVal, _max);
-                        _min = getMin(_elementVal, _min);
+                        _min = getMin(_elementVal, _min); //todo remove
                     }
 
                     if (_alias === "x") {
@@ -2062,8 +2059,7 @@ var Telegraph = function (ctxId, config) {
                                 name: _alias,
                                 min: _min,
                                 max: _max,
-                                bOn: vTrue,
-                                sO: 1
+                                bOn: vTrue
                             });
                     }
                 }
@@ -2330,7 +2326,6 @@ var Telegraph = function (ctxId, config) {
         clear: clear,
         destroy: destroy,
         hovered: getMouseHoveredRegionType,
-        setLoadDetailsCallback: setLoadDetailsCallback,
         setTheme: setTheme
     };
 };
