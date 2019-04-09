@@ -74,6 +74,8 @@ var Telegraph = function (ctxId, config) {
      * @type {Number|Array|String|HTMLCanvasElement|CanvasRenderingContext2D|Element|Object|Date}
      */
     var container = vDocument.getElementById(ctxId),                               //canvases container
+        isMobile = ("ontouchstart" in window),
+        charts = [],
         displayScaleFactor,
         uIGlobalPadding,
         uiGlobalPaddingHalf,
@@ -139,8 +141,6 @@ var Telegraph = function (ctxId, config) {
         smartAxisXFrozenStart,          //@type {Number} frozen selectionStartIndexFloat for scroll
         smartAxisXFrozenEnd,            //@type {Number} frozen selectionEndIndexFloat for scroll
         smartAxisXOpacity = 1,          //@type {Number} opacity of X-axis labels
-        smartAxisYRangeFloat,           //@type {Number} floated range of Y-axis labels
-        smartAxisYRangeInt,             //@type {Number} natural range of Y-axis labels
         smartAxisYOpacity = 1,          //@type {Number} opacity of Y-axis labels
 
         navigatorFactorX,               //@type {Number} ratio factor of X-axis in navigator
@@ -166,7 +166,7 @@ var Telegraph = function (ctxId, config) {
         envSmallTextHeight,             //@type {Number} small font height
         envDefaultTextHeight,           //@type {Number} regular font height
         envColor,              //@type {Array of numbers} array of opacity by environment color 0..1 step 0.01
-        envBgColor ,            //@type {Array of numbers} array of opacity by environment background color 0..1
+        envBgColor,            //@type {Array of numbers} array of opacity by environment background color 0..1
         envRegularSmallFont,            //@type {String} regular small font
         envBoldSmallFont,               //@type {String} bold small font
         envRegularDefaultFont,          //@type {String} regular default font
@@ -208,6 +208,351 @@ var Telegraph = function (ctxId, config) {
             }
         };
 
+    var AxisInfo = function (alias, xData, yData, width, height, lineWidth, isStartFromZero) {
+        var length = xData.length,
+            maxX = xData[length - 1],
+            minX = xData[1],
+            maxY = vUndefined,
+            minY = isStartFromZero ? 0 : vUndefined,
+
+            localMaxY,
+            localMinY,
+
+            factorX,
+            factorY;
+
+        for (var _k = 1; _k < length; _k++) {
+            var _val = yData[_k];
+            maxY = getMax(_val, maxY);
+            minY = getMin(_val, minY);
+        }
+        localMaxY = maxY;
+        localMinY = minY;
+
+        function getMaxX() {
+            return maxX;
+        }
+
+        function getMaxY() {
+            return maxY;
+        }
+
+        function getMinX() {
+            return minX;
+        }
+
+        function getMinY() {
+            return minY;
+        }
+
+        function setLocalMinY(val) {
+            localMinY = val;
+            animate(factorY, setFactorY, -(height - 2) / (localMaxY - localMinY),
+                vNull, vUndefined, vTrue);
+        }
+
+        function getLocalMaxY() {
+            return localMaxY;
+        }
+
+        function getLocalMinY() {
+            return localMinY;
+        }
+
+        function getFactorY() {
+            return factorY;
+        }
+
+        function getFactorX() {
+            return factorX;
+        }
+
+        function setFactorY(val) {
+            factorY = val;
+        }
+
+        function setFactorX(val) {
+            factorX = val;
+        }
+
+        function getLineWidth() {
+            return lineWidth;
+        }
+
+        function calculateFactors(startIndex, endIndex, withoutAnimations) {
+            var _startIndexInt = fMathFloor(startIndex),
+                _endIndexInt = fMathCeil(endIndex),
+                _localMaxY = vUndefined,
+                _localMinY = isStartFromZero ? 0 : vUndefined,
+                _factorY,
+                _value,
+                _j;
+
+            if (_startIndexInt === 0) {
+                _startIndexInt++;
+            }
+            for (_j = _startIndexInt; _j <= _endIndexInt; _j++) {
+                _value = yData[_j];
+                _localMaxY = getMax(_value, _localMaxY);
+                _localMinY = getMin(_value, _localMinY);
+            }
+            if (_localMaxY) {
+                _factorY = -(height - 2) / (localMaxY - localMinY);
+                factorX = width / (endIndex - startIndex);
+                localMaxY = _localMaxY;
+                if (isStartFromZero || localMinY === selectionMinY) {
+                    localMinY = _localMinY
+                    animate.apply(this, [factorY, setFactorY, _factorY,
+                        (withoutAnimations ? 1 : vNull), vUndefined, vTrue]);
+                } else {
+                    animate.apply(this, [localMinY * 1, setLocalMinY, _localMinY,
+                        (withoutAnimations ? 1 : vNull), vUndefined, vTrue]);
+                }
+            }
+        }
+
+        function getAlias() {
+            return alias;
+        }
+
+        function toString() {
+            return "AxisInfo " + name + " {\n" +
+                "\t\tlength: " + length + ",\n" +
+                "\t\tminX: " + minX + " " + (new Date(minX)).toISOString() + ",\n" +
+                "\t\tmaxX: " + maxX + " " + (new Date(maxX)).toISOString() + ",\n" +
+                "\t\tfactorX: " + factorX + ",\n" +
+                "\t\tminY: " + minY + ",\n" +
+                "\t\tmaxY: " + maxY + ",\n" +
+                "\t\tfactorY: " + factorY + ",\n" +
+                "}";
+        }
+
+        return {
+            getAlias: getAlias,
+            getMaxX: getMaxX,
+            getMinX: getMinX,
+            getMaxY: getMaxY,
+            getMinY: getMinY,
+            getLocalMaxY: getLocalMaxY,
+            getLocalMinY: getLocalMinY,
+            getFactorY: getFactorY,
+            getFactorX: getFactorX,
+            calculateFactors: calculateFactors,
+            getLineWidth: getLineWidth,
+            toString: toString
+        };
+    };
+
+    var ChartInfo = function (xInfo, yInfo) {
+
+        var alias = yInfo.alias;
+        var name = yInfo.name;
+        var type = yInfo.type;
+        var xData = xInfo.data;
+        var yData = yInfo.data;
+        var color = yInfo.color;
+        var smartAxisYRangeInt;
+        var smartAxisYRangeFloat;
+
+        var opacity = 1,
+            filterAxis = new AxisInfo(alias + "f", xData, yData, totalWidth, navigatorHeight, 1, vTrue),
+            mainAxis = new AxisInfo(alias + "m", xData, yData, totalWidth, selectionHeight, config.lineWidth || 2, vTrue);
+
+        var _lastIndex = xData.length - 1;
+        filterAxis.calculateFactors(1, _lastIndex);
+        mainAxis.calculateFactors(1, _lastIndex);
+
+        function setSmartAxisYRange(val) {
+            smartAxisYRangeFloat = val;
+        }
+
+        function calculateSmartAxisY() {
+            var _prevProposed = fMathCeil((mainAxis.getLocalMaxY() - mainAxis.getLocalMinY()) / 6),
+                _threshold = _prevProposed / 25,
+                _i = fMathCeil(mainAxis.getLocalMinY()),
+                _factor = 1,
+                _newProposed,
+                _divider;
+
+            do {
+                if (_i >= CONST_HUMAN_SCALES.length) {
+                    _i = 0;
+                    _factor = _factor * 10;
+                }
+                _divider = CONST_HUMAN_SCALES[_i] * _factor;
+                _newProposed = fMathCeil(_prevProposed / _divider) * _divider;
+                _i++;
+            } while (_newProposed - _prevProposed < _threshold);
+            animate.apply(this, [smartAxisYRangeFloat, setSmartAxisYRange, _newProposed]);
+            smartAxisYRangeInt = _newProposed;
+        }
+
+        function getColor() {
+            return color;
+        }
+
+        function getOpacity() {
+            return opacity;
+        }
+
+        function setOpacity(val) {
+            opacity = val;
+        }
+
+        function getName() {
+            return name;
+        }
+
+        function getType() {
+            return type;
+        }
+
+        function getAlias() {
+            return alias;
+        }
+
+        function drawYAxisLabels(isRight) {
+            var _selectionAxis = selectionBottom,
+                _labelY,
+                _nextScaleValue = fMathCeil(mainAxis.getLocalMinY()),
+                _value,
+                _textLength;
+            while (_selectionAxis > navigatorHeightHalf) {
+                _labelY = fParseInt(_selectionAxis) + CONST_ANTI_BLUR_SHIFT - uIGlobalPadding;
+                _value = _nextScaleValue.toString();
+                _textLength = _value.length;
+                if (_textLength > 6) {
+                    _value = _nextScaleValue / 1000000 + "M";
+                }
+                else if (_textLength > 3) {
+                    _value = _nextScaleValue / 1000 + "K";
+                }
+
+                setFillStyle(frameContext, envBgColor);
+                var _textWidth = getTextWidth(frameContext, _value);
+                var _labelX = isRight ? totalWidth - uiGlobalPaddingHalf - _textWidth : uiGlobalPaddingHalf;
+
+                fillRect(frameContext, _labelX, _labelY - envSmallTextHeight + 2 * displayScaleFactor,
+                    _textWidth + uIGlobalPadding2, envSmallTextHeight);
+                setFillStyle(frameContext, envColor);
+                fillText(frameContext, _value, _labelX, _labelY);
+                _nextScaleValue = fParseInt(_nextScaleValue + smartAxisYRangeInt);
+                _selectionAxis = _selectionAxis + smartAxisYRangeFloat * mainAxis.getFactorY();
+            }
+
+        }
+
+        /**
+         * Draws the horizontal grid
+         */
+        function drawHorizontalGrid() {
+            var _nextScaleLevel = selectionBottom,
+                _yCoordinate;
+            beginPath(frameContext);
+            setGlobalAlpha(frameContext, 0.1);
+            setStrokeStyle(frameContext, envColor);
+            setLineWidth(frameContext, displayScaleFactor);
+            while (_nextScaleLevel > navigatorHeightHalf) {
+                _yCoordinate = fMathCeil(_nextScaleLevel) + CONST_ANTI_BLUR_SHIFT;
+                moveOrLine(frameContext, vTrue, 0, _yCoordinate);
+                moveOrLine(frameContext, vFalse, totalWidth, _yCoordinate);
+                _nextScaleLevel = _nextScaleLevel + smartAxisYRangeFloat * mainAxis.getFactorY();
+            }
+            endPath(frameContext);
+            setGlobalAlpha(frameContext, 1);
+        }
+
+
+        function drawSeriesCore(context, axis, startIndexFloat, startIndexInt, endIndexInt, bottom) {
+            var _k,
+                _j,
+                _i,
+                _xValue,
+                _yValue,
+                _minY = axis.getLocalMinY(),
+                _factorX = axis.getFactorX(),
+                _factorY = axis.getFactorY(),
+                _lineWidth = axis.getLineWidth();
+            //selection series
+            beginPath(context);
+            setGlobalAlpha(context, opacity);
+            setStrokeStyle(context, color);
+            setLineWidth(context, _lineWidth * displayScaleFactor);
+
+            for (_k = startIndexInt; _k <= endIndexInt;) {
+                _xValue = (_k - startIndexFloat) * _factorX;
+                _yValue = bottom + (yData[_k] - _minY) * _factorY;
+                moveOrLine(context, _k++ === startIndexInt, _xValue, _yValue);
+
+                //todo
+                if (currentZoomState === STATE_ZOOM_TRANSFORM_TO_HOURS ||
+                    currentZoomState === STATE_ZOOM_TRANSFORM_TO_DAYS) {
+                    var _currentLeft = _xValue;
+                    var _currentTop = _yValue;
+                    if (_k - 1 === dataStore.hours.from) {
+                        for (_j = dataStore.hours.startIndex; _j <= dataStore.hours.endIndex; _j++) {
+                            _xValue = _currentLeft + (_j - dataStore.hours.startIndex) * dataStore.hours.factors.factorX;
+                            _yValue = bottom + ( dataStore.hours.yAxisData[_i].data[_j] - dataStore.hours.factors.minY) * dataStore.hours.factors.factorY;
+                            var _resultY = _currentTop * (1 - animationCounter) + _yValue * animationCounter;
+                            moveOrLine(context, vFalse, _xValue, _resultY);
+                        }
+                    }
+                }
+            }
+            endPath(context);
+        }
+
+        function drawMainSeries() {
+            drawSeriesCore(frameContext, mainAxis,
+                selectionStartIndexFloat,
+                selectionStartIndexInt,
+                selectionEndIndexInt,
+                selectionBottom);
+        }
+
+        function drawFilterSeries() {
+            drawSeriesCore(bufferNavigatorContext, filterAxis,
+                1,
+                1,
+                _lastIndex,
+                navigatorHeight);
+        }
+
+        function toString() {
+            return "Chart " + name + " {\n" +
+                "\ttype: " + type + ",\n" +
+                "\tcolor: " + color + ",\n" +
+                "\tmainAxis: " + mainAxis.toString() + ",\n" +
+                "\tfilterAxis: " + filterAxis.toString() + ",\n" +
+                "\tismartAxisYRangeInt: " + smartAxisYRangeInt + ",\n" +
+                "}";
+        }
+
+        function getMainAxis() {
+            return mainAxis;
+        }
+
+        function getSmartAxisYRangeInt() {
+            return smartAxisYRangeInt;
+        }
+
+        return {
+            getColor: getColor,
+            getName: getName,
+            getType: getType,
+            getAlias: getAlias,
+            getOpacity: getOpacity,
+            setOpacity: setOpacity,
+            calculateSmartAxisY: calculateSmartAxisY,
+            drawYAxisLabels: drawYAxisLabels,
+            drawHorizontalGrid: drawHorizontalGrid,
+            drawMainSeries: drawMainSeries,
+            drawFilterSeries: drawFilterSeries,
+            getMainAxis: getMainAxis,
+            getSmartAxisYRangeInt: getSmartAxisYRangeInt,
+            toString: toString
+        };
+    };
 
     /**
      * Initializes the environment
@@ -258,6 +603,7 @@ var Telegraph = function (ctxId, config) {
     }
 
     function recalculateBounds() {
+        isMobile = ('ontouchstart' in window);
         displayScaleFactor = window.devicePixelRatio;
         uIGlobalPadding = 5 * displayScaleFactor;
         uiGlobalPaddingHalf = uIGlobalPadding / 2;
@@ -400,9 +746,6 @@ var Telegraph = function (ctxId, config) {
         smartAxisYOpacity = val;
     }
 
-    function setSmartAxisYRange(val) {
-        smartAxisYRangeFloat = val;
-    }
 
     function setAxisXLabelOpacity(val) {
         smartAxisXOpacity = val;
@@ -424,10 +767,18 @@ var Telegraph = function (ctxId, config) {
      * Clears the chart
      */
     function clear() {
+        charts.length = 0;
         xAxisDataRef = vNull;
         yAxisDataRefs = [];
         invalidateInner();
     }
+
+    function removeAllChild(parent) {
+        while (parent.firstChild) {
+            parent.removeChild(parent.firstChild);
+        }
+    }
+
 
     /**
      * Destroy chart
@@ -441,7 +792,7 @@ var Telegraph = function (ctxId, config) {
         mainCanvas.onmouseup = vUndefined;
         mainCanvas.ontouchstart = vUndefined;
         mainCanvas.ontouchend = vUndefined;
-        container.removeChild(mainCanvas);
+        removeAllChild(container);
     }
 
     /**
@@ -1049,25 +1400,6 @@ var Telegraph = function (ctxId, config) {
         frameContext.drawImage(imgElem, dx, dy);
     }
 
-    /**
-     * Draws the horizontal grid
-     */
-    function drawHorizontalGrid() {
-        var _nextScaleLevel = selectionBottom,
-            _yCoordinate;
-        beginPath(frameContext);
-        setGlobalAlpha(frameContext, 0.1);
-        setStrokeStyle(frameContext, envColor);
-        setLineWidth(frameContext, displayScaleFactor);
-        while (_nextScaleLevel > navigatorHeightHalf) {
-            _yCoordinate = fMathCeil(_nextScaleLevel) + CONST_ANTI_BLUR_SHIFT;
-            moveOrLine(frameContext, vTrue, 0, _yCoordinate);
-            moveOrLine(frameContext, vFalse, totalWidth, _yCoordinate);
-            _nextScaleLevel = _nextScaleLevel + smartAxisYRangeFloat * selectionFactorY;
-        }
-        endPath(frameContext);
-        setGlobalAlpha(frameContext, 1);
-    }
 
     /**
      * Draws the axis labels
@@ -1080,12 +1412,10 @@ var Telegraph = function (ctxId, config) {
             _nextItem,
             _labelX,
             _labelY,
-            _nextScaleValue = fMathCeil(selectionMinY),
             _opacity,
             _nextStage,
-            _axisRange,
-            _value,
-            _textLength;
+            _axisRange
+        ;
 
         //X-axis labels ============================
         if (_needCalc) {
@@ -1147,50 +1477,12 @@ var Telegraph = function (ctxId, config) {
 
         //Y-axis labels ============================
         setGlobalAlpha(frameContext, getMin(seriesMaxOpacity, smartAxisYOpacity) * 0.5);
-
-        while (_selectionAxis > navigatorHeightHalf) {
-            _labelY = fParseInt(_selectionAxis) + CONST_ANTI_BLUR_SHIFT - uIGlobalPadding;
-            _value = _nextScaleValue.toString();
-            _textLength = getLength(_value);
-            if (_textLength > 6) {
-                _value = _nextScaleValue / 1000000 + "M";
-            }
-            else if (_textLength > 3) {
-                _value = _nextScaleValue / 1000 + "K";
-            }
-
-            setFillStyle(frameContext, envBgColor);
-            fillRect(frameContext, uiGlobalPaddingHalf, _labelY - envSmallTextHeight + 2,
-                getTextWidth(frameContext, _value) + uIGlobalPadding2, envSmallTextHeight);
-            setFillStyle(frameContext, envColor);
-            fillText(frameContext, _value, uIGlobalPadding, _labelY);
-            _nextScaleValue = fParseInt(_nextScaleValue + smartAxisYRangeInt);
-            _selectionAxis = _selectionAxis + smartAxisYRangeFloat * selectionFactorY;
-
+        for (_i in charts) {
+            charts[_i].drawYAxisLabels(_i > 0);
         }
+
+
         setGlobalAlpha(frameContext, 1);
-    }
-
-
-    /**
-     * Draws a navigator series in buffer
-     * @param series
-     */
-    function drawNavigatorSeriesInBuffer(series) {
-        var _xValue = 0,
-            _yValue,
-            _k;
-
-        beginPath(bufferNavigatorContext);
-        setStrokeStyle(bufferNavigatorContext, series.color);
-        setGlobalAlpha(bufferNavigatorContext, series.sO);
-
-        for (_k = 1; _k < xAxisDataRef.l;) {
-            _yValue = navigatorHeight + (series.data[_k] - navigatorMinY) * navigatorFactorY;
-            moveOrLine(bufferNavigatorContext, _k === 1, _xValue, _yValue);
-            _xValue = _k++ * navigatorFactorX;
-        }
-        endPath(bufferNavigatorContext);
     }
 
     /**
@@ -1199,53 +1491,22 @@ var Telegraph = function (ctxId, config) {
     function drawSeries() {
         seriesMaxOpacity = 0;
         var _i,
-            _k,
-            _j,
-            _axisY,
-            _xValue,
-            _yValue;
+            _axisY;
 
         if (navigatorNeedUpdateBuffer) {
             clearCanvas(bufferNavigatorContext, totalWidth, navigatorHeight);
+            for (_i in charts) {
+                charts[_i].drawFilterSeries();
+            }
+            navigatorNeedUpdateBuffer = vFalse;
         }
 
-        for (_i in yAxisDataRefs) {
-            _axisY = yAxisDataRefs[_i];
-            seriesMaxOpacity = getMax(_axisY.sO, seriesMaxOpacity);
-
-            //navigator series
-            if (navigatorNeedUpdateBuffer) {
-                drawNavigatorSeriesInBuffer(_axisY);
-            }
-            //selection series
-            beginPath(frameContext);
-            setGlobalAlpha(frameContext, _axisY.sO);
-            setStrokeStyle(frameContext, _axisY.color);
-            setLineWidth(frameContext, config.lineWidth || 2 * displayScaleFactor);
-
-            for (_k = selectionStartIndexInt; _k <= selectionEndIndexInt;) {
-                _xValue = (_k - selectionStartIndexFloat) * selectionFactorX;
-                _yValue = selectionBottom + (_axisY.data[_k] - selectionMinY) * selectionFactorY;
-                moveOrLine(frameContext, _k++ === selectionStartIndexInt, _xValue, _yValue);
-
-                if (currentZoomState === STATE_ZOOM_TRANSFORM_TO_HOURS ||
-                    currentZoomState === STATE_ZOOM_TRANSFORM_TO_DAYS) {
-                    var _currentLeft = _xValue;
-                    var _currentTop = _yValue;
-                    if (_k - 1 === dataStore.hours.from) {
-                        for (_j = dataStore.hours.startIndex; _j <= dataStore.hours.endIndex; _j++) {
-                            _xValue = _currentLeft + (_j - dataStore.hours.startIndex) * dataStore.hours.factors.factorX;
-                            _yValue = selectionBottom + ( dataStore.hours.yAxisData[_i].data[_j] - dataStore.hours.factors.minY) * dataStore.hours.factors.factorY;
-                            var _resultY = _currentTop * (1 - animationCounter) + _yValue * animationCounter;
-                            moveOrLine(frameContext, vFalse, _xValue, _resultY);
-                        }
-                    }
-                }
-
-            }
-            endPath(frameContext);
+        for (_i in charts) {
+            _axisY = charts[_i];
+            seriesMaxOpacity = getMax(_axisY.getOpacity(), seriesMaxOpacity);
+            _axisY.drawMainSeries();
         }
-        navigatorNeedUpdateBuffer = vFalse;
+
         setGlobalAlpha(frameContext, 1);
         drawImage(bufferNavigatorCanvas, 0, navigatorTop);
     }
@@ -1444,13 +1705,11 @@ var Telegraph = function (ctxId, config) {
      */
     function redrawFrame() {
         clearCanvas(frameContext, totalWidth, totalHeight);
-        if (xAxisDataRef && yAxisDataRefs) {
+        if (xAxisDataRef && yAxisDataRefs && charts.length) {
             setFont(frameContext, envRegularSmallFont);
             drawNavigatorLayer(vTrue);
             performance.mark(measure.drawNavigatorLayer);
-
-
-            drawHorizontalGrid();
+            charts[0].drawHorizontalGrid();
             performance.mark(measure.drawHorizontalGrid);
             drawSeries();
             performance.mark(measure.drawSeries);
@@ -1519,31 +1778,9 @@ var Telegraph = function (ctxId, config) {
      * Calculates the X-axis labels
      */
     function calcSmartAxisY() {
-        var _prevProposed = fMathCeil((selectionMaxY - selectionMinY) / 6),
-            _threshold = _prevProposed / 25,
-            _i = fMathCeil(selectionMinY),
-            _factor = 1,
-            _newProposed,
-            _divider;
-
-        if (_prevProposed > 10) {
-        } else if (_prevProposed > 2) {
-            _factor = _factor / 10;
-        } else {
-            _factor = _factor / 1000;
+        for (var _i in charts) {
+            charts[_i].calculateSmartAxisY();
         }
-
-        do {
-            if (_i >= getLength(CONST_HUMAN_SCALES)) {
-                _i = 0;
-                _factor = _factor * 10;
-            }
-            _divider = CONST_HUMAN_SCALES[_i] * _factor;
-            _newProposed = fMathCeil(_prevProposed / _divider) * _divider;
-            _i++;
-        } while (_newProposed - _prevProposed < _threshold);
-        animate(smartAxisYRangeFloat, setSmartAxisYRange, _newProposed);
-        smartAxisYRangeInt = _newProposed;
     }
 
     function calcSelectionFactors(yData, startIndex, endIndex, width, height) {
@@ -1559,6 +1796,14 @@ var Telegraph = function (ctxId, config) {
             _startIndexInt++;
         }
         var _endIndexInt = fMathCeil(endIndex);
+
+
+        for (var _i in charts) {
+            var _chart = charts[_i];
+            _chart.getMainAxis().calculateFactors(startIndex, endIndex);
+            _chart.calculateSmartAxisY();
+        }
+
         for (_i in yData) {
             _axisY = yData[_i];
             if (_axisY.bOn) {
@@ -1603,9 +1848,8 @@ var Telegraph = function (ctxId, config) {
         selectionEndIndexInt = fMathCeil(selectionEndIndexFloat);
         var _result = calcSelectionFactors(yAxisDataRefs, selectionStartIndexFloat,
             selectionEndIndexFloat, totalWidth, selectionHeight);
+        //todo remove it
         if (_result) {
-
-
             selectionFactorX = _result.factorX;
             selectionMaxY = _result.maxY;
             if (configMinValueAxisY !== vUndefined || _result.minY === selectionMinY) {
@@ -1619,6 +1863,7 @@ var Telegraph = function (ctxId, config) {
         }
 
         calcSmartAxisY();
+
         if (updateDateRangeTextTimer) {
             clearTimeout(updateDateRangeTextTimer);
         }
@@ -1851,6 +2096,10 @@ var Telegraph = function (ctxId, config) {
                 assignAxisProperty(_store, src.colors, "color");
                 assignAxisProperty(_store, src.names, "name");
 
+                for (var _i in _store.yAxisData) {
+                    var chart = _store.yAxisData[_i];
+                    charts.push(new ChartInfo(_store.xAxisData, chart));
+                }
 
                 if (!isHours) {
                     xAxisDataRef = _store.xAxisData;
@@ -1882,12 +2131,16 @@ var Telegraph = function (ctxId, config) {
      * @param l {Boolean=} is logarithmic scale
      * @returns {Boolean} animation enqueued
      */
-    function animate(i, c, p, s, o, l) {
+    function animate(i, c, p, s, o, l) { //todo remove o
 
         var _key = getFunctionName(c),
             _frameCount,
             _exAnimationFrames;
         if (i !== p && c) { //no need animation
+            if (this) {
+                _key += this.getAlias();
+            }
+
             if (o) {
                 _key += o.alias;
             }
@@ -1987,6 +2240,8 @@ var Telegraph = function (ctxId, config) {
      */
     function animationComplete(animationKey) {
         if (animationKey === CONST_SELECTION_FACTOR_Y_ANIMATION_KEY) {
+
+
             calcSmartAxisY();
             animate(smartAxisYOpacity, setAxisYLabelOpacity, 1, 10);
         } else if (animationKey === CONST_AXIS_X_LABEL_OPACITY_ANIMATION_KEY && smartAxisXFrozen) {
@@ -2015,8 +2270,7 @@ var Telegraph = function (ctxId, config) {
                     selectionFactorY = dataStore.hours.factors.factorY;
                     associateZoomStart(dataStore.hours.startIndex - 1, 1);
                     associateZoomEnd(dataStore.hours.endIndex - 1, 1);
-                    //  assignSelectionFactors(vTrue);
-                    //
+
 
                 } else if (currentZoomState === STATE_ZOOM_TRANSFORM_TO_DAYS) {
                     currentZoomState = STATE_ZOOM_DAYS;
@@ -2024,6 +2278,11 @@ var Telegraph = function (ctxId, config) {
             }
         }
     }
+
+    function setTheme(dark) {
+
+    }
+
 
     function measureDurations() {
         try {
@@ -2069,6 +2328,8 @@ var Telegraph = function (ctxId, config) {
         if (selectionNeedUpdateFactorY) {
             selectionNeedUpdateFactorY = vFalse;
             assignSelectionFactors();
+
+
         }
 
         performance.mark(measure.calcSelectionFactors);
@@ -2098,6 +2359,7 @@ var Telegraph = function (ctxId, config) {
         clear: clear,
         destroy: destroy,
         hovered: getMouseHoveredRegionType,
-        setLoadDetailsCallback: setLoadDetailsCallback
+        setLoadDetailsCallback: setLoadDetailsCallback,
+        setTheme: setTheme
     };
 };

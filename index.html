@@ -90,14 +90,6 @@
         })
         instances.push(tc);
         loaded[sn] = true;
-        if (sn === 5) {
-            setTimeout(function () {
-                for (var k = 0; k < instances.length; k++) {
-                    instances[k].invalidate(true);
-                }
-            }, 0);
-
-        }
     }
 
     function loadChart(sn, subUrl, title) {
@@ -140,6 +132,37 @@
         }
     });
 
+
+    function updateTheme(darkMode) {
+        var theme;
+        if (darkMode) {
+            theme =
+                {
+                    scrollBackground: "#304259",  //60%
+                    scrollSelector: "#56626D",
+                    gridLines: "#FFFFFF", // 10%
+                    zoomOutTex: "#48AAF0",
+                    tooltipArrow: "#D2D5D7",
+                    axisText: "#8E8E93"
+                }
+        }
+        else {
+            theme =
+                {
+                    scrollBackground: "#E2EEF9",  //60%
+                    scrollSelector: "#C0D1E1",
+                    gridLines: "#C0D1E1",  // 10%
+                    zoomOutTex: "#108BE3",
+                    tooltipArrow: "#D2D5D7",
+                    axisText: "#A3B1C2", //60%
+                }
+        }
+
+        for (var k = 0; k < instances.length; k++) {
+            instances[k].setTheme(theme);
+        }
+    }
+
     function switchButton(target) {
         if (!darkMode) {
             target.innerText = 'Switch to Night Mode';
@@ -148,6 +171,7 @@
             target.innerText = 'Switch to Day Mode';
             changeClass("dark", true);
         }
+        updateTheme(darkMode);
     }
 
     switchButton(dark_mode_button);
