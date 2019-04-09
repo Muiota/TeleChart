@@ -43,13 +43,14 @@ tc.draw(data);
 - Area, bar, pie type of series 
 - Performance, minimize & fixes
 ````      
- - GlobalAlpha performance issue 
  - Click on selection in desktop
  - Ramer–Douglas–Peucker algorithm when animate
  - Tooltip in DOM
  - Change text animation
  - Svg to outer files
  - Css to outer file
+ 
+ - split axis object
  
  video 1
   - label on top (name "Followers" and range "1 April 2019 - 30 April 2019")

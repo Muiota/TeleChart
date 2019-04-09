@@ -14,7 +14,6 @@ var Telegraph = function (ctxId, config) {
         drawSeriesLegend: "drawSeriesLegend",
         drawPressHighlight: "drawPressHighlight",
         end: "end"
-
     }
 
     /**
@@ -166,9 +165,8 @@ var Telegraph = function (ctxId, config) {
 
         envSmallTextHeight,             //@type {Number} small font height
         envDefaultTextHeight,           //@type {Number} regular font height
-        envColorGrad = [],              //@type {Array of numbers} array of opacity by environment color 0..1 step 0.01
-        envWhiteColorGrad = [],         //@type {Array of numbers} array of opacity by white color 0..1
-        envBgColorGrad = [],            //@type {Array of numbers} array of opacity by environment background color 0..1
+        envColor,              //@type {Array of numbers} array of opacity by environment color 0..1 step 0.01
+        envBgColor ,            //@type {Array of numbers} array of opacity by environment background color 0..1
         envRegularSmallFont,            //@type {String} regular small font
         envBoldSmallFont,               //@type {String} bold small font
         envRegularDefaultFont,          //@type {String} regular default font
@@ -181,7 +179,7 @@ var Telegraph = function (ctxId, config) {
         dateSingleton = new Date(),     //@type {Date} singleton for date format
         dateSingletonFull = new Date(),     //@type {Date} singleton for date format
 
-        timeZoneOffset = +dateSingleton.getTimezoneOffset() * 60 * 1000,
+        timeZoneOffset = dateSingleton.getTimezoneOffset() * 60000,
 
         isTouchEvent,
         dayRangeDiv,
@@ -462,16 +460,9 @@ var Telegraph = function (ctxId, config) {
             recalculateBounds();
         }
 
-        var _envColor = getBodyStyle("color"),
-            _envBgColor = getBodyStyle("background-color"),
-            _opacity,
-            _i;
-        for (_i = 0; _i <= 100; _i++) {
-            _opacity = _i / 100;
-            envColorGrad[_i] = getRGBA(_envColor, _opacity);
-            envBgColorGrad[_i] = getRGBA(_envBgColor, _opacity);
-            envWhiteColorGrad[_i] = getRGBA("#FFFFFF", _opacity);
-        }
+        envColor = getBodyStyle("color");
+        envBgColor = getBodyStyle("background-color");
+
         calcMouseOffset();
         invalidateInner();
     }
@@ -1008,6 +999,7 @@ var Telegraph = function (ctxId, config) {
         moveOrLine(context, vFalse, x, y + uIBtnRadius);
         quadraticCurveTo(context, x, y, x + uIBtnRadius, y);
         closePath(context);
+        setGlobalAlpha(frameContext, legendBoxOpacity * legendCursorOpacity * 0.9);
         fill(context);
         endPath(context);
     }
@@ -1064,7 +1056,8 @@ var Telegraph = function (ctxId, config) {
         var _nextScaleLevel = selectionBottom,
             _yCoordinate;
         beginPath(frameContext);
-        setStrokeStyle(frameContext, envColorGrad[10]);
+        setGlobalAlpha(frameContext, 0.1);
+        setStrokeStyle(frameContext, envColor);
         setLineWidth(frameContext, displayScaleFactor);
         while (_nextScaleLevel > navigatorHeightHalf) {
             _yCoordinate = fMathCeil(_nextScaleLevel) + CONST_ANTI_BLUR_SHIFT;
@@ -1073,6 +1066,7 @@ var Telegraph = function (ctxId, config) {
             _nextScaleLevel = _nextScaleLevel + smartAxisYRangeFloat * selectionFactorY;
         }
         endPath(frameContext);
+        setGlobalAlpha(frameContext, 1);
     }
 
     /**
@@ -1080,8 +1074,6 @@ var Telegraph = function (ctxId, config) {
      */
     function drawAxisLabels() {
         var _selectionAxis = selectionBottom,
-            _color = envColorGrad[fParseInt(50 * seriesMaxOpacity * smartAxisXOpacity)],
-            _bgColor = envBgColorGrad[fParseInt(70 * smartAxisYOpacity)],
             _needCalc = !smartAxisXStart || !smartAxisXFrozen,
             _i,
             _prevSmartAxisRange,
@@ -1107,6 +1099,8 @@ var Telegraph = function (ctxId, config) {
         _nextItem = smartAxisXStart;
         _axisRange = smartAxisXRange;
 
+        var _mainOpacity = seriesMaxOpacity * smartAxisXOpacity * 0.5;
+
         if (!_needCalc) { //Auto show/hide sub labels when resize
             if (smartAxisXRatio < 0) {
                 _nextStage = fMathFloor(smartAxisXRatio);
@@ -1131,17 +1125,17 @@ var Telegraph = function (ctxId, config) {
             while (_nextItem < selectionStartIndexInt) {
                 _nextItem = _nextItem + _axisRange;
             }
-            _opacity = envColorGrad[fParseInt(50 * _opacity * seriesMaxOpacity * smartAxisXOpacity)];
+            _opacity = _opacity * _mainOpacity;
         }
         _labelY = _selectionAxis + uIGlobalPadding * 5;
-
+        setFillStyle(frameContext, envColor);
         setLineWidth(frameContext);
         for (_i = _nextItem - _axisRange; _i <= selectionEndIndexInt; _i += _axisRange) {
             _nextItem = fMathCeil(_i);
             _labelX = (_nextItem - selectionStartIndexFloat ) * selectionFactorX;
-            _opacity && fMathAbs((_nextItem - smartAxisXStart) % _prevSmartAxisRange) >= 1 ?
-                setFillStyle(frameContext, _opacity) :
-                setFillStyle(frameContext, _color);
+            _opacity !== vUndefined && fMathAbs((_nextItem - smartAxisXStart) % _prevSmartAxisRange) >= 1 ?
+                setGlobalAlpha(frameContext, _opacity) :
+                setGlobalAlpha(frameContext, _mainOpacity);
             if (_nextItem > 0) {
                 var _text = currentZoomState !== STATE_ZOOM_HOURS ?
                     formatDate(xAxisDataRef.data[_nextItem]) :
@@ -1152,7 +1146,8 @@ var Telegraph = function (ctxId, config) {
         }
 
         //Y-axis labels ============================
-        _color = envColorGrad[fParseInt(50 * getMin(seriesMaxOpacity, smartAxisYOpacity))];
+        setGlobalAlpha(frameContext, getMin(seriesMaxOpacity, smartAxisYOpacity) * 0.5);
+
         while (_selectionAxis > navigatorHeightHalf) {
             _labelY = fParseInt(_selectionAxis) + CONST_ANTI_BLUR_SHIFT - uIGlobalPadding;
             _value = _nextScaleValue.toString();
@@ -1164,14 +1159,16 @@ var Telegraph = function (ctxId, config) {
                 _value = _nextScaleValue / 1000 + "K";
             }
 
-            setFillStyle(frameContext, _bgColor);
+            setFillStyle(frameContext, envBgColor);
             fillRect(frameContext, uiGlobalPaddingHalf, _labelY - envSmallTextHeight + 2,
                 getTextWidth(frameContext, _value) + uIGlobalPadding2, envSmallTextHeight);
-            setFillStyle(frameContext, _color);
+            setFillStyle(frameContext, envColor);
             fillText(frameContext, _value, uIGlobalPadding, _labelY);
             _nextScaleValue = fParseInt(_nextScaleValue + smartAxisYRangeInt);
             _selectionAxis = _selectionAxis + smartAxisYRangeFloat * selectionFactorY;
+
         }
+        setGlobalAlpha(frameContext, 1);
     }
 
 
@@ -1185,7 +1182,7 @@ var Telegraph = function (ctxId, config) {
             _k;
 
         beginPath(bufferNavigatorContext);
-        setStrokeStyle(bufferNavigatorContext, series.sCg[100]);
+        setStrokeStyle(bufferNavigatorContext, series.color);
         setGlobalAlpha(bufferNavigatorContext, series.sO);
 
         for (_k = 1; _k < xAxisDataRef.l;) {
@@ -1222,7 +1219,8 @@ var Telegraph = function (ctxId, config) {
             }
             //selection series
             beginPath(frameContext);
-            setStrokeStyle(frameContext, _axisY.sCg[fParseInt(100 * _axisY.sO)]);
+            setGlobalAlpha(frameContext, _axisY.sO);
+            setStrokeStyle(frameContext, _axisY.color);
             setLineWidth(frameContext, config.lineWidth || 2 * displayScaleFactor);
 
             for (_k = selectionStartIndexInt; _k <= selectionEndIndexInt;) {
@@ -1248,6 +1246,7 @@ var Telegraph = function (ctxId, config) {
             endPath(frameContext);
         }
         navigatorNeedUpdateBuffer = vFalse;
+        setGlobalAlpha(frameContext, 1);
         drawImage(bufferNavigatorCanvas, 0, navigatorTop);
     }
 
@@ -1264,8 +1263,6 @@ var Telegraph = function (ctxId, config) {
             _to = _from + 1,
             _i,
             _axisY,
-            _legendCursorOpacity = 100 * legendCursorOpacity,
-
             _qnt = 0,
             _overlap,
             _sValueYFrom,
@@ -1276,7 +1273,8 @@ var Telegraph = function (ctxId, config) {
             _value;
 
         beginPath(frameContext);
-        setStrokeStyle(frameContext, envColorGrad[fParseInt(40 * legendCursorOpacity)]);
+        setStrokeStyle(frameContext, envColor);
+        setGlobalAlpha(frameContext, 0.4 * legendCursorOpacity);
         setLineWidth(frameContext);
         moveOrLine(frameContext, vTrue, _sValueX, 0);
         moveOrLine(frameContext, vFalse, _sValueX, selectionBottom);
@@ -1295,12 +1293,14 @@ var Telegraph = function (ctxId, config) {
             }
 
             beginPath(frameContext);
-            setFillStyle(frameContext, envBgColorGrad[fParseInt(_legendCursorOpacity * _opacity)]);
+            setGlobalAlpha(frameContext, legendCursorOpacity * _opacity);
+            setFillStyle(frameContext, envBgColor);
             circle(frameContext, _sValueX, _sValueY, 3 * displayScaleFactor);
             fill(frameContext);
 
             beginPath(frameContext);
-            setStrokeStyle(frameContext, _axisY.sCg[fParseInt(_legendCursorOpacity * _opacity)]);
+
+            setStrokeStyle(frameContext, _axisY.color);
 
             circle(frameContext, _sValueX, _sValueY, 4 * displayScaleFactor);
             endPath(frameContext);
@@ -1324,12 +1324,14 @@ var Telegraph = function (ctxId, config) {
             if (_rightThreshold < 0) {
                 _rightThreshold = 0;
             }
-            setStrokeStyle(frameContext, envColorGrad[fParseInt(40 * legendBoxOpacity * legendCursorOpacity)]);
-            setFillStyle(frameContext, envBgColorGrad[fParseInt(30 + 60 * legendBoxOpacity * legendCursorOpacity)]);
+            setGlobalAlpha(frameContext, legendBoxOpacity * legendCursorOpacity);
+            setGlobalAlpha(frameContext, 1);
+            setStrokeStyle(frameContext, envColor);
+            setFillStyle(frameContext, envBgColor);
             drawBalloon(frameContext, _sValueX + legendLeft + _leftThreshold, legendTop,
                 legendWidth - _leftThreshold + _rightThreshold, legendHeight);
             setFont(frameContext, envBoldSmallFont);
-            setFillStyle(frameContext, envColorGrad[fParseInt(legendBoxOpacity * _legendCursorOpacity)]);
+            setFillStyle(frameContext, envColor);
             fillText(frameContext, legendDateText, _sValueX + legendTextLeft[0], legendDateTop);
 
             _sValueY = uIBtnRadius + uIGlobalPadding2;
@@ -1342,7 +1344,8 @@ var Telegraph = function (ctxId, config) {
                     if (!_isEven) {
                         _sValueY += (envDefaultTextHeight + envSmallTextHeight + uIGlobalPadding4);
                     }
-                    setFillStyle(frameContext, _axisY.sCg[fParseInt(legendBoxOpacity * _legendCursorOpacity)]);
+                    setGlobalAlpha(frameContext, legendBoxOpacity * legendCursorOpacity);
+                    setFillStyle(frameContext, _axisY.color);
                     setFont(frameContext, envBoldDefaultFont);
                     fillText(frameContext, _value, _sValueX + _shiftX, _sValueY);
                     setFont(frameContext, envRegularSmallFont);
@@ -1352,6 +1355,7 @@ var Telegraph = function (ctxId, config) {
                 }
             }
         }
+        setGlobalAlpha(frameContext, 1);
     }
 
     /**
@@ -1371,7 +1375,8 @@ var Telegraph = function (ctxId, config) {
             }
 
             beginPath(frameContext);
-            setFillStyle(frameContext, envColorGrad[fParseInt(navigatorPressed * 20)]);
+            setGlobalAlpha(frameContext, 0.2 * navigatorPressed);
+            setFillStyle(frameContext, envColor);
 
             circle(frameContext, _x, navigatorTop + navigatorHeightHalf, navigatorPressed * 20 * displayScaleFactor);
             fill(frameContext);
@@ -1393,8 +1398,8 @@ var Telegraph = function (ctxId, config) {
             var _x = overflow < 0 ? 0 : totalWidth - uIBtnRadius,
                 _grd;
             _grd = frameContext.createLinearGradient(_x, 0, _x + uIBtnRadius, 0);
-            _grd.addColorStop(_x ? 0 : 1, envColorGrad[0]);
-            _grd.addColorStop(_x ? 1 : 0, envColorGrad[fParseInt(20 * fMathAbs(overflow))]);
+            _grd.addColorStop(_x ? 0 : 1, getRGBA(envColor, 0));
+            _grd.addColorStop(_x ? 1 : 0, getRGBA(envColor, fMathAbs(overflow) * 0.2));
             setFillStyle(frameContext, _grd);
             fillRect(frameContext, _x, 0, uIBtnRadius, selectionBottom);
         }
@@ -1405,21 +1410,23 @@ var Telegraph = function (ctxId, config) {
      * @param isBackground
      */
     function drawNavigatorLayer(isBackground) {
+        setFillStyle(frameContext, envColor);
         if (isBackground) {
-            setFillStyle(frameContext, envColorGrad[30]);
+            setGlobalAlpha(frameContext, 0.3);
             fillRect(frameContext, zoomStartInt, navigatorTop, zoomEndInt - zoomStartInt, navigatorHeight);
-            setFillStyle(frameContext, envBgColorGrad[100]);
+            setGlobalAlpha(frameContext, 1);
+            setFillStyle(frameContext, envBgColor);
             fillRect(frameContext, zoomStartInt + uIGlobalPadding2, navigatorTop + uiGlobalPaddingHalf, zoomEndInt -
                 zoomStartInt - uIGlobalPadding4, navigatorHeight - uIGlobalPadding);
         } else {
-            setFillStyle(frameContext, envColorGrad[10]);
+            setGlobalAlpha(frameContext, 0.1);
             fillRect(frameContext, 0, navigatorTop, zoomStartInt, navigatorHeight);
             fillRect(frameContext, zoomEndInt, navigatorTop, totalWidth - zoomEndInt, navigatorHeight);
-
-            setFillStyle(frameContext, envBgColorGrad[50]);
+            setFillStyle(frameContext, envBgColor);
             fillRect(frameContext, 0, navigatorTop, zoomStartInt, navigatorHeight);
             fillRect(frameContext, zoomEndInt, navigatorTop, totalWidth - zoomEndInt, navigatorHeight);
         }
+        setGlobalAlpha(frameContext, 1);
     }
 
     /**
@@ -1843,13 +1850,7 @@ var Telegraph = function (ctxId, config) {
                 assignAxisProperty(_store, src.types, "type");
                 assignAxisProperty(_store, src.colors, "color");
                 assignAxisProperty(_store, src.names, "name");
-                for (_i in _store.yAxisData) {
-                    var _axis = _store.yAxisData[_i];
-                    _axis.sCg = [];
-                    for (var _j = 0; _j <= 100; _j++) {
-                        _axis.sCg[_j] = getRGBA(_axis.color, _j / 100); //todo globalalpha
-                    }
-                }
+
 
                 if (!isHours) {
                     xAxisDataRef = _store.xAxisData;
@@ -2040,7 +2041,8 @@ var Telegraph = function (ctxId, config) {
 
             var y = 50;
             setFont(frameContext, envRegularSmallFont);
-            setFillStyle(frameContext, envColorGrad[30])
+            setFillStyle(frameContext, envColor);
+            setGlobalAlpha(frameContext, 0.2);
             for (var measureIndex in measures) {
                 var meas = measures[measureIndex];
                 frameContext.fillText(meas.name + " " + meas.duration.toFixed(4), uIBtnRadius2, y);
