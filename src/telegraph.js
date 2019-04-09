@@ -303,10 +303,10 @@ var Telegraph = function (ctxId, config) {
                 if (isStartFromZero || localMinY === selectionMinY) {
                     localMinY = _localMinY
                     animate.apply(this, [factorY, setFactorY, _factorY,
-                        (withoutAnimations ? 1 : vNull), vUndefined, vTrue]);
+                        (withoutAnimations ? 1 : vNull), vTrue]);
                 } else {
                     animate.apply(this, [localMinY * 1, setLocalMinY, _localMinY,
-                        (withoutAnimations ? 1 : vNull), vUndefined, vTrue]);
+                        (withoutAnimations ? 1 : vNull), vTrue]);
                 }
             }
         }
@@ -355,6 +355,7 @@ var Telegraph = function (ctxId, config) {
         var smartAxisYRangeFloat;
 
         var opacity = 1,
+            enabled = vTrue,
             filterAxis = new AxisInfo(alias + "f", xData, yData, totalWidth, navigatorHeight, 1, vTrue),
             mainAxis = new AxisInfo(alias + "m", xData, yData, totalWidth, selectionHeight, config.lineWidth || 2, vTrue);
 
@@ -397,6 +398,7 @@ var Telegraph = function (ctxId, config) {
 
         function setOpacity(val) {
             opacity = val;
+            navigatorNeedUpdateBuffer = vTrue;
         }
 
         function getName() {
@@ -518,6 +520,72 @@ var Telegraph = function (ctxId, config) {
                 navigatorHeight);
         }
 
+        function drawPoints() {
+            setLineWidth(frameContext, mainAxis.getLineWidth() * displayScaleFactor);
+            var _sValueX = (selectionCurrentIndexFloat - selectionStartIndexFloat  ) * mainAxis.getFactorX(),
+                _sValueY,
+                _sValueYTo,
+                _from = fMathFloor(selectionCurrentIndexFloat),
+                _to = _from + 1,
+                _sValueYFrom = selectionBottom + (yData[_from] - mainAxis.getLocalMinY()) * mainAxis.getFactorY();
+            if (_from === selectionCurrentIndexFloat || _to > _lastIndex) {
+                _sValueY = _sValueYFrom;
+            } else {
+                _sValueYTo = selectionBottom + (yData[_to] -  mainAxis.getLocalMinY()) *  mainAxis.getFactorY();
+                _sValueY = _sValueYFrom + (_sValueYTo - _sValueYFrom) * (selectionCurrentIndexFloat - _from);
+            }
+
+            beginPath(frameContext);
+            setGlobalAlpha(frameContext, legendCursorOpacity * opacity);
+            setFillStyle(frameContext, envBgColor);
+            circle(frameContext, _sValueX, _sValueY, 3 * displayScaleFactor);
+            fill(frameContext);
+            beginPath(frameContext);
+            setStrokeStyle(frameContext, color);
+            circle(frameContext, _sValueX, _sValueY, 4 * displayScaleFactor);
+            endPath(frameContext);
+        }
+
+        function handleButtonPress(e, owner) {
+            enabled = !enabled
+            if (enabled) {
+                e.currentTarget.classList.add("checked");
+            } else {
+                e.currentTarget.classList.remove("checked");
+            }
+            animate.apply(owner, [opacity, setOpacity, enabled ? 1 : 0]);
+            selectionNeedUpdateFactorY = vTrue;
+        }
+
+        function createButton() {
+            var _button = createElement("div",
+                "btn_", ["button", "checked"], {
+                    border: "2px " + color + " solid",
+                    color: color, backgroundColor: color
+                }, buttonsContainer);
+            var _that = this;
+            _button.addEventListener("click", function (e) {
+                handleButtonPress(e, _that);
+            });
+
+            var _checkBox = createElement("span",
+                "ch_", ["button-icon"], {}, _button);
+
+            _checkBox.innerHTML = "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n" +
+                "<svg  xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"12px\" height=\"12px\" x=\"0px\" y=\"0px\"" +
+                " viewBox=\"0 0 17.837 17.837\">" +
+                "<g>" +
+                "<path style=\"fill:#ffffff;\" d=\"M16.145,2.571c-0.272-0.273-0.718-0.273-0.99,0L6.92,10.804l-4.241-4.27" +
+                "c-0.272-0.274-0.715-0.274-0.989,0L0.204,8.019c-0.272,0.271-0.272,0.717,0,0.99l6.217,6.258c0.272,0.271,0.715,0.271,0.99,0" +
+                "L17.63,5.047c0.276-0.273,0.276-0.72,0-0.994L16.145,2.571z\"/>" +
+                "</g>" +
+                "</svg>";
+
+            var _text = createElement("span",
+                "ch_", ["button-text"], {}, _button);
+            _text.innerHTML = name;
+        }
+
         function toString() {
             return "Chart " + name + " {\n" +
                 "\ttype: " + type + ",\n" +
@@ -532,24 +600,20 @@ var Telegraph = function (ctxId, config) {
             return mainAxis;
         }
 
-        function getSmartAxisYRangeInt() {
-            return smartAxisYRangeInt;
-        }
-
         return {
             getColor: getColor,
             getName: getName,
             getType: getType,
             getAlias: getAlias,
             getOpacity: getOpacity,
-            setOpacity: setOpacity,
             calculateSmartAxisY: calculateSmartAxisY,
             drawYAxisLabels: drawYAxisLabels,
             drawHorizontalGrid: drawHorizontalGrid,
             drawMainSeries: drawMainSeries,
             drawFilterSeries: drawFilterSeries,
+            drawPoints: drawPoints,
             getMainAxis: getMainAxis,
-            getSmartAxisYRangeInt: getSmartAxisYRangeInt,
+            createButton: createButton,
             toString: toString
         };
     };
@@ -691,7 +755,7 @@ var Telegraph = function (ctxId, config) {
     function setSelectionMinY(val) {
         selectionMinY = val;
         animate(selectionFactorY, setSelectionFactorY, -(selectionHeight - 2) / (selectionMaxY - selectionMinY),
-            vNull, vUndefined, vTrue);
+            vNull, vTrue);
     }
 
     function setNavigationFactorY(val) {
@@ -702,7 +766,7 @@ var Telegraph = function (ctxId, config) {
     function setNavigatorMinY(val) {
         navigatorMinY = val;
         navigatorNeedUpdateBuffer = vTrue;
-        if (animate(navigatorFactorY, setNavigationFactorY, -(navigatorHeight - 2) / (navigatorMaxY - navigatorMinY), vNull, vUndefined, vTrue)) {
+        if (animate(navigatorFactorY, setNavigationFactorY, -(navigatorHeight - 2) / (navigatorMaxY - navigatorMinY), vNull, vTrue)) {
             animate(smartAxisYOpacity, setAxisYLabelOpacity, 0, 2);
         }
     }
@@ -737,11 +801,6 @@ var Telegraph = function (ctxId, config) {
         legendWidth = val;
     }
 
-    function setSeriesOpacity(val, series) {
-        series.sO = val;
-        navigatorNeedUpdateBuffer = vTrue;
-    }
-
     function setAxisYLabelOpacity(val) {
         smartAxisYOpacity = val;
     }
@@ -767,6 +826,7 @@ var Telegraph = function (ctxId, config) {
      * Clears the chart
      */
     function clear() {
+        removeAllChild(buttonsContainer);
         charts.length = 0;
         xAxisDataRef = vNull;
         yAxisDataRefs = [];
@@ -777,6 +837,7 @@ var Telegraph = function (ctxId, config) {
         while (parent.firstChild) {
             parent.removeChild(parent.firstChild);
         }
+        parent.innerHTML = "";
     }
 
 
@@ -1515,20 +1576,14 @@ var Telegraph = function (ctxId, config) {
      * Draws the legend
      */
     function drawSeriesLegend() { //todo optimize (big code)
-        var _selectionAxis = selectionBottom,
-            _sValueX = (selectionCurrentIndexFloat - selectionStartIndexFloat  ) * selectionFactorX,
+        var _sValueX = (selectionCurrentIndexFloat - selectionStartIndexFloat  ) * selectionFactorX,
             _sValueY,
             _leftThreshold = _sValueX + legendLeft - displayScaleFactor * 2,
             _rightThreshold = 0,
-            _from = fMathFloor(selectionCurrentIndexFloat),
-            _to = _from + 1,
             _i,
             _axisY,
             _qnt = 0,
             _overlap,
-            _sValueYFrom,
-            _sValueYTo,
-            _opacity,
             _isEven,
             _shiftX,
             _value;
@@ -1540,36 +1595,11 @@ var Telegraph = function (ctxId, config) {
         moveOrLine(frameContext, vTrue, _sValueX, 0);
         moveOrLine(frameContext, vFalse, _sValueX, selectionBottom);
         endPath(frameContext);
-        setLineWidth(frameContext, 2 * displayScaleFactor);
-
-        for (_i in yAxisDataRefs) {
-            _axisY = yAxisDataRefs[_i];
-            _sValueYFrom = _selectionAxis + (_axisY.data[_from] - selectionMinY) * selectionFactorY;
-            _opacity = _axisY.sO;
-            if (_from === selectionCurrentIndexFloat || _to >= xAxisDataRef.l) {
-                _sValueY = _sValueYFrom;
-            } else {
-                _sValueYTo = _selectionAxis + (_axisY.data[_to] - selectionMinY) * selectionFactorY;
-                _sValueY = _sValueYFrom + (_sValueYTo - _sValueYFrom) * (selectionCurrentIndexFloat - _from);
-            }
-
-            beginPath(frameContext);
-            setGlobalAlpha(frameContext, legendCursorOpacity * _opacity);
-            setFillStyle(frameContext, envBgColor);
-            circle(frameContext, _sValueX, _sValueY, 3 * displayScaleFactor);
-            fill(frameContext);
-
-            beginPath(frameContext);
-
-            setStrokeStyle(frameContext, _axisY.color);
-
-            circle(frameContext, _sValueX, _sValueY, 4 * displayScaleFactor);
-            endPath(frameContext);
+        for (_i in charts) {
+            charts[_i].drawPoints();
         }
 
-
         if (legendBoxOpacity > 0) {
-
             if (_leftThreshold < 0) {
                 _sValueX = displayScaleFactor * 2 - legendLeft;
             }
@@ -1764,11 +1794,11 @@ var Telegraph = function (ctxId, config) {
                 navigatorMaxY = _max;
                 if (configMinValueAxisY !== vUndefined || navigatorMinY === _min) {
                     navigatorMinY = _min;
-                    if (animate(navigatorFactorY, setNavigationFactorY, _navigatorFactorY, vNull, vUndefined, vTrue)) {
+                    if (animate(navigatorFactorY, setNavigationFactorY, _navigatorFactorY, vNull, vTrue)) {
                         animate(smartAxisYOpacity, setAxisYLabelOpacity, 0, 2);
                     }
                 } else {
-                    animate(navigatorMinY * 1, setNavigatorMinY, _min * 1, vNull, vUndefined, vTrue);
+                    animate(navigatorMinY * 1, setNavigatorMinY, _min * 1, vNull, vTrue);
                 }
             }
         }
@@ -1936,64 +1966,10 @@ var Telegraph = function (ctxId, config) {
         titleDiv.innerHTML = config.title || "";
     }
 
-    function handleButtonPress() {
-        var _index = this.getAttribute("data-index");
-        var _axis = yAxisDataRefs[fParseInt(_index)];
-        _axis.bOn = !_axis.bOn
-        if (_axis.bOn) {
-            this.classList.add("checked");
-        } else {
-            this.classList.remove("checked");
-        }
-        animate(_axis.sO, setSeriesOpacity, _axis.bOn ? 1 : 0, vUndefined, _axis);
-        calcNavigatorFactors();
-        assignSelectionFactors();
-    }
 
 
-    function createButton(index) { //todo remove all buttons before
-        var _axis = yAxisDataRefs[index];
-        var title = _axis.name;
-        var color = _axis.color;
-        var _button = createElement("div",
-            "btn_", ["button"], {
-                border: "2px " + color + " solid",
-                color: color, backgroundColor: color
-            }, buttonsContainer);
 
-        if (_axis.bOn) {
-            _button.classList.add("checked");
-        }
-        _button.setAttribute("data-index", index);
-        _button.addEventListener("click", handleButtonPress);
 
-        var _checkBox = createElement("span",
-            "ch_", ["button-icon"], {}, _button);
-
-        _checkBox.innerHTML = "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n" +
-            "<svg  xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"12px\" height=\"12px\" x=\"0px\" y=\"0px\"" +
-            " viewBox=\"0 0 17.837 17.837\">" +
-            "<g>" +
-            "<path style=\"fill:#ffffff;\" d=\"M16.145,2.571c-0.272-0.273-0.718-0.273-0.99,0L6.92,10.804l-4.241-4.27" +
-            "c-0.272-0.274-0.715-0.274-0.989,0L0.204,8.019c-0.272,0.271-0.272,0.717,0,0.99l6.217,6.258c0.272,0.271,0.715,0.271,0.99,0" +
-            "L17.63,5.047c0.276-0.273,0.276-0.72,0-0.994L16.145,2.571z\"/>" +
-            "</g>" +
-            "</svg>";
-
-        var _text = createElement("span",
-            "ch_", ["button-text"], {}, _button);
-        _text.innerHTML = title;
-    }
-
-    /**
-     * Calculates the buttons params
-     */
-    function createButtons() {
-        buttonsContainer.innerHTML = ""; //todo
-        for (var _i in yAxisDataRefs) {
-            createButton(_i);
-        }
-    }
 
     /**
      * Assign property from source
@@ -2096,16 +2072,17 @@ var Telegraph = function (ctxId, config) {
                 assignAxisProperty(_store, src.colors, "color");
                 assignAxisProperty(_store, src.names, "name");
 
-                for (var _i in _store.yAxisData) {
-                    var chart = _store.yAxisData[_i];
-                    charts.push(new ChartInfo(_store.xAxisData, chart));
+                for (_i in _store.yAxisData) {
+                    var _chart = _store.yAxisData[_i];
+                    var _chartInfo = new ChartInfo(_store.xAxisData, _chart);
+                    _chartInfo.createButton();
+                    charts.push(_chartInfo);
                 }
 
                 if (!isHours) {
                     xAxisDataRef = _store.xAxisData;
                     yAxisDataRefs = _store.yAxisData;
                     calcNavigatorFactors(vTrue);
-                    createButtons();
                 } else {
                     prepareHoursCache();
                 }
@@ -2123,39 +2100,33 @@ var Telegraph = function (ctxId, config) {
 
     /**
      * Animates the properties
-     * @param i {Number} initial value
-     * @param c {Function} setter of value
-     * @param s {Number=} speed (number of frames)
-     * @param p {Number} proposed value
-     * @param o {Object=} callback context
-     * @param l {Boolean=} is logarithmic scale
+     * @param initial {Number} initial value
+     * @param setter {Function} setter of value
+     * @param speed {Number=} speed (number of frames)
+     * @param proposed {Number} proposed value
+     * @param logarithmic {Boolean=} is logarithmic scale
      * @returns {Boolean} animation enqueued
      */
-    function animate(i, c, p, s, o, l) { //todo remove o
+    function animate(initial, setter, proposed, speed, logarithmic) {
 
-        var _key = getFunctionName(c),
+        var _key = getFunctionName(setter),
             _frameCount,
             _exAnimationFrames;
-        if (i !== p && c) { //no need animation
+        if (initial !== proposed && setter) { //no need animation
             if (this) {
                 _key += this.getAlias();
             }
 
-            if (o) {
-                _key += o.alias;
-            }
-
-            _frameCount = s || (mousePressed || mouseHoveredRegionType === ENUM_SELECTION_HOVER ? 5 : 15); //faster when user active
-            if (l && i) { // smooth logarithmic scale for big transitions
-                _exAnimationFrames = fMathCeil(fMathAbs(fMathLog(fMathAbs(p / i)) * 10));
+            _frameCount = speed || (mousePressed || mouseHoveredRegionType === ENUM_SELECTION_HOVER ? 5 : 15); //faster when user active
+            if (logarithmic && initial) { // smooth logarithmic scale for big transitions
+                _exAnimationFrames = fMathCeil(fMathAbs(fMathLog(fMathAbs(proposed / initial)) * 10));
                 _frameCount += getMin(_exAnimationFrames, 15);
             }
             animations[_key] = {
-                i: i,
-                c: c,
-                p: p,
-                s: _frameCount,
-                o: o
+                i: initial,
+                c: setter,
+                p: proposed,
+                s: _frameCount
             };
             return vTrue;
         }
@@ -2185,9 +2156,9 @@ var Telegraph = function (ctxId, config) {
                 _animation.i = _animation.i + _increment;
                 _epsilon = _animation.i - _animation.p;
                 if (_animation.f !== 0 && (_increment > 0 ? _epsilon <= 0 : _epsilon >= 0)) {
-                    _animation.c(_animation.i, _animation.o);
+                    _animation.c(_animation.i);
                 } else {
-                    _animation.c(_animation.p, _animation.o);
+                    _animation.c(_animation.p);
                     delete animations[_key];
                     animationComplete(_key);
                 }

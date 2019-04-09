@@ -51,6 +51,8 @@ tc.draw(data);
  - Css to outer file
  
  - split axis object
+ - congig colors
+ - config use first axis only, and 
  
  video 1
   - label on top (name "Followers" and range "1 April 2019 - 30 April 2019")
