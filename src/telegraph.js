@@ -359,7 +359,7 @@ var Telegraph = function (ctxId, config) {
         function initAxis(globalMainAxis, globalFilterAxis) {
             if (globalScaledY) {
                 filterAxis = new AxisInfo(alias + "f", xData, [this], visibleWidth, navigatorHeight, 1, vTrue);
-                mainAxis = new AxisInfo(alias + "m", xData, [this], visibleWidth, selectionHeight, config.lineWidth || 2, vTrue);
+                mainAxis = new AxisInfo(alias + "m", xData, [this], visibleWidth, selectionHeight, config.lineWidth || 1.5, vTrue);
                 filterAxis.calculateFactors(1, lastIndex);
                 //    mainAxis.calculateFactors(1, lastIndex);
             } else {
@@ -437,8 +437,8 @@ var Telegraph = function (ctxId, config) {
                 _nextScaleValue = fMathCeil(mainAxis.getLocalMinY()),
                 _value,
                 _textLength;
-            var _opacity = getMin((globalScaledY ? opacity : seriesMaxOpacity), smartAxisYOpacity);
-            setGlobalAlpha(frameContext, _opacity);
+            var _opacity = getMin((globalScaledY ? opacity : seriesMaxOpacity * smartAxisYOpacity* 0.5), smartAxisYOpacity);
+            setGlobalAlpha(frameContext, _opacity );
             setFillStyle(frameContext, globalScaledY ? color : envColor);
             while (_selectionAxis > navigatorHeightHalf) {
                 _labelY = fParseInt(_selectionAxis) + CONST_ANTI_BLUR_SHIFT - uIGlobalPadding;
@@ -462,23 +462,37 @@ var Telegraph = function (ctxId, config) {
 
         function drawTooltipArrow(currentIndexFloat, startIndexFloat) {
             var _shift = currentIndexFloat - startIndexFloat;
-            var _sValueX = uIGlobalPadding2 + (_shift) * mainAxis.getFactorX();
+            var _xCoord = uIGlobalPadding2 + (_shift) * mainAxis.getFactorX(),
+                _yCoord,
+                _yCoordStacked,
+                _position;
             switch (type) {
                 case "line":
                     beginPath(frameContext);
                     setStrokeStyle(frameContext, envColor);
                     setGlobalAlpha(frameContext, 0.4 * legendCursorOpacity);
                     setLineWidth(frameContext);
-                    moveOrLine(frameContext, vTrue, _sValueX, 0);
-                    moveOrLine(frameContext, vFalse, _sValueX, selectionBottom);
+                    moveOrLine(frameContext, vTrue, _xCoord, 0);
+                    moveOrLine(frameContext, vFalse, _xCoord, selectionBottom);
                     endPath(frameContext);
                     break;
                 case "bar":
-                    var _position = fMathFloor(currentIndexFloat);
-                    var _yVal = selectionBottom + (yData[_position] - mainAxis.getLocalMinY()) * mainAxis.getFactorY();
+                    _position = fMathFloor(currentIndexFloat);
+                    _yCoord = selectionBottom + (yData[_position] - mainAxis.getLocalMinY()) * mainAxis.getFactorY();
+
                     setFillStyle(frameContext, color);
                     setGlobalAlpha(frameContext, legendCursorOpacity);
-                    fillRect(frameContext, _sValueX, _yVal, mainAxis.getFactorX(), selectionBottom - _yVal);
+                    if (globalStackedBar) {
+                        //stackedRegister[_position] = _yCoord -  stackedRegister[_position];
+                        //_yCoordStacked =   stackedRegister[_position];
+                        _yCoordStacked = _yCoord - stackedRegister[_position];
+                        stackedRegister[_position] = stackedRegister[_position] + selectionBottom - _yCoord;
+
+                    } else
+                    {
+                        _yCoordStacked = _yCoord;
+                    }
+                    fillRect(frameContext, _xCoord, _yCoordStacked, mainAxis.getFactorX(), selectionBottom - _yCoord);
                     break;
             }
         }
@@ -784,7 +798,7 @@ var Telegraph = function (ctxId, config) {
         totalWidth = container.clientWidth * uiDisplayScaleFactor;           //main frame width
         visibleWidth = totalWidth - uIGlobalPadding4;
         navigatorHeight = fParseInt(totalWidth * CONST_NAVIGATOR_HEIGHT_PERCENT / 100); //nav height
-        selectionHeight = totalWidth - navigatorHeight - navigatorHeight * 2;      //selection window height
+        selectionHeight = totalWidth - navigatorHeight - navigatorHeight;      //selection window height
         navigatorHeightHalf = navigatorHeight / 2;                                 //half navigator height
         selectionBottom = selectionHeight + navigatorHeightHalf;                   //selection window bottom
         navigatorTop = fParseInt(selectionHeight + navigatorHeight + uIGlobalPadding4);        //navigator top
@@ -1621,6 +1635,7 @@ var Telegraph = function (ctxId, config) {
         }
 
         //Y-axis labels ============================
+
         for (_i in charts) {
             charts[_i].drawYAxisLabels(_i > 0);
             if (!globalScaledY) {
@@ -1698,7 +1713,7 @@ var Telegraph = function (ctxId, config) {
             _shiftX,
             _value;
 
-        charts[0].drawTooltipArrow(selectionCurrentIndexFloat, selectionStartIndexFloat);
+
         for (_i in charts) {
             charts[_i].drawPoints();
         }
@@ -1835,10 +1850,20 @@ var Telegraph = function (ctxId, config) {
             perf.mark(perf.drawNavigatorLayerB);
 
             if (seriesMaxOpacity > 0) {
+                if (globalStackedBar) {
+                    resetStackedRegister();
+                    for (var _i in charts) {
+                        charts[_i].drawTooltipArrow(selectionCurrentIndexFloat, selectionStartIndexFloat);
+                    }
+                }
+                else {
+                    charts[0].drawTooltipArrow(selectionCurrentIndexFloat, selectionStartIndexFloat);
+                }
                 drawAxisLabels();
                 if (legendCursorOpacity > 0) {
                     drawSeriesLegend();
                 }
+
             }
 
             perf.mark(perf.drawSeriesLegend);
