@@ -641,8 +641,8 @@ var Telegraph = function (ctxId, config) {
             var _checkBox = createElement("span",
                 "ch_", ["button-icon"], {}, _button);
 
-            _checkBox.innerHTML = "<?xml version=\"1.0\" encoding=\"iso-8859-1\"?>\n" +
-                "<svg  xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"12px\" height=\"12px\" x=\"0px\" y=\"0px\"" +
+            _checkBox.innerHTML = "<?xml version=\"1.0\"?>\n" +
+                "<svg  xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"12px\" height=\"14px\" x=\"0px\" y=\"0px\"" +
                 " viewBox=\"0 0 17.837 17.837\">" +
                 "<g>" +
                 "<path style=\"fill:#ffffff;\" d=\"M16.145,2.571c-0.272-0.273-0.718-0.273-0.99,0L6.92,10.804l-4.241-4.27" +
