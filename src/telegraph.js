@@ -168,7 +168,9 @@ var Telegraph = function (ctxId, config) {
         updateDateRangeTextTimer,
         buttonsContainer,
         animationCounter,
-        globalScaledY;
+        globalScaledY,
+        globalStackedBar,
+        stackedRegister = [];
 
     var AxisInfo = function (alias, xData, yDataContainer, width, height, lineWidth, isStartFromZero) {
         var length = xData.length,
@@ -204,7 +206,7 @@ var Telegraph = function (ctxId, config) {
 
         function setLocalMinY(val) {
             localMinY = val;
-            animate(factorY , setFactorY, -(height - 2) / (localMaxY - localMinY),
+            animate(factorY, setFactorY, -(height - 2) / (localMaxY - localMinY),
                 vNull, vTrue);
         }
 
@@ -239,20 +241,38 @@ var Telegraph = function (ctxId, config) {
                 _localMinY = isStartFromZero ? 0 : vUndefined,
                 _factorY,
                 _value,
+                _container,
+                _data,
                 _j,
                 _k;
 
             if (_startIndexInt === 0) {
                 _startIndexInt++;
             }
-            for (_j in yDataContainer) {
-                var _container = yDataContainer[_j];
-                var _data = _container.getYData();
-                if (_container.getEnabled()) {
-                    for (_k = _startIndexInt; _k <= _endIndexInt; _k++) {
-                        _value = _data[_k];
-                        _localMaxY = getMax(_value, _localMaxY);
-                        _localMinY = getMin(_value, _localMinY);
+            if (globalStackedBar) {
+                for (_k = _startIndexInt; _k <= _endIndexInt; _k++) {
+                    _value = 0;
+                    for (_j in yDataContainer) {
+                        _container = yDataContainer[_j];
+                        if (_container.getEnabled()) {
+                            _data = _container.getYData();
+                            _value += _data[_k];
+                        }
+                    }
+                    _localMaxY = getMax(_value, _localMaxY);
+                    _localMinY = getMin(_value, _localMinY);
+                }
+            }
+            else {
+                for (_j in yDataContainer) {
+                    _container = yDataContainer[_j];
+                    _data = _container.getYData();
+                    if (_container.getEnabled()) {
+                        for (_k = _startIndexInt; _k <= _endIndexInt; _k++) {
+                            _value = _data[_k];
+                            _localMaxY = getMax(_value, _localMaxY);
+                            _localMinY = getMin(_value, _localMinY);
+                        }
                     }
                 }
             }
@@ -263,7 +283,7 @@ var Telegraph = function (ctxId, config) {
                 localMaxY = _localMaxY;
                 if (isStartFromZero || localMinY === _localMinY) {
                     localMinY = _localMinY;
-                    animate.apply(this, [factorY  , setFactorY, _factorY,
+                    animate.apply(this, [factorY, setFactorY, _factorY,
                         (withoutAnimations ? 1 : vNull), vTrue]);
                 } else {
                     animate.apply(this, [localMinY * 1, setLocalMinY, _localMinY,
@@ -322,15 +342,16 @@ var Telegraph = function (ctxId, config) {
 
     var ChartInfo = function (xData, yInfo) {
 
-        var alias = yInfo.alias;
-        var name = yInfo.name;
-        var type = yInfo.type;
-        var yData = yInfo.data;
-        var color = yInfo.color;
-        var smartAxisYRangeInt;
-        var smartAxisYRangeFloat;
-        var lastIndex = xData.length - 1;
-        var opacity = 1,
+        var alias = yInfo.alias,
+            name = yInfo.name,
+            type = yInfo.type,
+            yData = yInfo.data,
+            color = yInfo.color,
+            smartAxisYRangeInt,
+            smartAxisYRangeFloat,
+            lastIndex = xData.length - 1,
+            opacity = 1,
+
             enabled = vTrue,
             filterAxis,
             mainAxis;
@@ -340,7 +361,7 @@ var Telegraph = function (ctxId, config) {
                 filterAxis = new AxisInfo(alias + "f", xData, [this], visibleWidth, navigatorHeight, 1, vTrue);
                 mainAxis = new AxisInfo(alias + "m", xData, [this], visibleWidth, selectionHeight, config.lineWidth || 2, vTrue);
                 filterAxis.calculateFactors(1, lastIndex);
-            //    mainAxis.calculateFactors(1, lastIndex);
+                //    mainAxis.calculateFactors(1, lastIndex);
             } else {
                 mainAxis = globalMainAxis;
                 filterAxis = globalFilterAxis;
@@ -472,7 +493,7 @@ var Telegraph = function (ctxId, config) {
             while (_nextScaleLevel > navigatorHeightHalf) {
                 _yCoordinate = fMathCeil(_nextScaleLevel) + CONST_ANTI_BLUR_SHIFT;
                 moveOrLine(frameContext, vTrue, uIGlobalPadding2, _yCoordinate);
-                moveOrLine(frameContext, vFalse, visibleWidth, _yCoordinate);
+                moveOrLine(frameContext, vFalse, uIGlobalPadding2 + visibleWidth, _yCoordinate);
                 _nextScaleLevel = _nextScaleLevel + smartAxisYRangeFloat * mainAxis.getFactorY();
             }
             endPath(frameContext);
@@ -484,8 +505,9 @@ var Telegraph = function (ctxId, config) {
             var _k,
                 _j,
                 _i,
-                _xValue,
+                _xCoord,
                 _yValue,
+                _yCoord,
                 _minY = axis.getLocalMinY(),
                 _factorX = axis.getFactorX(),
                 _factorY = axis.getFactorY(),
@@ -502,14 +524,14 @@ var Telegraph = function (ctxId, config) {
                     setStrokeStyle(context, color);
                     setLineWidth(context, axis.getLineWidth() * uiDisplayScaleFactor);
                     for (_k = startIndexInt; _k <= endIndexInt;) {
-                        _xValue = uIGlobalPadding2 + (_k - startIndexFloat) * _factorX;
-                        _yValue = bottom + (yData[_k] - _minY) * _factorY;
-                        moveOrLine(context, _k++ === startIndexInt, _xValue, _yValue);
+                        _xCoord = uIGlobalPadding2 + (_k - startIndexFloat) * _factorX;
+                        _yCoord = bottom + (yData[_k] - _minY) * _factorY;
+                        moveOrLine(context, _k++ === startIndexInt, _xCoord, _yCoord);
 
                         //todo
                         if (_inTransition) {
-                            var _currentLeft = _xValue;
-                            var _currentTop = _yValue; //recursion
+                            var _currentLeft = _xCoord;
+                            var _currentTop = _yCoord; //recursion
                             /* if (_k - 1 === dataStore.hours.from) {
                                  for (_j = dataStore.hours.startIndex; _j <= dataStore.hours.endIndex; _j++) {
                                      _xValue = _currentLeft + (_j - dataStore.hours.startIndex) * dataStore.hours.factors.factorX;
@@ -525,42 +547,41 @@ var Telegraph = function (ctxId, config) {
 
                 case "bar":
 
-                    //save(context);
 
-                   // moveOrLine(context, vFalse, uIGlobalPadding2, 0);
-                   // closePath(context);
-                   // clip(context);
-                    setGlobalAlpha(context, opacity * 0.6);
+                    setGlobalAlpha(context, 1);
                     setFillStyle(context, color);
-                    var _ext = fParseInt(20/_factorX);
+                    var _ext = fParseInt(20 / _factorX);
 
                     var _start = getMax(startIndexInt - _ext, 1);
-                    var x =  uIGlobalPadding2 +(_start - startIndexFloat) * _factorX;
+                    var x = uIGlobalPadding2 + (_start - startIndexFloat) * _factorX;
                     moveOrLine(context, vTrue, x, bottom);
-                  //  moveOrLine(context, vFalse,  x, bottom + (yData[startIndexInt] - _minY) * _factorY);
 
                     var _end = getMin(endIndexInt + _ext, lastIndex);
                     for (_k = _start; _k <= _end; _k++) {
-                        _xValue = uIGlobalPadding2 + (_k - startIndexFloat) * _factorX;
-                        if (_yValue) {
-                            moveOrLine(context, vFalse, _xValue, _yValue);
+                        _xCoord = uIGlobalPadding2 + (_k - startIndexFloat) * _factorX;
+                        if (_yCoord) {
+                            moveOrLine(context, vFalse, _xCoord, _yCoord);
+                        }
+                        _yValue = yData[_k];
+                        if (globalStackedBar) {
+                            stackedRegister[_k] = _yValue * opacity + stackedRegister[_k];
+                            _yValue = stackedRegister[_k];
                         }
 
-                        _yValue = bottom + (yData[_k] - _minY) * _factorY;
-                        moveOrLine(context, vFalse, _xValue, _yValue);
+                        _yCoord = bottom + (_yValue - _minY) * _factorY;
+                        moveOrLine(context, vFalse, _xCoord, _yCoord);
 
                         //todo
                         if (_inTransition) {
-                            var _currentLeft = _xValue;
-                            var _currentTop = _yValue;
+                            var _currentLeft = _xCoord;
+                            var _currentTop = _yCoord;
 
                         }
                     }
-                    moveOrLine(context, vFalse, _xValue+_factorX, _yValue);
-                    moveOrLine(context, vFalse, _xValue+_factorX, bottom);
+                    moveOrLine(context, vFalse, _xCoord + _factorX, _yCoord);
+                    moveOrLine(context, vFalse, _xCoord + _factorX, bottom);
                     closePath(context);
                     fill(context);
-                  //  restore(context);
                     break;
 
             }
@@ -642,7 +663,7 @@ var Telegraph = function (ctxId, config) {
                 "ch_", ["button-icon"], {}, _button);
 
             _checkBox.innerHTML = "<?xml version=\"1.0\"?>\n" +
-                "<svg  xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"12px\" height=\"14px\" x=\"0px\" y=\"0px\"" +
+                "<svg  xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"12px\" height=\"13px\" x=\"0px\" y=\"0px\"" +
                 " viewBox=\"0 0 17.837 17.837\">" +
                 "<g>" +
                 "<path style=\"fill:#ffffff;\" d=\"M16.145,2.571c-0.272-0.273-0.718-0.273-0.99,0L6.92,10.804l-4.241-4.27" +
@@ -795,7 +816,7 @@ var Telegraph = function (ctxId, config) {
 
         setFont(frameContext, envRegularSmallFont);
         //_mainCanvasStyle[CONST_WIDTH] = fParseInt(totalWidth / uiDisplayScaleFactor) + CONST_PIXEL;
-       // _mainCanvasStyle[CONST_HEIGHT] = fParseInt(totalHeight / uiDisplayScaleFactor) + CONST_PIXEL;
+        // _mainCanvasStyle[CONST_HEIGHT] = fParseInt(totalHeight / uiDisplayScaleFactor) + CONST_PIXEL;
 
         //_bufferCanvasStyle[CONST_WIDTH] = fParseInt(totalWidth / uiDisplayScaleFactor) + CONST_PIXEL;
         //_mainCanvasStyle[CONST_HEIGHT] = fParseInt(totalHeight / uiDisplayScaleFactor) + CONST_PIXEL;
@@ -970,7 +991,7 @@ var Telegraph = function (ctxId, config) {
                 var _lastIndex = _data.x.length - 1;
                 if (!globalScaledY) {
                     _globalFilterAxis.calculateFactors(1, _lastIndex);
-                 //   _globalMainAxis.calculateFactors(1, _lastIndex);
+                    //   _globalMainAxis.calculateFactors(1, _lastIndex);
                 }
                 for (_i in charts) {
                     charts[_i].initAxis(_globalMainAxis, _globalFilterAxis);
@@ -1519,6 +1540,14 @@ var Telegraph = function (ctxId, config) {
         canvas.clearRect(0, 0, width, height);
     }
 
+    function reverseOrder(context) {
+        context.globalCompositeOperation = 'destination-over';
+    }
+
+    function returnOrder(context) {
+        context.globalCompositeOperation = 'source-over';
+    }
+
     function drawAxisLabels() {
         var _selectionAxis = selectionBottom,
             _selectionFactorX = charts[0].getMainAxis().getFactorX(),
@@ -1578,7 +1607,7 @@ var Telegraph = function (ctxId, config) {
         setLineWidth(frameContext);
         for (_i = _nextItem - _axisRange; _i <= selectionEndIndexInt; _i += _axisRange) {
             _nextItem = fMathCeil(_i);
-            _labelX = uIGlobalPadding2+ (_nextItem - selectionStartIndexFloat ) * _selectionFactorX;
+            _labelX = uIGlobalPadding2 + (_nextItem - selectionStartIndexFloat ) * _selectionFactorX;
             _opacity !== vUndefined && fMathAbs((_nextItem - smartAxisXStart) % _prevSmartAxisRange) >= 1 ?
                 setGlobalAlpha(frameContext, _opacity) :
                 setGlobalAlpha(frameContext, _mainOpacity);
@@ -1603,28 +1632,56 @@ var Telegraph = function (ctxId, config) {
         setGlobalAlpha(frameContext, 1);
     }
 
+    function resetStackedRegister() {
+        var _lastIndex = charts[0].getLastIndex(),
+            _k;
+        for (_k = 0; _k <= _lastIndex; _k++) {
+            stackedRegister[_k] = 0;
+        }
+    }
 
     function drawSeries() {
         seriesMaxOpacity = 0;
         var _i,
             _axisY;
 
+
         if (navigatorNeedUpdateBuffer) {
             clearCanvas(bufferNavigatorContext, totalWidth, navigatorHeight);
+            if (globalStackedBar) {
+                reverseOrder(bufferNavigatorContext);
+                resetStackedRegister();
+            }
             for (_i in charts) {
                 charts[_i].drawFilterSeries();
             }
+            if (globalStackedBar) {
+                returnOrder(bufferNavigatorContext);
+            }
             navigatorNeedUpdateBuffer = vFalse;
         }
-
+        if (globalStackedBar) {
+            reverseOrder(frameContext);
+            resetStackedRegister();
+        }
         for (_i in charts) {
             _axisY = charts[_i];
             seriesMaxOpacity = getMax(_axisY.getOpacity(), seriesMaxOpacity);
             _axisY.drawMainSeries();
         }
 
+
+        if (globalStackedBar) {
+            returnOrder(frameContext);
+        }
+        if (charts[0].getType() === "bar") {
+            setGlobalAlpha(frameContext, 0.4);
+            setFillStyle(frameContext, envBgColor);
+            fillRect(frameContext, 0, 0, totalWidth, selectionHeight + navigatorHeightHalf);
+        }
         setGlobalAlpha(frameContext, 1);
         drawImage(bufferNavigatorCanvas, 0, navigatorTop);
+
     }
 
 
@@ -1794,6 +1851,13 @@ var Telegraph = function (ctxId, config) {
         if (!charts.length) {
             return;
         }
+        for (var _i in charts) {
+            var _chart = charts[_i];
+            _chart.getFilterAxis().calculateFactors(1, _chart.getLastIndex());
+            if (!globalScaledY) {
+                break;
+            }
+        }
         if (isReset) {
             associateZoomStart(1);
             associateZoomEnd(charts[0].getLastIndex());
@@ -1803,13 +1867,6 @@ var Telegraph = function (ctxId, config) {
         } else {
             associateZoomStart(selectionStartIndexFloat);
             associateZoomEnd(selectionEndIndexFloat);
-        }
-        for (var _i in charts) {
-            var _chart = charts[_i];
-            _chart.getFilterAxis().calculateFactors(1, _chart.getLastIndex());
-            if (!globalScaledY) {
-                break;
-            }
         }
         navigatorNeedUpdateBuffer = vTrue;
         invalidateInner();
@@ -1971,6 +2028,7 @@ var Telegraph = function (ctxId, config) {
                 assignAxisProperty(_yAxisData, src.names, "name");
 
                 globalScaledY = src.y_scaled;
+                globalStackedBar = src.stacked;
                 return {
                     x: _xAxisData,
                     y: _yAxisData
