@@ -1,20 +1,10 @@
 /*jslint browser: true*/
-/*global window*/
+/*global window, PerfomanceMeter*/
 var Telegraph = function (ctxId, config) {
     "use strict";
 
-    var measure = {
-        start: "start",
-        animation: "animation",
-        calcSelectionFactors: "calcSelectionFactors",
-        drawNavigatorLayer: "drawNavigatorLayer",
-        drawHorizontalGrid: "drawHorizontalGrid",
-        drawSeries: "drawSeries",
-        drawNavigatorLayerB: "drawNavigatorLayerB",
-        drawSeriesLegend: "drawSeriesLegend",
-        drawPressHighlight: "drawPressHighlight",
-        end: "end"
-    }
+    var perf = new PerfomanceMeter();
+
 
     /**
      * External functions & variables (maybe need polyfills)
@@ -294,6 +284,14 @@ var Telegraph = function (ctxId, config) {
             height = val;
         }
 
+        function getWidth() {
+            return width;
+        }
+
+        function getHeight() {
+            return height;
+        }
+
         function toString() {
             return "AxisInfo " + name + " {\n" +
                 "\t\tlength: " + length + ",\n" +
@@ -310,6 +308,8 @@ var Telegraph = function (ctxId, config) {
             getAlias: getAlias,
             setWidth: setWidth,
             setHeight: setHeight,
+            getWidth: getWidth,
+            getHeight: getHeight,
             getLocalMaxY: getLocalMaxY,
             getLocalMinY: getLocalMinY,
             getFactorY: getFactorY,
@@ -497,6 +497,7 @@ var Telegraph = function (ctxId, config) {
 
             switch (type) {
                 case "line":
+
                     setGlobalAlpha(context, opacity);
                     setStrokeStyle(context, color);
                     setLineWidth(context, axis.getLineWidth() * uiDisplayScaleFactor);
@@ -523,6 +524,12 @@ var Telegraph = function (ctxId, config) {
                     break;
 
                 case "bar":
+
+                    //save(context);
+
+                   // moveOrLine(context, vFalse, uIGlobalPadding2, 0);
+                   // closePath(context);
+                   // clip(context);
                     setGlobalAlpha(context, opacity * 0.6);
                     setFillStyle(context, color);
                     var _ext = fParseInt(20/_factorX);
@@ -553,6 +560,7 @@ var Telegraph = function (ctxId, config) {
                     moveOrLine(context, vFalse, _xValue+_factorX, bottom);
                     closePath(context);
                     fill(context);
+                  //  restore(context);
                     break;
 
             }
@@ -1228,7 +1236,7 @@ var Telegraph = function (ctxId, config) {
         }
         calcMouseOffset();
         var _touches = e.touches;
-        var isTouchEvent = _touches && getLength(_touches);
+        var isTouchEvent = _touches && _touches.length;
 
         if (mouseHoveredRegionType === ENUM_SELECTION_HOVER) {
             withoutPress = vTrue;
@@ -1390,7 +1398,7 @@ var Telegraph = function (ctxId, config) {
     function getRGBA(color, opacity) {
         if (opacity < 1) {
             if (color.indexOf("#") !== -1) {
-                var _normal = getLength(color) === 7,
+                var _normal = color.length === 7,
                     _regExp = _normal ?
                         /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i :
                         /^#?([a-f\d])([a-f\d])([a-f\d])$/i,
@@ -1505,6 +1513,10 @@ var Telegraph = function (ctxId, config) {
 
     function drawImage(imgElem, dx, dy) {
         frameContext.drawImage(imgElem, dx, dy);
+    }
+
+    function clearCanvas(canvas, width, height) {
+        canvas.clearRect(0, 0, width, height);
     }
 
     function drawAxisLabels() {
@@ -1749,33 +1761,32 @@ var Telegraph = function (ctxId, config) {
         setGlobalAlpha(frameContext, 1);
     }
 
-
-    function clearCanvas(canvas, width, height) {
-        canvas.clearRect(0, 0, width, height);
-    }
-
-
     function redrawFrame() {
         clearCanvas(frameContext, totalWidth, totalHeight);
         if (charts.length) {
             setFont(frameContext, envRegularSmallFont);
             drawNavigatorLayer(vTrue);
-            performance.mark(measure.drawNavigatorLayer);
+            perf.mark(perf.drawNavigatorLayer);
+
             charts[0].drawHorizontalGrid();
-            performance.mark(measure.drawHorizontalGrid);
+            perf.mark(perf.drawHorizontalGrid);
+
             drawSeries();
-            performance.mark(measure.drawSeries);
+            perf.mark(perf.drawSeries);
+
             drawNavigatorLayer();
-            performance.mark(measure.drawNavigatorLayerB);
+            perf.mark(perf.drawNavigatorLayerB);
+
             if (seriesMaxOpacity > 0) {
                 drawAxisLabels();
                 if (legendCursorOpacity > 0) {
                     drawSeriesLegend();
                 }
             }
-            performance.mark(measure.drawSeriesLegend);
+
+            perf.mark(perf.drawSeriesLegend);
             drawPressHighlight();
-            performance.mark(measure.drawPressHighlight);
+            perf.mark(perf.drawPressHighlight);
         }
     }
 
@@ -1788,7 +1799,7 @@ var Telegraph = function (ctxId, config) {
             associateZoomEnd(charts[0].getLastIndex());
             setTimeout(function () {
                 associateZoomStart(charts[0].getLastIndex() - (charts[0].getLastIndex()) * CONST_NAVIGATOR_WIDTH_PERCENT / 100, 5);
-            }, 50);
+            }, 200);
         } else {
             associateZoomStart(selectionStartIndexFloat);
             associateZoomEnd(selectionEndIndexFloat);
@@ -1903,12 +1914,9 @@ var Telegraph = function (ctxId, config) {
 
 
         zoomOutDiv.addEventListener("click", zoomOutToDays);
-
         var zoomOutText = createElement("span",
             "zoom_out_text_", [], {}, zoomOutDiv);
         zoomOutText.innerHTML = "Zoom out";
-
-
         titleDiv = createElement("div",
             "title_", ["title", "animate", "top"], {}, _titleContainer);
         titleDiv.innerHTML = config.title || "";
@@ -1962,22 +1970,17 @@ var Telegraph = function (ctxId, config) {
                 assignAxisProperty(_yAxisData, src.colors, "color");
                 assignAxisProperty(_yAxisData, src.names, "name");
 
-
                 globalScaledY = src.y_scaled;
                 return {
                     x: _xAxisData,
                     y: _yAxisData
-                }
+                };
             }
         }
     }
 
     function getFunctionName(f) {
         return f.name || f.toString().substring(9, 32);
-    }
-
-    function getLength(a) {
-        return a.length;
     }
 
     /**
@@ -1999,8 +2002,8 @@ var Telegraph = function (ctxId, config) {
                 _key += this.getAlias();
             }
 
-            _frameCount = speed || (mousePressed || 5); //faster when user active
-            if (logarithmic && initial) { // smooth logarithmic scale for big transitions
+            _frameCount = speed || (mousePressed || 5);
+            if (logarithmic && initial) {
                 _exAnimationFrames = fMathCeil(fMathAbs(fMathLog(fMathAbs(proposed / initial)) * 10));
                 _frameCount += getMin(_exAnimationFrames, 15);
             }
@@ -2132,53 +2135,18 @@ var Telegraph = function (ctxId, config) {
     }
 
 
-    function measureDurations() {
-        try {
-            performance.measure("total", measure.start, measure.end);
-            performance.measure("animation", measure.start, measure.animation);
-            performance.measure("calcSelectionFactors", measure.animation, measure.calcSelectionFactors);
-            performance.measure("drawNavigatorLayer", measure.calcSelectionFactors, measure.drawNavigatorLayer);
-            performance.measure("drawHorizontalGrid", measure.drawNavigatorLayer, measure.drawHorizontalGrid);
-            performance.measure("drawSeries", measure.drawHorizontalGrid, measure.drawSeries);
-            performance.measure("drawNavigatorLayerB", measure.drawSeries, measure.drawNavigatorLayerB);
-            performance.measure("drawSeriesLegend", measure.drawNavigatorLayerB, measure.drawSeriesLegend);
-            performance.measure("end", measure.drawPressHighlight, measure.end);
-
-            var measures = performance.getEntriesByType("measure");
-
-            var y = 50;
-            setFont(frameContext, envRegularSmallFont);
-            setFillStyle(frameContext, envColor);
-            setGlobalAlpha(frameContext, 0.2);
-            for (var measureIndex in measures) {
-                var meas = measures[measureIndex];
-                frameContext.fillText(meas.name + " " + meas.duration.toFixed(4), uIBtnRadius2, y);
-                y = y + envSmallTextHeight + uIGlobalPadding;
-            }
-            frameContext.fillText("currentZoomState" + " " + currentZoomState, uIBtnRadius2, y);
-            // Finally, clean up the entries.
-
-        } catch (e) {
-
-        }
-        performance.clearMarks();
-        performance.clearMeasures();
-    }
-
-    /**
-     * Render cycle
-     */
     function render() {
 
-        performance.mark(measure.start);
+        perf.mark(perf.start);
         processAnimations();
-        performance.mark(measure.animation);
+        perf.mark(perf.animation);
+
         if (selectionNeedUpdateFactorY) {
             selectionNeedUpdateFactorY = vFalse;
             assignSelectionFactors();
         }
 
-        performance.mark(measure.calcSelectionFactors);
+        perf.mark(perf.calcSelectionFactors);
         if (needRedraw) {
             needRedraw = vFalse;
             redrawFrame();
@@ -2188,11 +2156,9 @@ var Telegraph = function (ctxId, config) {
             frameDelay = 0.8 * frameDelay + 0.2 * (_proposed - lastPerformance );
         }
         lastPerformance = _proposed;
-        performance.mark(measure.end);
+        perf.mark(perf.end);
 
-
-        measureDurations();
-
+        perf.measureDurations(frameContext);
         requestAnimationFrame(render);
     }
 

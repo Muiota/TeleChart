@@ -17,6 +17,7 @@
 <div class="about">
     <a href="https://t.me/Muiota" target="_blank">Contact me on Telegram</a>
 </div>
+<script src="test/perfomance.min.js"></script>
 <script src="src/telegraph.js"></script>
 <script>
     function isMobile() {
@@ -116,6 +117,24 @@
 
 
     var dark_mode_button = document.getElementById("btn_dark_mode");
+    var updateTimeout;
+
+    function invalidateCharts(isFull, immediately) {
+        if (updateTimeout) {
+            clearTimeout(updateTimeout);
+        }
+        if (immediately) {
+            for (var k = 0; k < instances.length; k++) {
+                instances[k].invalidate(isFull === true);
+            }
+        } else {
+            updateTimeout = setTimeout(function () {
+                for (var k = 0; k < instances.length; k++) {
+                    instances[k].invalidate(isFull === true);
+                }
+            }, 100);
+        }
+    }
 
     function changeClass(color, checked) {
         if (checked) {
@@ -123,21 +142,17 @@
         } else {
             document.body.classList.remove(color);
         }
-        for (var k = 0; k < instances.length; k++) {
-            instances[k].invalidate();
-        }
+        invalidateCharts(false, true);
     }
 
+
+
     window.addEventListener("resize", function (e, t) {
-        for (var k = 0; k < instances.length; k++) {
-            instances[k].invalidate(true);
-        }
+        invalidateCharts(true);
     });
 
     window.addEventListener("scroll", function (e, t) {
-        for (var k = 0; k < instances.length; k++) {
-            instances[k].invalidate();
-        }
+        invalidateCharts();
     });
 
 
