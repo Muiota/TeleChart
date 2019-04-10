@@ -6,6 +6,11 @@ body {
 body {
     color: #222222;
     background: #fff; /*short test*/
+    user-select: none;
+    -webkit-user-select: none;
+    overflow-x: hidden;
+    -moz-user-select: none;
+    -webkit-touch-callout: none;
 }
 
 body.dark {
@@ -68,6 +73,7 @@ body.custom.dark {
     user-select: none; /* Standard syntax */
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
+    width: 100%;
 }
 
 .chart_container:focus {
@@ -160,7 +166,7 @@ pre {
 
 @media (min-width: 700px) {
     .chart_container {
-        width: 50%;
+        width: 49%;
     }
 }
 
