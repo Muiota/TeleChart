@@ -20,7 +20,7 @@ var PerfomanceMeter = function () {
             var measures = performance.getEntriesByType("measure");
 
             var y = 50;
-            context.fillStyle = "#888888";
+            context.fillStyle = "#777777";
             context.globalAlpha = 0.3;
 
             for (var measureIndex in measures) {

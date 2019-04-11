@@ -73,6 +73,8 @@ body.custom.dark {
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
     width: 100%;
+    adding-left: 5px;
+    padding-right: 5px;
 }
 
 .chart_container:focus {

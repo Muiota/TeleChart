@@ -176,10 +176,10 @@ var Telegraph = function (ctxId, config) {
         globalStackedBarMode,
         globalPercentageMode,
         stackedRegister = [],
-        percentageRegister = [];
+        totalPercentageRegister = [];
 
 
-    var AxisInfo = function (alias, xData, yDataContainer, width, height, lineWidth, isStartFromZero) {
+    var AxisInfo = function (alias, xData, yDataList, width, height, lineWidth, isStartFromZero) {
         var length = xData.length,
             maxY = vUndefined,
             minY = isStartFromZero ? 0 : vUndefined,
@@ -188,16 +188,17 @@ var Telegraph = function (ctxId, config) {
             localMinY,
 
             factorX,
-            factorY;
+            factorY,
+            percentageData = [];
 
         function init() {
             var _val,
                 _k,
                 _j;
-            for (_j in yDataContainer) {
-                var _container = yDataContainer[_j];
+            for (_j in yDataList) {
+                var _container = yDataList[_j];
                 var _data = _container.getYData();
-                for (_k = 1; _k < length; _k++) {
+                for (_k = 1; _k < length; _k++) { //todo need optimize cache blocks
                     _val = _data[_k];
                     maxY = getMax(_val, maxY);
                     minY = getMin(_val, minY);
@@ -208,6 +209,11 @@ var Telegraph = function (ctxId, config) {
         }
 
         init();
+
+        function getPercentageData() {
+            return percentageData;
+        }
+
 
         function setLocalMinY(val) {
             localMinY = val;
@@ -254,56 +260,64 @@ var Telegraph = function (ctxId, config) {
             if (_startIndexInt === 0) {
                 _startIndexInt++;
             }
+
             if (globalStackedBarMode) {
                 for (_k = _startIndexInt; _k <= _endIndexInt; _k++) {
                     _value = 0;
-                    for (_j in yDataContainer) {
-                        _container = yDataContainer[_j];
-                        if (_container.getEnabled()) {
-                            _data = _container.getYData();
-                            _value += _data[_k];
-                        }
+                    for (_j in yDataList) {
+                        _container = yDataList[_j];
+                        _data = _container.getYData();
+                        _value += _data[_k] * _container.getOpacity();
+
                     }
                     _localMaxY = getMax(_value, _localMaxY);
                     _localMinY = getMin(_value, _localMinY);
                     if (globalPercentageMode) {
-                        percentageRegister[_k] = _value;
+                        totalPercentageRegister[_k] = _value;
                     }
                 }
             }
             else {
-                for (_j in yDataContainer) {
-                    _container = yDataContainer[_j];
+                for (_j in yDataList) {
+                    _container = yDataList[_j];
                     _data = _container.getYData();
                     if (_container.getEnabled()) {
                         for (_k = _startIndexInt; _k <= _endIndexInt; _k++) {
-                            _value = _data[_k];
+                            _value = _data[_k] ;
                             _localMaxY = getMax(_value, _localMaxY);
                             _localMinY = getMin(_value, _localMinY);
                         }
                     }
                 }
             }
-            if (globalPercentageMode) {
-                for (_k = _startIndexInt; _k <= _endIndexInt; _k++) {
-                    percentageRegister[_k] = (_localMaxY - _localMinY) / percentageRegister[_k];
-                }
-            }
 
             if (_localMaxY) {
-                _factorY = -(height - 2) / (localMaxY - localMinY);
+                var _range = localMaxY - localMinY;
+                if (globalPercentageMode) {
+                    _factorY = -(height - 2) / 100;
+                }
+                else {
+                    _factorY = -(height - 2) / _range;
+                }
+
                 factorX = width / (endIndex - startIndex);
                 localMaxY = _localMaxY;
                 if (isStartFromZero || localMinY === _localMinY) {
                     localMinY = _localMinY;
-                    animate.apply(this, [factorY, setFactorY, _factorY,
-                        (withoutAnimations ? 1 : vNull), vTrue]);
+                    if (withoutAnimations || (globalStackedBarMode && !mousePressed)) {
+                        setFactorY(_factorY);
+                    } else {
+                        animate.apply(this, [factorY, setFactorY, _factorY,
+                            vNull, vTrue]);
+                    }
                 } else {
                     animate.apply(this, [localMinY * 1, setLocalMinY, _localMinY,
                         (withoutAnimations ? 1 : vNull), vTrue]);
                 }
             }
         }
+        
+
 
         function getAlias() {
             return alias;
@@ -329,17 +343,23 @@ var Telegraph = function (ctxId, config) {
             return "";
         }
 
+        function calculatePercentage(data, startIndex, endIndex) {
+            for (var _k = startIndex; _k <= endIndex; _k++) {
+                percentageData[_k] = 100 * data[_k] / totalPercentageRegister[_k];
+            }
+        }
+
         return {
             getAlias: getAlias,
             setWidth: setWidth,
             setHeight: setHeight,
-            getWidth: getWidth,
-            getHeight: getHeight,
+            getPercentageData: getPercentageData,
             getLocalMaxY: getLocalMaxY,
             getLocalMinY: getLocalMinY,
             getFactorY: getFactorY,
             getFactorX: getFactorX,
             calculateFactors: calculateFactors,
+            calculatePercentage:  calculatePercentage,
             getLineWidth: getLineWidth,
             toString: toString
         };
@@ -389,7 +409,8 @@ var Telegraph = function (ctxId, config) {
         }
 
         function calculateSmartAxisY() {
-            var _prevProposed = fMathCeil((mainAxis.getLocalMaxY() - mainAxis.getLocalMinY()) / 6),
+            var _range = globalPercentageMode ? 105 : mainAxis.getLocalMaxY() - mainAxis.getLocalMinY(),
+                _prevProposed = fMathCeil(_range / 6),
                 _threshold = _prevProposed / 25,
                 _i = fMathCeil(mainAxis.getLocalMinY()),
                 _factor = 1,
@@ -562,9 +583,9 @@ var Telegraph = function (ctxId, config) {
                     break;
 
                 case ENUM_CHART_TYPE_BAR:
-                    setGlobalAlpha(context, 1);
+                    setGlobalAlpha(context, opacity);
                     setFillStyle(context, color);
-                    var _ext = fParseInt(20 / _factorX);
+                    var _ext = fParseInt(30 / _factorX);
 
                     var _start = getMax(startIndexInt - _ext, 1);
                     var x = uIGlobalPadding2 + (_start - startIndexFloat) * _factorX;
@@ -601,22 +622,20 @@ var Telegraph = function (ctxId, config) {
                 case ENUM_CHART_TYPE_AREA:
                     setGlobalAlpha(context, 1);
                     setFillStyle(context, color);
-                    var _ext = fParseInt(20 / _factorX);
+                    var _ext = fParseInt(30 / _factorX);
 
                     var _start = getMax(startIndexInt - _ext, 1);
                     var x = uIGlobalPadding2 + (_start - startIndexFloat) * _factorX;
                     moveOrLine(context, vTrue, x, bottom);
 
+                    var _data = globalPercentageMode ? axis.getPercentageData() : yData;
                     var _end = getMin(endIndexInt + _ext, lastIndex);
                     for (_k = _start; _k <= _end; _k++) {
                         _xCoord = uIGlobalPadding2 + (_k - startIndexFloat) * _factorX;
-                        _yValue = yData[_k];
-                        if (globalPercentageMode) {
-                            _yValue *= percentageRegister[_k];
-                        }
+                        _yValue = _data[_k] * opacity;
 
                         if (globalStackedBarMode) {
-                            stackedRegister[_k] = _yValue * opacity + stackedRegister[_k];
+                            stackedRegister[_k] = _yValue  + stackedRegister[_k];
                             _yValue = stackedRegister[_k];
                         }
 
@@ -738,6 +757,7 @@ var Telegraph = function (ctxId, config) {
             _text.innerHTML = name;
         }
 
+
         function toString() {
             return "Chart " + name + " {\n" +
                 "\ttype: " + type + ",\n" +
@@ -759,6 +779,7 @@ var Telegraph = function (ctxId, config) {
         function getLastIndex() {
             return lastIndex;
         }
+        
 
         return {
             initAxis: initAxis,
@@ -1036,7 +1057,6 @@ var Telegraph = function (ctxId, config) {
                 var _lastIndex = _data.x.length - 1;
                 if (!globalScaledY) {
                     _globalFilterAxis.calculateFactors(1, _lastIndex);
-                    //   _globalMainAxis.calculateFactors(1, _lastIndex);
                 }
                 for (_i in charts) {
                     charts[_i].initAxis(_globalMainAxis, _globalFilterAxis);
@@ -1917,6 +1937,15 @@ var Telegraph = function (ctxId, config) {
                 break;
             }
         }
+
+        if (globalPercentageMode)
+        {
+            for (var _i in charts) {
+                var _chart = charts[_i];
+                _chart.getFilterAxis().calculatePercentage(_chart.getYData(), 1, _chart.getLastIndex());
+            }
+        }
+
         if (isReset) {
             associateZoomStart(1);
             associateZoomEnd(charts[0].getLastIndex());
@@ -1944,9 +1973,27 @@ var Telegraph = function (ctxId, config) {
         for (var _i in charts) {
             var _chart = charts[_i];
             _chart.getMainAxis().calculateFactors(startIndex, endIndex);
+            if (globalStackedBarMode) {
+                _chart.getFilterAxis().calculateFactors(1, _chart.getLastIndex());
+            }
+
             _chart.calculateSmartAxisY();
             if (!globalScaledY) {
                 break;
+            }
+        }
+
+        if (globalPercentageMode) {
+            for (var _i in charts) {
+                var _chart = charts[_i];
+                _chart.getMainAxis().calculatePercentage(_chart.getYData(), 1, _chart.getLastIndex());
+            }
+        }
+
+        if (globalPercentageMode) {
+            for (var _i in charts) {
+                var _chart = charts[_i];
+                _chart.getFilterAxis().calculatePercentage(_chart.getYData(), 1, _chart.getLastIndex());
             }
         }
     }
@@ -2096,7 +2143,6 @@ var Telegraph = function (ctxId, config) {
     }
 
     function animate(initial, setter, proposed, speed, logarithmic) {
-
         var _key = getFunctionName(setter),
             _frameCount,
             _exAnimationFrames;
