@@ -11,8 +11,7 @@ var PerfomanceMeter = function () {
             performance.measure("animation", this.start, this.animation);
             performance.measure("calcSelectionFactors", this.animation, this.calcSelectionFactors);
             performance.measure("drawNavigatorLayer", this.calcSelectionFactors, this.drawNavigatorLayer);
-            performance.measure("drawHorizontalGrid", this.drawNavigatorLayer, this.drawHorizontalGrid);
-            performance.measure("drawSeries", this.drawHorizontalGrid, this.drawSeries);
+            performance.measure("drawSeries", this.drawNavigatorLayer, this.drawSeries);
             performance.measure("drawNavigatorLayerB", this.drawSeries, this.drawNavigatorLayerB);
             performance.measure("drawSeriesLegend", this.drawNavigatorLayerB, this.drawSeriesLegend);
             performance.measure("end", this.drawPressHighlight, this.end);
@@ -46,7 +45,6 @@ var PerfomanceMeter = function () {
         animation: "animation",
         calcSelectionFactors: "calcSelectionFactors",
         drawNavigatorLayer: "drawNavigatorLayer",
-        drawHorizontalGrid: "drawHorizontalGrid",
         drawSeries: "drawSeries",
         drawNavigatorLayerB: "drawNavigatorLayerB",
         drawSeriesLegend: "drawSeriesLegend",

@@ -10,7 +10,8 @@ var Telegraph = function (ctxId, config) {
      * External functions & variables (maybe need polyfills)
      */
     var oMath = Math,
-        fParseInt = window.parseInt,
+        vWindow = window,
+        fParseInt = vWindow.parseInt,
         fMathAbs = oMath.abs,
         fMathCeil = oMath.ceil,
         fMathFloor = oMath.floor,
@@ -41,6 +42,7 @@ var Telegraph = function (ctxId, config) {
         CONST_BOLD_PREFIX = "bold ",
         CONST_WIDTH = "width",
         CONST_HEIGHT = "height",
+        CONST_HIDDEN_CLASS = "hidden",
         CONST_AXIS_X_LABEL_OPACITY_ANIMATION_KEY = getFunctionName(setAxisXLabelOpacity),
         CONST_SET_ZOOM_START_ANIMATION_KEY = getFunctionName(setZoomStart),
         CONST_SET_ZOOM_END_ANIMATION_KEY = getFunctionName(setZoomEnd),
@@ -62,7 +64,7 @@ var Telegraph = function (ctxId, config) {
         ENUM_CHART_TYPE_AREA = "area";
 
     var container = vDocument.getElementById(ctxId),                               //canvases container
-        isMobile = ("ontouchstart" in window),
+        isMobile = ("ontouchstart" in vWindow),
         charts = [],
         uiDisplayScaleFactor,
         uIGlobalPadding,
@@ -80,7 +82,8 @@ var Telegraph = function (ctxId, config) {
                 gridLines: "#FFFFFF1A",
                 zoomOutText: "#48AAF0",
                 tooltipArrow: "#D2D5D7",
-                axisText: "#8E8E93"
+                axisText: "#8E8E93",
+                barMask: "#242F3E80"
             },
 
         totalWidth,
@@ -376,7 +379,8 @@ var Telegraph = function (ctxId, config) {
             smartAxisYRangeInt,
             smartAxisYRangeFloat,
             lastIndex = xData.length - 1,
-            divLegend,
+            divLegendVal,
+            divTlpRow,
             opacity = 1,
 
             enabled = vTrue,
@@ -499,12 +503,14 @@ var Telegraph = function (ctxId, config) {
                 _yPos,
                 _yStacked,
                 _position;
+            setGlobalAlpha(frameContext, arrowTooltipOpacity);
             switch (type) {
                 case ENUM_CHART_TYPE_LINE:
                 case ENUM_CHART_TYPE_AREA:
                     beginPath(frameContext);
+
                     setStrokeStyle(frameContext, uiGlobalTheme.tooltipArrow);
-                    setGlobalAlpha(frameContext, 1);
+
                     setLineWidth(frameContext);
                     moveOrLine(frameContext, vTrue, _xPos, 0);
                     moveOrLine(frameContext, vFalse, _xPos, selectionBottom);
@@ -515,7 +521,6 @@ var Telegraph = function (ctxId, config) {
                     _yPos = selectionBottom + (yData[_position] - mainAxis.getLocalMinY()) * mainAxis.getFactorY();
 
                     setFillStyle(frameContext, color);
-                    setGlobalAlpha(frameContext, arrowTooltipOpacity);
                     if (globalStackedBarMode) {
                         _yStacked = _yPos - stackedRegister[1];
                         stackedRegister[1] = stackedRegister[1] + selectionBottom - _yPos;
@@ -669,7 +674,15 @@ var Telegraph = function (ctxId, config) {
                 _from = fMathFloor(selectionCurrentIndexFloat),
                 _value = yData[_from];
 
-            var _proposedTooltipLeft = (_posX / uiDisplayScaleFactor - 15);
+            var _proposedTooltipLeft = (_posX / uiDisplayScaleFactor);
+
+            if (type !== ENUM_CHART_TYPE_LINE ) {
+                _proposedTooltipLeft = _proposedTooltipLeft + 15;
+            } else {
+                _proposedTooltipLeft = _proposedTooltipLeft - 15;
+            }
+
+
             if (_proposedTooltipLeft < 0) {
                 _proposedTooltipLeft = 0;
             } else
@@ -686,6 +699,7 @@ var Telegraph = function (ctxId, config) {
             switch (type) {
                 case ENUM_CHART_TYPE_LINE:
                 case ENUM_CHART_TYPE_AREA:
+
                     setLineWidth(frameContext, mainAxis.getLineWidth() * uiDisplayScaleFactor);
                     var _sValueY,
                         _sValueYTo,
@@ -725,15 +739,18 @@ var Telegraph = function (ctxId, config) {
         function handleButtonPress(e, owner) {
             enabled = !enabled
             if (enabled) {
-                e.currentTarget.classList.add("checked");
+                addClass(e.currentTarget, "checked");
+                removeClass(divTlpRow, CONST_HIDDEN_CLASS);
+
             } else {
-                e.currentTarget.classList.remove("checked");
+                removeClass(e.currentTarget, "checked");
+                addClass(divTlpRow, CONST_HIDDEN_CLASS);
             }
             animate.apply(owner, [opacity, setOpacity, enabled ? 1 : 0, 10]);
             selectionNeedUpdateFactorY = vTrue;
         }
 
-        function createButton() {
+        function createUiElements() {
             var _button = createElement("div",
                 "btn_", ["button", "checked"], {
                     border: "2px " + color + " solid",
@@ -762,7 +779,7 @@ var Telegraph = function (ctxId, config) {
 
             var _tlpRow = createElement("tr",
                 "tlp-title", ["tooltip-row"], {}, divTooltipValues);
-
+            _that.setTlpRowDiv(_tlpRow);
             var _tlpTitle = createElement("td",
                 "tlp-title", ["tooltip-title"], {
                     color: color
@@ -801,11 +818,15 @@ var Telegraph = function (ctxId, config) {
 
 
         function setTlpValDiv(val) {
-            divLegend = val;
+            divLegendVal = val;
+        }
+        
+        function setTlpRowDiv(val) {
+            divTlpRow = val;
         }
 
         function updateLegendValue(val) {
-            divLegend.innerHTML = val;
+            divLegendVal.innerHTML = val;
         }
 
         return {
@@ -823,12 +844,13 @@ var Telegraph = function (ctxId, config) {
             drawArrowPoint: drawArrowPoint,
             getMainAxis: getMainAxis,
             getFilterAxis: getFilterAxis,
-            createButton: createButton,
+            createButton: createUiElements,
             getLastIndex: getLastIndex,
             getType: getType,
             getPercentageData: getPercentageData,
             drawTooltipArrow: drawTooltipArrow,
             setTlpValDiv: setTlpValDiv,
+            setTlpRowDiv: setTlpRowDiv,
             toString: toString
         };
     };
@@ -854,7 +876,7 @@ var Telegraph = function (ctxId, config) {
             "btn-cnt", ["buttons"], {}, container);
 
         divTooltipContainer = createElement("div",
-            "tlp", ["tooltip", "hidden"], {}, container);
+            "tlp", ["tooltip", CONST_HIDDEN_CLASS], {}, container);
 
         divTooltipDate = createElement("div",
             "tlp-date", ["tooltip-date"], {}, divTooltipContainer);
@@ -886,8 +908,8 @@ var Telegraph = function (ctxId, config) {
     }
 
     function recalculateBounds() {
-        isMobile = ("ontouchstart" in window);
-        uiDisplayScaleFactor = window.devicePixelRatio;
+        isMobile = ("ontouchstart" in vWindow);
+        uiDisplayScaleFactor = vWindow.devicePixelRatio;
         uIGlobalPadding = 5 * uiDisplayScaleFactor;
         uiGlobalPaddingHalf = uIGlobalPadding / 2;
         uIGlobalPadding2 = uIGlobalPadding * 2;
@@ -1341,7 +1363,7 @@ var Telegraph = function (ctxId, config) {
             assignMousePos(e, withoutPress);
 
         if (isMobile && mouseHoveredRegionType === ENUM_SELECTION_HOVER && withoutPress) {
-            newVar = false;
+            newVar = vFalse;
         }
         return newVar;
     }
@@ -1349,11 +1371,11 @@ var Telegraph = function (ctxId, config) {
     function updateTitleStatus() {
         if (currentZoomState === STATE_ZOOM_HOURS ||
             currentZoomState === STATE_ZOOM_TRANSFORM_TO_HOURS) {
-            divZoomOut.classList.remove("hidden");
-            divTitle.classList.add("hidden");
+            removeClass(divZoomOut, CONST_HIDDEN_CLASS);
+            addClass(divTitle, CONST_HIDDEN_CLASS);
         } else {
-            divZoomOut.classList.add("hidden");
-            divTitle.classList.remove("hidden");
+            addClass(divZoomOut, CONST_HIDDEN_CLASS);
+            removeClass(divTitle, CONST_HIDDEN_CLASS);
         }
     }
 
@@ -1424,12 +1446,14 @@ var Telegraph = function (ctxId, config) {
 
     function hideTooltip() {
         animate(arrowTooltipOpacity, setArrowTooltipOpacity, 0);
-        divTooltipContainer.classList.add("hidden"); //todo
+        addClass(divTooltipContainer, CONST_HIDDEN_CLASS);
+        invalidateInner();
     }
 
     function showTooltip() {
         animate(arrowTooltipOpacity, setArrowTooltipOpacity, 1);
-        divTooltipContainer.classList.remove("hidden");
+        removeClass(divTooltipContainer, CONST_HIDDEN_CLASS);
+        invalidateInner();
     }
 
     function handleMouseClick(e, pressed) {
@@ -1748,8 +1772,8 @@ var Telegraph = function (ctxId, config) {
             returnOrder(frameContext);
         }
         if (charts[0].getType() === ENUM_CHART_TYPE_BAR) {
-            setGlobalAlpha(frameContext, 0.4);
-            setFillStyle(frameContext, envBgColor);
+            setGlobalAlpha(frameContext, 1);
+            setFillStyle(frameContext, uiGlobalTheme.barMask);
             fillRect(frameContext, 0, 0, totalWidth, selectionHeight + navigatorHeightHalf);
         }
         setGlobalAlpha(frameContext, 1);
@@ -1842,10 +1866,14 @@ var Telegraph = function (ctxId, config) {
             drawFilterLayer(vTrue);
             perf.mark(perf.drawFilterLayer);
 
-            charts[0].drawHorizontalGrid();
-            perf.mark(perf.drawHorizontalGrid);
+            if (charts[0].getType() === ENUM_CHART_TYPE_LINE) {
+                charts[0].drawHorizontalGrid();
+                drawSeries();
+            } else {
+                charts[0].drawHorizontalGrid();
+                drawSeries();
+            }
 
-            drawSeries();
             perf.mark(perf.drawSeries);
 
             drawFilterLayer();
@@ -1966,16 +1994,24 @@ var Telegraph = function (ctxId, config) {
 
     }
 
+    function addClass(el, cls) {
+        el.classList.add(cls);
+    }
+
+    function removeClass(el, cls) {
+        el.classList.remove(cls);
+    }
+    
     function createElement(tagName, prefix, classes, styles, parent) {
         var _el = vDocument.createElement(tagName),
-            i,
-            s;
+            _i,
+            _s;
         _el.id = prefix + ctxId;
-        for (i in classes) {
-            _el.classList.add(classes[i]);
+        for (_i in classes) {
+            addClass(_el, classes[_i]);
         }
-        for (s in styles) {
-            _el.style[s] = styles[s];
+        for (_s in styles) {
+            _el.style[_s] = styles[_s];
         }
         if (parent) {
             parent.appendChild(_el);
@@ -1991,7 +2027,7 @@ var Telegraph = function (ctxId, config) {
             "day_range_", ["day-range"], {}, _titleContainer);
 
         divZoomOut = createElement("div",
-            "zoom_out_", ["zoom-out", "animate", "hidden"], {}, _titleContainer);
+            "zoom_out_", ["zoom-out", "animate", CONST_HIDDEN_CLASS], {}, _titleContainer);
 
         var sd = createElement("span",
             "zoom_out_svg_", [], {}, divZoomOut);

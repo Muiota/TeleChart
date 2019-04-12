@@ -208,6 +208,12 @@ button, button:hover, button:after, button:focus {
 .chart-container .tooltip .tooltip-row {
     content: "";
     clear: both;
+    display: inherit;
+}
+
+.chart-container .tooltip .tooltip-row.hidden {
+    display: none;
+
 }
 
 .chart-container .tooltip .tooltip-values .tooltip-title {
