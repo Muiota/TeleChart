@@ -73,8 +73,6 @@ body.custom.dark {
     -webkit-touch-callout: none;
     -webkit-tap-highlight-color: transparent;
     width: 100%;
-    adding-left: 5px;
-    padding-right: 5px;
 }
 
 .chart_container:focus {
@@ -270,6 +268,40 @@ svg {
     transition: all 0.2s ease-in-out;
 }
 
+.chart_container .tooltip {
+    position: absolute;
+    background: #ffffffe0;
+    border-radius: 10px;
+    border: 1px #cccccc solid;
+    top: 30px;
+    cursor: pointer;
+}
+
+.chart_container .tooltip .tooltip-date {
+    margin: 10px 10px 5px;
+    font-weight: bold;
+}
+
+.chart_container .tooltip .tooltip-values {
+    margin: 10px;
+}
+
+.chart_container .tooltip .tooltip-row {
+    content: "";
+    clear: both;
+}
+
+.chart_container .tooltip .tooltip-values .tooltip-title {
+    padding-right: 5px;
+
+}
+
+.chart_container .tooltip .tooltip-values .tooltip-value {
+    float: right;
+    padding-left: 5px;
+
+}
+
 .button:not(.checked) {
     background-color: transparent !important;
 }
@@ -315,4 +347,5 @@ svg {
 .button.checked .button-text {
     margin-left: 5px;
 }
+
 
