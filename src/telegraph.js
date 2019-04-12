@@ -61,10 +61,6 @@ var Telegraph = function (ctxId, config) {
         ENUM_CHART_TYPE_BAR = "bar",
         ENUM_CHART_TYPE_AREA = "area";
 
-    /**
-     * Global members
-     * @type {Number|Array|String|HTMLCanvasElement|CanvasRenderingContext2D|Element|Object|Date}
-     */
     var container = vDocument.getElementById(ctxId),                               //canvases container
         isMobile = ("ontouchstart" in window),
         charts = [],
@@ -76,6 +72,16 @@ var Telegraph = function (ctxId, config) {
         uIGlobalPadding4,
         uIBtnRadius,
         uIBtnRadius2,
+
+        uiGlobalTheme =
+            {
+                scrollBackground: "#3042599A",
+                scrollSelector: "#56626D",
+                gridLines: "#FFFFFF1A",
+                zoomOutText: "#48AAF0",
+                tooltipArrow: "#D2D5D7",
+                axisText: "#8E8E93"
+            },
 
         totalWidth,
         visibleWidth,
@@ -464,9 +470,9 @@ var Telegraph = function (ctxId, config) {
                 _nextScaleValue = fMathCeil(mainAxis.getLocalMinY()),
                 _value,
                 _textLength;
-            var _opacity = getMin((globalScaledY ? opacity : seriesMaxOpacity * smartAxisYOpacity * 0.5), smartAxisYOpacity);
+            var _opacity = getMin((globalScaledY ? opacity : seriesMaxOpacity * smartAxisYOpacity), smartAxisYOpacity);
             setGlobalAlpha(frameContext, _opacity);
-            setFillStyle(frameContext, globalScaledY ? color : envColor);
+            setFillStyle(frameContext, globalScaledY ? color : uiGlobalTheme.axisText);
             while (_selectionAxis > navigatorHeightHalf) {
                 _labelY = fParseInt(_selectionAxis) + CONST_ANTI_BLUR_SHIFT - uIGlobalPadding;
                 _value = _nextScaleValue.toString();
@@ -497,8 +503,8 @@ var Telegraph = function (ctxId, config) {
                 case ENUM_CHART_TYPE_LINE:
                 case ENUM_CHART_TYPE_AREA:
                     beginPath(frameContext);
-                    setStrokeStyle(frameContext, envColor);
-                    setGlobalAlpha(frameContext, 0.4 * arrowTooltipOpacity);
+                    setStrokeStyle(frameContext, uiGlobalTheme.tooltipArrow);
+                    setGlobalAlpha(frameContext, 1);
                     setLineWidth(frameContext);
                     moveOrLine(frameContext, vTrue, _xPos, 0);
                     moveOrLine(frameContext, vFalse, _xPos, selectionBottom);
@@ -526,8 +532,8 @@ var Telegraph = function (ctxId, config) {
             var _nextScaleLevel = selectionBottom,
                 _yCoordinate;
             beginPath(frameContext);
-            setGlobalAlpha(frameContext, 0.1);
-            setStrokeStyle(frameContext, envColor);
+            setGlobalAlpha(frameContext, 1);
+            setStrokeStyle(frameContext, uiGlobalTheme.gridLines);
             setLineWidth(frameContext, uiDisplayScaleFactor);
             while (_nextScaleLevel > navigatorHeightHalf) {
                 _yCoordinate = fMathCeil(_nextScaleLevel) + CONST_ANTI_BLUR_SHIFT;
@@ -663,7 +669,17 @@ var Telegraph = function (ctxId, config) {
                 _from = fMathFloor(selectionCurrentIndexFloat),
                 _value = yData[_from];
 
-            divTooltipContainer.style.left = (_posX/uiDisplayScaleFactor - 15) + "px"; //todo optimize
+            var _proposedTooltipLeft = (_posX / uiDisplayScaleFactor - 15);
+            if (_proposedTooltipLeft < 0) {
+                _proposedTooltipLeft = 0;
+            } else
+            {
+                var _tooltipWidth = fParseInt(getStyle(divTooltipContainer, CONST_WIDTH).replace(CONST_PIXEL, ""))+ 5;
+                if (_proposedTooltipLeft + _tooltipWidth > container.clientWidth) {
+                    _proposedTooltipLeft = container.clientWidth - _tooltipWidth;
+                }
+            }
+            divTooltipContainer.style.left = _proposedTooltipLeft + CONST_PIXEL; //todo optimize
             updateLegendValue(_value);
             divTooltipDate.innerHTML = formatDate(xData[_from], vTrue);
 
@@ -897,8 +913,8 @@ var Telegraph = function (ctxId, config) {
         bufferNavigatorCanvas[CONST_HEIGHT] = navigatorHeight;
 
 
-        var _size = getBodyStyle("font-size"),
-            _fontFamilyCombined = CONST_PIXEL + " " + getBodyStyle("font-family"),
+        var _size = getStyle(vDocument.body, "font-size"),
+            _fontFamilyCombined = CONST_PIXEL + " " + getStyle(vDocument.body, "font-family"),
             _baseFontSize = fParseInt(_size.replace(/\D/g, ""));
 
 
@@ -1031,8 +1047,8 @@ var Telegraph = function (ctxId, config) {
             recalculateBounds();
         }
 
-        envColor = getBodyStyle("color");
-        envBgColor = getBodyStyle("background-color");
+        envColor = getStyle(vDocument.body, "color");
+        envBgColor = getStyle(vDocument.body, "background-color");
 
         calcMouseOffset();
         invalidateInner();
@@ -1077,9 +1093,8 @@ var Telegraph = function (ctxId, config) {
     }
 
 
-    function getBodyStyle(propertyName) {
-        var _el = vDocument.body,
-            _currentStyle = _el.currentStyle;
+    function getStyle(_el, propertyName) {
+        var _currentStyle = _el.currentStyle;
         return _currentStyle ?
             _currentStyle[propertyName] :
             vDocument.defaultView.getComputedStyle(_el, vNull)[propertyName];
@@ -1132,7 +1147,7 @@ var Telegraph = function (ctxId, config) {
             if (mouseHoveredRegionType !== ENUM_SELECTION_HOVER &&
                 mouseHoveredRegionType !== ENUM_LEGEND_HOVER) {
                 selectionCurrentIndexPinned = vFalse;
-               hideTooltip();
+                hideTooltip();
             }
 
             //Set cursor
@@ -1164,7 +1179,7 @@ var Telegraph = function (ctxId, config) {
         }
 
         if (_mainFactorX) { //Selection hovered
-            if (mouseX > uIGlobalPadding2 && mouseX < visibleWidth && mouseY < navigatorTop && ((!force) || !selectionCurrentIndexPinned || mousePressed)) {
+            if (mouseY < navigatorTop && ((!force) || !selectionCurrentIndexPinned || mousePressed)) {
                 var _position = mouseX / _mainFactorX + selectionStartIndexFloat;
                 var _proposed = (charts[0].getType() === ENUM_CHART_TYPE_BAR) ? fMathCeil(_position - 1) : fMathRound(_position);
                 _proposed = getMin(getMax(1, _proposed), charts[0].getLastIndex());
@@ -1304,7 +1319,7 @@ var Telegraph = function (ctxId, config) {
         }
 
         if (e.type === "mouseout") {
-           updateHoveredInfo(vNull, vTrue);
+            updateHoveredInfo(vNull, vTrue);
         }
 
         calcMouseOffset();
@@ -1630,7 +1645,7 @@ var Telegraph = function (ctxId, config) {
         _nextItem = smartAxisXStart;
         _axisRange = smartAxisXRange;
 
-        var _mainOpacity = seriesMaxOpacity * smartAxisXOpacity * 0.5;
+        var _mainOpacity = seriesMaxOpacity * smartAxisXOpacity ;
 
         if (!_needCalc) { //Auto show/hide sub labels when resize
             if (smartAxisXRatio < 0) {
@@ -1659,7 +1674,7 @@ var Telegraph = function (ctxId, config) {
             _opacity = _opacity * _mainOpacity;
         }
         _labelY = _selectionAxis + uIGlobalPadding * 5;
-        setFillStyle(frameContext, envColor);
+        setFillStyle(frameContext,  uiGlobalTheme.axisText);
         setLineWidth(frameContext);
         for (_i = _nextItem - _axisRange; _i <= selectionEndIndexInt; _i += _axisRange) {
             _nextItem = fMathCeil(_i);
@@ -1800,9 +1815,10 @@ var Telegraph = function (ctxId, config) {
     }
 
 
-    function drawNavigatorLayer(isBackground) {
+    function drawFilterLayer(isBackground) {
         setFillStyle(frameContext, envColor);
         if (isBackground) {
+            return;
             setGlobalAlpha(frameContext, 0.3);
             fillRect(frameContext, uIGlobalPadding2 + zoomStartInt, navigatorTop, zoomEndInt - zoomStartInt, navigatorHeight);
             setGlobalAlpha(frameContext, 1);
@@ -1810,12 +1826,11 @@ var Telegraph = function (ctxId, config) {
             fillRect(frameContext, uIGlobalPadding2 + zoomStartInt + uIGlobalPadding2, navigatorTop + uiGlobalPaddingHalf, zoomEndInt -
                 zoomStartInt - uIGlobalPadding4, navigatorHeight - uIGlobalPadding);
         } else {
-            setGlobalAlpha(frameContext, 0.1);
+
+            setFillStyle(frameContext, uiGlobalTheme.scrollBackground);
+            //setGlobalAlpha(frameContext, 0.5);
             fillRect(frameContext, uIGlobalPadding2, navigatorTop, zoomStartInt, navigatorHeight);
-            fillRect(frameContext, uIGlobalPadding2 + zoomEndInt, navigatorTop, visibleWidth - zoomEndInt, navigatorHeight);
-            setFillStyle(frameContext, envBgColor);
-            fillRect(frameContext, uIGlobalPadding2, navigatorTop, zoomStartInt, navigatorHeight);
-            fillRect(frameContext, zoomEndInt, navigatorTop, visibleWidth - zoomEndInt, navigatorHeight);
+            fillRect(frameContext, uIGlobalPadding2 + zoomEndInt, navigatorTop, visibleWidth - zoomEndInt + uiDisplayScaleFactor, navigatorHeight);
         }
         setGlobalAlpha(frameContext, 1);
     }
@@ -1824,8 +1839,8 @@ var Telegraph = function (ctxId, config) {
         clearCanvas(frameContext, totalWidth, totalHeight);
         if (charts.length) {
             setFont(frameContext, envRegularSmallFont);
-            drawNavigatorLayer(vTrue);
-            perf.mark(perf.drawNavigatorLayer);
+            drawFilterLayer(vTrue);
+            perf.mark(perf.drawFilterLayer);
 
             charts[0].drawHorizontalGrid();
             perf.mark(perf.drawHorizontalGrid);
@@ -1833,7 +1848,7 @@ var Telegraph = function (ctxId, config) {
             drawSeries();
             perf.mark(perf.drawSeries);
 
-            drawNavigatorLayer();
+            drawFilterLayer();
             perf.mark(perf.drawNavigatorLayerB);
 
             if (seriesMaxOpacity > 0) {
@@ -2141,10 +2156,10 @@ var Telegraph = function (ctxId, config) {
         }
     }
 
-    function setTheme(dark) {
-
+    function setTheme(theme) {
+        Object.assign(uiGlobalTheme, theme);
+        divZoomOut.style.color = uiGlobalTheme.zoomOutText;
     }
-
 
     function render() {
 

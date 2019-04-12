@@ -69,7 +69,7 @@
 
         var _innerContainer = document.createElement('div');
         _innerContainer.id = "chart_" + counter++;
-        _innerContainer.classList.add("chart_container");
+        _innerContainer.classList.add("chart-container");
         _container.appendChild(_innerContainer);
         var config = {
             title: name,
@@ -99,6 +99,10 @@
         tc.draw(data);
         instances.push(tc);
         loaded[sn] = true;
+
+        if (sn === 5) {
+            switchButton(document.getElementById("btn_dark_mode"));
+        }
     }
 
     function loadChart(sn, subUrl, title) {
@@ -116,7 +120,6 @@
     loadChart(5, "/data/5", "Apps");
 
 
-    var dark_mode_button = document.getElementById("btn_dark_mode");
     var updateTimeout;
 
     function invalidateCharts(isFull, immediately) {
@@ -156,15 +159,15 @@
     });
 
 
-    function updateTheme(darkMode) {
+    function updateTheme() {
         var theme;
         if (darkMode) {
             theme =
                 {
-                    scrollBackground: "#304259",  //60%
+                    scrollBackground: "#3042599A",
                     scrollSelector: "#56626D",
-                    gridLines: "#FFFFFF", // 10%
-                    zoomOutTex: "#48AAF0",
+                    gridLines: "#FFFFFF1A",
+                    zoomOutText: "#48AAF0",
                     tooltipArrow: "#D2D5D7",
                     axisText: "#8E8E93"
                 }
@@ -172,12 +175,12 @@
         else {
             theme =
                 {
-                    scrollBackground: "#E2EEF9",  //60%
+                    scrollBackground: "#E2EEF99A",
                     scrollSelector: "#C0D1E1",
-                    gridLines: "#C0D1E1",  // 10%
-                    zoomOutTex: "#108BE3",
+                    gridLines: "#C0D1E11A",
+                    zoomOutText: "#108BE3",
                     tooltipArrow: "#D2D5D7",
-                    axisText: "#A3B1C2", //60%
+                    axisText: "#A3B1C29A",
                 }
         }
 
@@ -197,7 +200,6 @@
         updateTheme(darkMode);
     }
 
-    switchButton(dark_mode_button);
 
     function onChangeTheme(e) {
         e = e || window.event;

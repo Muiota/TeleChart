@@ -18,14 +18,6 @@ body.dark {
     color: #ffffff;
 }
 
-a {
-    text-decoration: none;
-}
-
-.dark a {
-    color: #3a6d99;
-}
-
 body.custom {
     background: #f2f6fa;
     color: #3a6d99;
@@ -34,21 +26,6 @@ body.custom {
 body.custom.dark {
     background: #2d4456;
     color: #f2f6fa;
-}
-
-.im_dialog_peer {
-    font-weight: 700;
-    margin-top: 2px;
-    margin-bottom: 2px;
-    padding-left: 15px;
-}
-
-.settings_panel {
-    float: right;
-}
-
-.settings_panel input {
-    vertical-align: top;
 }
 
 #charts_container {
@@ -60,86 +37,7 @@ body.custom.dark {
     margin-left: 15px;
 }
 
-.chart_container {
-    float: left;
-}
-
-.chart_container,
-.chart_container canvas {
-    -webkit-user-select: none; /* Safari 3.1+ */
-    -moz-user-select: none; /* Firefox 2+ */
-    -ms-user-select: none; /* IE 10+ */
-    user-select: none; /* Standard syntax */
-    -webkit-touch-callout: none;
-    -webkit-tap-highlight-color: transparent;
-    width: 100%;
-}
-
-.chart_container:focus {
-    outline: none !important;
-}
-
-.swiper-container {
-    width: 100%;
-    height: 100%;
-}
-
-.swiper-slide {
-    text-align: center;
-    font-size: 18px;
-    display: -webkit-box;
-    display: -ms-flexbox;
-    display: -webkit-flex;
-    display: flex;
-    -webkit-box-pack: center;
-    -ms-flex-pack: center;
-    -webkit-justify-content: center;
-    justify-content: center;
-    -webkit-box-align: center;
-    -ms-flex-align: center;
-    -webkit-align-items: center;
-    align-items: center;
-}
-
-.swiper-slide.video {
-    display: block;
-}
-
-div .currency-title {
-    margin-left: 15px;
-}
-
-small {
-    opacity: 0.6;
-}
-
-pre {
-    white-space: pre-wrap; /* Since CSS 2.1 */
-    white-space: -moz-pre-wrap; /* Mozilla, since 1999 */
-    white-space: -pre-wrap; /* Opera 4-6 */
-    white-space: -o-pre-wrap; /* Opera 7 */
-    word-wrap: break-word; /* Internet Explorer 5.5+ */
-}
-
-
-
-.input_url_container {
-    margin-top: 40px;
-    margin-bottom: 10px;
-}
-
-.input_url_container input {
-    margin-right: 5px;
-}
-
-.input_url_container a {
-    display: inline-block;
-    padding-left: 0px;
-    padding-right: 5px;
-    margin-top: 5px;
-}
-
-.chart_container {
+.chart-container {
     box-sizing: border-box;
     position: relative;
     display: inline-block;
@@ -147,17 +45,38 @@ pre {
     margin-right: 0;
     margin-bottom: 10px;
     width: 100%;
+    overflow: hidden;
+    float: left;
+}
+
+.chart-container,
+.chart-container canvas {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    width: 100%;
+}
+
+.chart-container:focus {
+    outline: none !important;
 }
 
 @media (min-width: 700px) {
-    .chart_container {
-        width: 49%;
+    .chart-container {
+        width: 48%;
+        margin-right: 5px;
+        margin-left: 5px;
     }
 }
 
 @media (min-width: 1000px) {
-    .chart_container {
-        width: 33%;
+    .chart-container {
+        width: 32%;
+        margin-right: 5px;
+        margin-left: 5px;
     }
 }
 
@@ -192,30 +111,29 @@ button, button:hover, button:after, button:focus {
     display: block;
 }
 
-.title-container {
+.chart-container .title-container {
     padding-left: 5px;
     padding-right: 5px;
 }
 
-.title-container .day-range {
+.chart-container .title-container .day-range {
     float: right;
 }
 
-.title-container .title {
+.chart-container .title-container .title {
     float: left
 }
 
-.title-container .zoom-out {
+.chart-container .title-container .zoom-out {
     float: left;
     cursor: pointer;
-    color: #108BE3;
 }
 
-.title-container .zoom-out svg {
+.chart-container .title-container .zoom-out svg {
     margin-right: 5px;
 }
 
-.animate {
+.chart-container .animate {
     top: 0px;
     left: 5px;
     opacity: 1;
@@ -227,21 +145,21 @@ button, button:hover, button:after, button:focus {
     transition: opacity 0.2s ease-in-out, top 0.2s ease-in-out;
 }
 
-.animate.hidden {
+.chart-container .animate.hidden {
     top: 10px;
     opacity: 0;
 }
 
-.animate.hidden.top {
+.chart-container .animate.hidden.top {
     top: -10px;
     opacity: 0;
 }
 
-svg {
+.chart-container svg {
     fill: currentColor;
 }
 
-.button {
+.chart-container .button {
     margin: 5px;
     display: inline-block;
     border-radius: 30px;
@@ -254,7 +172,7 @@ svg {
     transition: all 0.2s ease-in-out;
 }
 
-.chart_container .tooltip {
+.chart-container .tooltip {
     position: absolute;
     background: #ffffffe0;
     border-radius: 10px;
@@ -269,54 +187,49 @@ svg {
     transition: opacity 0.2s ease-in-out;
 }
 
-.chart_container .tooltip.hidden
-{
+.chart-container .tooltip.hidden {
     opacity: 0;
 }
 
-.dark .chart_container .tooltip
-{
-    background: #242f3e;
+.dark .chart-container .tooltip {
+    background: #242f3ee0;
     border: 1px #3b5167 solid;
 }
 
-
-
-
-.chart_container .tooltip .tooltip-date {
+.chart-container .tooltip .tooltip-date {
     margin: 10px 10px 5px;
     font-weight: bold;
 }
 
-.chart_container .tooltip .tooltip-values {
+.chart-container .tooltip .tooltip-values {
     margin: 10px;
 }
 
-.chart_container .tooltip .tooltip-row {
+.chart-container .tooltip .tooltip-row {
     content: "";
     clear: both;
 }
 
-.chart_container .tooltip .tooltip-values .tooltip-title {
+.chart-container .tooltip .tooltip-values .tooltip-title {
     padding-right: 5px;
 
 }
 
-.chart_container .tooltip .tooltip-values .tooltip-value {
+.chart-container .tooltip .tooltip-values .tooltip-value {
     float: right;
     padding-left: 5px;
 
 }
 
-.button:not(.checked) {
+.chart-container .button:not(.checked) {
     background-color: transparent !important;
 }
 
-.button.checked {
+.chart-container .button.checked {
     color: white !important;
 }
 
-.button .button-icon {
+.chart-container .button .button-icon {
     vertical-align: middle;
     display: inline-block;
     -webkit-transform: scale(0);
@@ -333,7 +246,7 @@ svg {
     transition: all 0.2s ease-in-out;
 }
 
-.button.checked .button-icon {
+.chart-container .button.checked .button-icon {
     -webkit-transform: scale(1.0);
     -moz-transform: scale(1.0);
     -ms-transform: scale(1.0);
@@ -341,7 +254,7 @@ svg {
     width: 12px;
 }
 
-.button .button-text {
+.chart-container .button .button-text {
     -webkit-transition: margin-left 0.2s ease-in-out;
     -moz-transition: margin-left 0.2s ease-in-out;
     -ms-transition: margin-left 0.2s ease-in-out;
@@ -350,7 +263,7 @@ svg {
     margin-left: 0px;
 }
 
-.button.checked .button-text {
+.chart-container .button.checked .button-text {
     margin-left: 5px;
 }
 
