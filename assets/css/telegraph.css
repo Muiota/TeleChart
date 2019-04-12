@@ -121,21 +121,7 @@ pre {
     word-wrap: break-word; /* Internet Explorer 5.5+ */
 }
 
-.pl-k {
-    color: #d77c3a;
-}
 
-.pl-en {
-    color: #39a4a5;
-}
-
-.pl-c1 {
-    color: #3a6d99;
-}
-
-.pl-c {
-    color: #6a737d;
-}
 
 .input_url_container {
     margin-top: 40px;
@@ -275,7 +261,27 @@ svg {
     border: 1px #cccccc solid;
     top: 30px;
     cursor: pointer;
+    opacity: 1;
+    -webkit-transition: opacity 0.2s ease-in-out;
+    -moz-transition: opacity 0.2s ease-in-out;
+    -ms-transition: opacity 0.2s ease-in-out;
+    -o-transition: opacity 0.2s ease-in-out;
+    transition: opacity 0.2s ease-in-out;
 }
+
+.chart_container .tooltip.hidden
+{
+    opacity: 0;
+}
+
+.dark .chart_container .tooltip
+{
+    background: #242f3e;
+    border: 1px #3b5167 solid;
+}
+
+
+
 
 .chart_container .tooltip .tooltip-date {
     margin: 10px 10px 5px;

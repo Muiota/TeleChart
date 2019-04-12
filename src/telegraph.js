@@ -136,8 +136,8 @@ var Telegraph = function (ctxId, config) {
 
         seriesMaxOpacity,               //@type {Number} max opacity of series for animations
 
-        legendCursorOpacity = 0,
-        legendBoxOpacity = 0,
+        arrowTooltipOpacity = 0,
+
 
         envSmallTextHeight,
         envDefaultTextHeight,
@@ -289,7 +289,7 @@ var Telegraph = function (ctxId, config) {
                 factorX = width / (endIndex - startIndex);
                 localMaxY = _localMaxY;
                 if (globalPercentageMode) {
-                    factorY = -(height - 2) / 110;
+                    factorY = -(height - 2) / 100;
                     localMinY = _localMinY;
                     for (_j in yDataList) {
                         _container = yDataList[_j];
@@ -498,7 +498,7 @@ var Telegraph = function (ctxId, config) {
                 case ENUM_CHART_TYPE_AREA:
                     beginPath(frameContext);
                     setStrokeStyle(frameContext, envColor);
-                    setGlobalAlpha(frameContext, 0.4 * legendCursorOpacity);
+                    setGlobalAlpha(frameContext, 0.4 * arrowTooltipOpacity);
                     setLineWidth(frameContext);
                     moveOrLine(frameContext, vTrue, _xPos, 0);
                     moveOrLine(frameContext, vFalse, _xPos, selectionBottom);
@@ -509,7 +509,7 @@ var Telegraph = function (ctxId, config) {
                     _yPos = selectionBottom + (yData[_position] - mainAxis.getLocalMinY()) * mainAxis.getFactorY();
 
                     setFillStyle(frameContext, color);
-                    setGlobalAlpha(frameContext, legendCursorOpacity);
+                    setGlobalAlpha(frameContext, arrowTooltipOpacity);
                     if (globalStackedBarMode) {
                         _yStacked = _yPos - stackedRegister[1];
                         stackedRegister[1] = stackedRegister[1] + selectionBottom - _yPos;
@@ -692,7 +692,7 @@ var Telegraph = function (ctxId, config) {
                     }
                     _sValueY += selectionBottom;
                     beginPath(frameContext);
-                    setGlobalAlpha(frameContext, legendCursorOpacity * opacity);
+                    setGlobalAlpha(frameContext, arrowTooltipOpacity * opacity);
                     setFillStyle(frameContext, envBgColor);
                     circle(frameContext, _posX, _sValueY, 3 * uiDisplayScaleFactor);
                     fill(frameContext);
@@ -838,7 +838,7 @@ var Telegraph = function (ctxId, config) {
             "btn-cnt", ["buttons"], {}, container);
 
         divTooltipContainer = createElement("div",
-            "tlp", ["tooltip"], {}, container);
+            "tlp", ["tooltip", "hidden"], {}, container);
 
         divTooltipDate = createElement("div",
             "tlp-date", ["tooltip-date"], {}, divTooltipContainer);
@@ -963,14 +963,9 @@ var Telegraph = function (ctxId, config) {
         selectionCurrentIndexFloat = val;
     }
 
-    function setLegendCursorOpacity(val) {
-        legendCursorOpacity = val;
+    function setArrowTooltipOpacity(val) {
+        arrowTooltipOpacity = val;
     }
-
-    function setLegendBoxOpacity(val) {
-        legendBoxOpacity = val;
-    }
-
 
     function setAxisXLabelOpacity(val) {
         smartAxisXOpacity = val;
@@ -1137,14 +1132,13 @@ var Telegraph = function (ctxId, config) {
             if (mouseHoveredRegionType !== ENUM_SELECTION_HOVER &&
                 mouseHoveredRegionType !== ENUM_LEGEND_HOVER) {
                 selectionCurrentIndexPinned = vFalse;
-                animate(legendCursorOpacity, setLegendCursorOpacity, 0);
-                animate(legendBoxOpacity, setLegendBoxOpacity, 0);
+               hideTooltip();
             }
 
             //Set cursor
             if (mouseHoveredRegionType === ENUM_SELECTION_HOVER) { //most likely
                 if (currentZoomState !== STATE_ZOOM_TRANSFORM_TO_HOURS) {
-                    animate(legendCursorOpacity, setLegendCursorOpacity, 1);
+                    showTooltip();
                     setCursor(0);
                 }
             } else if (mouseHoveredRegionType === ENUM_ZOOM_HOVER ||
@@ -1170,7 +1164,7 @@ var Telegraph = function (ctxId, config) {
         }
 
         if (_mainFactorX) { //Selection hovered
-            if (mouseY < navigatorTop && ((legendBoxOpacity === 0 && !force) || !selectionCurrentIndexPinned || mousePressed)) {
+            if (mouseX > uIGlobalPadding2 && mouseX < visibleWidth && mouseY < navigatorTop && ((!force) || !selectionCurrentIndexPinned || mousePressed)) {
                 var _position = mouseX / _mainFactorX + selectionStartIndexFloat;
                 var _proposed = (charts[0].getType() === ENUM_CHART_TYPE_BAR) ? fMathCeil(_position - 1) : fMathRound(_position);
                 _proposed = getMin(getMax(1, _proposed), charts[0].getLastIndex());
@@ -1308,6 +1302,11 @@ var Telegraph = function (ctxId, config) {
             mouseHoveredRegionType === ENUM_END_SELECTION_HOVER) {
             stopPropagation(e);
         }
+
+        if (e.type === "mouseout") {
+           updateHoveredInfo(vNull, vTrue);
+        }
+
         calcMouseOffset();
         var _touches = e.touches;
         var isTouchEvent = _touches && _touches.length;
@@ -1315,11 +1314,10 @@ var Telegraph = function (ctxId, config) {
         if (mouseHoveredRegionType === ENUM_SELECTION_HOVER) {
             withoutPress = vTrue;
             if (currentZoomState !== STATE_ZOOM_TRANSFORM_TO_HOURS &&
-                legendBoxOpacity === 0 && (selectionCurrentIndexPinned || isMobile)) {
+                (selectionCurrentIndexPinned || isMobile)) {
                 if (isMobile) {
                     selectionCurrentIndexPinned = vFalse;
                 }
-                animate(legendBoxOpacity, setLegendBoxOpacity, 1);
             }
         }
 
@@ -1409,6 +1407,15 @@ var Telegraph = function (ctxId, config) {
         }
     }
 
+    function hideTooltip() {
+        animate(arrowTooltipOpacity, setArrowTooltipOpacity, 0);
+        divTooltipContainer.classList.add("hidden"); //todo
+    }
+
+    function showTooltip() {
+        animate(arrowTooltipOpacity, setArrowTooltipOpacity, 1);
+        divTooltipContainer.classList.remove("hidden");
+    }
 
     function handleMouseClick(e, pressed) {
         if (!handleMouseMove(e, vTrue)) {
@@ -1431,15 +1438,11 @@ var Telegraph = function (ctxId, config) {
                 navigatorPressedRegionType = mouseHoveredRegionType;
             } else if (mouseHoveredRegionType === ENUM_LEGEND_HOVER) {
                 if (currentZoomState === STATE_ZOOM_DAYS && config.loadCallback) {
-                    animate(legendBoxOpacity, setLegendBoxOpacity, 0);
-                    animate(legendBoxOpacity, setLegendCursorOpacity, 0);
+                    hideTooltip();
                     lookupHourData();
                 }
             } else if (mouseHoveredRegionType === ENUM_SELECTION_HOVER) {
                 selectionCurrentIndexPinned = isMobile ? vFalse : !selectionCurrentIndexPinned;
-                if (legendBoxOpacity === 1 && !selectionCurrentIndexPinned && !isMobile && !isSelectionCurrentIndexChanged) {
-                    animate(legendBoxOpacity, setLegendBoxOpacity, 0);
-                }
                 isSelectionCurrentIndexChanged = vFalse;
             }
         } else {
@@ -1564,7 +1567,7 @@ var Telegraph = function (ctxId, config) {
         moveOrLine(context, vFalse, x, y + uIBtnRadius);
         quadraticCurveTo(context, x, y, x + uIBtnRadius, y);
         closePath(context);
-        setGlobalAlpha(frameContext, legendBoxOpacity * legendCursorOpacity * 0.9);
+        setGlobalAlpha(frameContext, arrowTooltipOpacity * 0.9);
         fill(context);
         endPath(context);
     }
@@ -1847,7 +1850,7 @@ var Telegraph = function (ctxId, config) {
                     charts[0].drawTooltipArrow(selectionCurrentIndexFloat, selectionStartIndexFloat);
                 }
                 drawAxisLabels();
-                if (legendCursorOpacity > 0) {
+                if (arrowTooltipOpacity > 0) {
                     updateLegend();
                 }
 
