@@ -25,7 +25,7 @@ var PerfomanceMeter = function () {
 
 
 
-    function measureDurations(context) {
+    function measureDurations(context, charts) {
         try {
             performance.measure("total", this.start, this.end);
             performance.measure("animation", this.start, this.animation);
@@ -38,13 +38,17 @@ var PerfomanceMeter = function () {
 
             var y = 50;
             context.fillStyle = "#777777";
-            context.globalAlpha = 0.3;
+            context.globalAlpha = 0.6;
 
             for (var measureIndex in measures) {
                 var meas = measures[measureIndex];
                 context.fillText(meas.name + " " + meas.duration.toFixed(4), uIBtnRadius2, y);
                 y = y + envSmallTextHeight + uIGlobalPadding;
             }
+
+
+            context.fillText("filter.factorX" + " " + charts[0].getFilterAxis().getFactorX(), uIBtnRadius2, y);
+            y = y + envSmallTextHeight + uIGlobalPadding;
 
         } catch (e) {
 

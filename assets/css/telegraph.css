@@ -202,7 +202,7 @@ button, button:hover, button:after, button:focus {
 }
 
 .chart-container .tooltip .tooltip-date {
-    margin: 10px 10px 5px;
+    margin: 10px 15px 5px;
     font-weight: bold;
 }
 
@@ -214,6 +214,7 @@ button, button:hover, button:after, button:focus {
     content: "";
     clear: both;
     display: inherit;
+    width: 100%;
 }
 
 .chart-container .tooltip .tooltip-row.hidden {
@@ -229,7 +230,6 @@ button, button:hover, button:after, button:focus {
 .chart-container .tooltip .tooltip-values .tooltip-value {
     float: right;
     padding-left: 5px;
-
 }
 
 .chart-container .button:not(.checked) {
