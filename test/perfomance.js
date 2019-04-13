@@ -5,11 +5,20 @@ var PerfomanceMeter = function () {
     var envSmallTextHeight = parseInt(16 * 0.8 * window.devicePixelRatio);
     var uIGlobalPadding = 5 * window.devicePixelRatio;
 
+
     var extLog = [];
 
+    var logsContainer = document.getElementById("logs");
+
+
     console.error = function (e) {
-        extLog.push(e);
+        var item = document.createElement("div");
+        item.innerHTML = e + "";
+        item.style.color = "red";
+        logsContainer.appendChild(item);
     }
+
+
 
     function measureDurations(context) {
         try {
@@ -29,12 +38,6 @@ var PerfomanceMeter = function () {
             for (var measureIndex in measures) {
                 var meas = measures[measureIndex];
                 context.fillText(meas.name + " " + meas.duration.toFixed(4), uIBtnRadius2, y);
-                y = y + envSmallTextHeight + uIGlobalPadding;
-            }
-
-            for (var i in extLog)
-            {
-                context.fillText(extLog[i], uIBtnRadius2, y);
                 y = y + envSmallTextHeight + uIGlobalPadding;
             }
 
