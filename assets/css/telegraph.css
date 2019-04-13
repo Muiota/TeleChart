@@ -128,7 +128,7 @@ button, button:hover, button:after, button:focus {
 }
 
 .chart-container .title-container .zoom-out svg {
-    margin-right: 5px;
+    margin: 0 auto;
 }
 
 .chart-container .animate {
@@ -248,6 +248,8 @@ button, button:hover, button:after, button:focus {
     -o-transition: all 0.2s ease-in-out;
     transition: all 0.2s ease-in-out;
     margin: auto;
+    align-items: center;
+    float: left;
 }
 
 .chart-container .button.checked .button-icon {
