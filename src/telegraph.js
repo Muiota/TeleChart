@@ -929,11 +929,11 @@ var Telegraph = function (ctxId, config) {
         navigatorBottom = navigatorTop + navigatorHeight;                          //navigator bottom
         totalHeight = navigatorBottom + uIGlobalPadding; //main frame height
 
-        mainCanvas[CONST_WIDTH] = totalWidth;
-        mainCanvas[CONST_HEIGHT] = totalHeight;
+        mainCanvas[CONST_WIDTH] = totalWidth || 2;
+        mainCanvas[CONST_HEIGHT] = totalHeight || 2;
 
-        bufferNavigatorCanvas[CONST_WIDTH] = totalWidth;
-        bufferNavigatorCanvas[CONST_HEIGHT] = navigatorHeight;
+        bufferNavigatorCanvas[CONST_WIDTH] = totalWidth || 2;
+        bufferNavigatorCanvas[CONST_HEIGHT] = navigatorHeight || 2;
 
 
         var _size = getStyle(vDocument.body, "font-size"),
