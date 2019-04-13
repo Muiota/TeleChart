@@ -77,14 +77,14 @@ var Telegraph = function (ctxId, config) {
 
         uiGlobalTheme =
             {
-                scrollBackground: "#3042599A",
+                scrollBackground: "rgba(48, 66, 89, 0.6)",
                 scrollSelector: "#56626D",
                 scrollSelectorBorder: "#FFFFFF",
-                gridLines: "#FFFFFF1A",
+                gridLines: "rgba(255, 255, 255, 0.1)",
                 zoomOutText: "#48AAF0",
                 tooltipArrow: "#D2D5D7",
                 axisText: "#8E8E93",
-                barMask: "#242F3E80"
+                barMask: "rgba(36, 47, 62, 1)"
             },
 
         totalWidth,
