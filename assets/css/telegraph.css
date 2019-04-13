@@ -168,6 +168,7 @@ button, button:hover, button:after, button:focus {
     -ms-transition: all 0.2s ease-in-out;
     -o-transition: all 0.2s ease-in-out;
     transition: all 0.2s ease-in-out;
+
 }
 
 .chart-container .tooltip {
@@ -240,7 +241,7 @@ button, button:hover, button:after, button:focus {
     -ms-transform: scale(0);
     transform: scale(0);
     width: 0;
-    height: 14px;
+    height: 12px;
     align-items: center;
     -webkit-transition: all 0.2s ease-in-out;
     -moz-transition: all 0.2s ease-in-out;
@@ -266,7 +267,10 @@ button, button:hover, button:after, button:focus {
     -o-transition: margin-left 0.2s ease-in-out;
     transition: margin-left 0.2s ease-in-out;
     margin-left: 0px;
-    vertical-align: text-bottom;
+    text-align: center;
+    vertical-align: middle;
+    margin-top: -1px;
+    float: right;
 }
 
 .chart-container .button.checked .button-text {
