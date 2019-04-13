@@ -247,8 +247,8 @@ button, button:hover, button:after, button:focus {
     -ms-transition: all 0.2s ease-in-out;
     -o-transition: all 0.2s ease-in-out;
     transition: all 0.2s ease-in-out;
-    margin: auto;
     align-items: center;
+    margin: auto auto 0px;
 }
 
 .chart-container .button.checked .button-icon {
