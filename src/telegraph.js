@@ -115,8 +115,8 @@ var Telegraph = function (ctxId, config) {
 
         zoomStartFloat,
         zoomEndFloat,
-        zoomStartInt,
-        zoomEndInt,
+        zoomStartPosition,
+        zoomEndPosition,
 
         selectionStartIndexFloat,
         selectionEndIndexFloat,
@@ -665,9 +665,14 @@ var Telegraph = function (ctxId, config) {
             }
         }
 
-        function drawFilterSeries(isChild, offset) {
+        function drawFilterSeries(isChild, offset, exOpacity) {
             setGlobalAlpha(bufferNavigatorContext, opacity);
-            if (currentZoomState !== STATE_ZOOM_HOURS) {
+            if (isChild || currentZoomState !== STATE_ZOOM_HOURS) {
+                if (currentZoomState !== STATE_ZOOM_DAYS && !isChild) {
+                    setGlobalAlpha(bufferNavigatorContext, opacity * (1 - animationCounter));
+                } else {
+                    setGlobalAlpha(bufferNavigatorContext, opacity * (exOpacity || 1));
+                }
                 drawSeriesCore(bufferNavigatorContext, filterAxis,
                     isChild ? 0 : filterStartIndexFloat,
                     isChild ? 1 : fParseInt(filterStartIndexFloat),
@@ -676,7 +681,7 @@ var Telegraph = function (ctxId, config) {
             }
             if (currentZoomState !== STATE_ZOOM_DAYS && childChartInstance) {
                 var _xOffset = (childChartOffset - filterStartIndexFloat) * filterAxis.getFactorX();
-                childChartInstance.drawFilterSeries(vTrue, _xOffset);
+                childChartInstance.drawFilterSeries(vTrue, _xOffset, animationCounter);
             }
         }
 
@@ -860,6 +865,7 @@ var Telegraph = function (ctxId, config) {
                 var endIndex2 = fParseInt((endIndex - childChartOffset) * 24);
                 childChartInstance.calculateFilterFactors(startIndex2, endIndex2, withoutAnimations);
             }
+            navigatorNeedUpdateBuffer = vTrue;
         }
 
         return {
@@ -1138,7 +1144,7 @@ var Telegraph = function (ctxId, config) {
             if (!globalScaledY) {
                 var _globalFilterAxis = new AxisInfo("gf", _data.x, charts, visibleWidth, navigatorHeight, 1, vTrue);
                 var _globalMainAxis = new AxisInfo("gm", _data.x, charts, visibleWidth, selectionHeight, config.lineWidth || 2, vTrue);
-                _globalFilterAxis.calculateFactors(fParseInt(filterStartIndexFloat), fParseInt(filterEndIndexFloat));
+                _globalFilterAxis.calculateFactors(filterStartIndexFloat, filterEndIndexFloat);
                 for (_i in charts) {
                     charts[_i].initAxis(_globalMainAxis, _globalFilterAxis);
                 }
@@ -1277,13 +1283,13 @@ var Telegraph = function (ctxId, config) {
 
 
     function assignZoomStart(val, frameCount) {
-        zoomStartInt = val * charts[0].getFilterAxis().getFactorX();
+        zoomStartPosition = val * charts[0].getFilterAxis().getFactorX();
         animate(zoomStartFloat, setZoomStart, val, frameCount);
     }
 
 
     function assignZoomEnd(val, frameCount) {
-        zoomEndInt = val * charts[0].getFilterAxis().getFactorX();
+        zoomEndPosition = val * charts[0].getFilterAxis().getFactorX();
         animate(zoomEndFloat, setZoomEnd, val, frameCount);
     }
 
@@ -1291,16 +1297,12 @@ var Telegraph = function (ctxId, config) {
         filterStartIndexFloat = val;
         needUpdateFilterFactor = vTrue;
         needUpdateMainFactor = vTrue;
-        navigatorNeedUpdateBuffer = vTrue;
-        assignZoomStart(val, 1);
     }
 
     function setFilterEndIndexFloat(val) {
         filterEndIndexFloat = val;
         needUpdateFilterFactor = vTrue;
         needUpdateMainFactor = vTrue;
-        navigatorNeedUpdateBuffer = vTrue;
-        assignZoomEnd(val, 1);
     }
 
     function moveNavigatorFrame(shift, maxX, start, end) {
@@ -1435,8 +1437,14 @@ var Telegraph = function (ctxId, config) {
     }
 
     function restoreSelection() {
-        animate(selectionEndIndexFloat, setFilterEndIndexFloat, charts[0].getLastIndex(), 15);
-        animate(selectionStartIndexFloat, setFilterStartIndexFloat, 1, 15);
+        animate(filterEndIndexFloat, setFilterEndIndexFloat, charts[0].getLastIndex(), 15);
+        animate(filterStartIndexFloat, setFilterStartIndexFloat, 1, 15);
+
+        animate(zoomEndFloat, assignZoomEnd, storedSelectionEndIndexFloat, 15);
+        animate(zoomStartFloat, assignZoomStart, storedSelectionStartIndexFloat, 15);
+
+
+
     }
 
     function zoomInToHours(pData, pTimeStamp) {
@@ -1500,17 +1508,20 @@ var Telegraph = function (ctxId, config) {
         updateHoveredInfo(vNull);
 
         storeSelection();
-        animate(selectionEndIndexFloat, setFilterEndIndexFloat, _filterEndIndex, 15);
-        animate(selectionStartIndexFloat, setFilterStartIndexFloat, _filterStartIndex, 15);
-
-        //animate(selectionEndIndexFloat, setFilterEndIndexFloat, _parentToIndex , 15);
-        //animate(selectionStartIndexFloat, setFilterStartIndexFloat, _parentFromIndex , 15);
+        animate(filterEndIndexFloat, setFilterEndIndexFloat, _filterEndIndex, 15);
+        animate(filterStartIndexFloat, setFilterStartIndexFloat, _filterStartIndex, 15);
+        //assignZoomStart(val, 1);
+        animate(zoomEndFloat, assignZoomEnd, _parentToIndex , 15);
+        animate(zoomStartFloat, assignZoomStart, _parentFromIndex , 15);
         animationCounter = 0;
         animate(animationCounter, setAnimationCounter, 1, 15);
         // invalidateInner();
     }
 
     function zoomOutToDays() {
+        if (currentZoomState !== STATE_ZOOM_HOURS) {
+            return;
+        }
         var _avigatorFactorX = charts[0].getFilterAxis().getFactorX();
         currentZoomState = STATE_ZOOM_TRANSFORM_TO_DAYS;
         //xAxisDataRef = dataStore.days.xAxisData;
@@ -1541,6 +1552,10 @@ var Telegraph = function (ctxId, config) {
     }
 
     function zoomInToHourData() {
+        if (currentZoomState !== STATE_ZOOM_DAYS) {
+            return;
+        }
+
         var _currentPosition = fParseInt(selectionCurrentIndexFloat);
         var _currentTimeStamp = charts[0].getXData()[_currentPosition];
         var _detailCache = detailCache[_currentTimeStamp];
@@ -1909,12 +1924,12 @@ var Telegraph = function (ctxId, config) {
             var _x;
 
             if (navigatorPressedRegionType === ENUM_START_SELECTION_HOVER) {
-                _x = uIGlobalPadding2 + zoomStartInt;
+                _x = uIGlobalPadding2 + zoomStartPosition;
             } else if (navigatorPressedRegionType === ENUM_END_SELECTION_HOVER) {
-                _x = uIGlobalPadding2 + zoomEndInt;
+                _x = uIGlobalPadding2 + zoomEndPosition;
             }
             else {
-                _x = uIGlobalPadding2 + zoomStartInt + (zoomEndInt - zoomStartInt) / 2;
+                _x = uIGlobalPadding2 + zoomStartPosition + (zoomEndPosition - zoomStartPosition) / 2;
             }
 
             beginPath(frameContext);
@@ -1949,14 +1964,14 @@ var Telegraph = function (ctxId, config) {
     function drawFilterLayer() {
         setGlobalAlpha(frameContext, 1);
         setFillStyle(frameContext, uiGlobalTheme.scrollBackground);
-        fillRect(frameContext, 0, navigatorTop, zoomStartInt + uIGlobalPadding2, navigatorHeight);
-        fillRect(frameContext, uIGlobalPadding2 + zoomEndInt, navigatorTop, visibleWidth + uIGlobalPadding2 - zoomEndInt + uiDisplayScaleFactor, navigatorHeight);
+        fillRect(frameContext, 0, navigatorTop, zoomStartPosition + uIGlobalPadding2, navigatorHeight);
+        fillRect(frameContext, uIGlobalPadding2 + zoomEndPosition, navigatorTop, visibleWidth + uIGlobalPadding2 - zoomEndPosition + uiDisplayScaleFactor, navigatorHeight);
         fillRect(frameContext, 0, navigatorTop, uIGlobalPadding2, navigatorHeight);
         fillRect(frameContext, visibleWidth + uIGlobalPadding2 + uiDisplayScaleFactor, navigatorTop, uIGlobalPadding2, navigatorHeight);
         setLineWidth(frameContext, 0.5);
         setStrokeStyle(frameContext, uiGlobalTheme.scrollSelectorBorder);
         setFillStyle(frameContext, uiGlobalTheme.scrollSelector);
-        drawBalloon(frameContext, zoomStartInt + uiDisplayScaleFactor, navigatorTop, zoomEndInt - zoomStartInt + uIGlobalPadding4 - uiDisplayScaleFactor * 3, navigatorHeight);
+        drawBalloon(frameContext, zoomStartPosition + uiDisplayScaleFactor, navigatorTop, zoomEndPosition - zoomStartPosition + uIGlobalPadding4 - uiDisplayScaleFactor * 3, navigatorHeight);
         fill(frameContext);
         endPath(frameContext);
     }
@@ -2119,7 +2134,7 @@ var Telegraph = function (ctxId, config) {
         }
         for (var _i in charts) {
             var _chart = charts[_i];
-            _chart.calculateFilterFactors(fParseInt(filterStartIndexFloat), fParseInt(filterEndIndexFloat));
+            _chart.calculateFilterFactors(filterStartIndexFloat, filterEndIndexFloat);
             if (!globalScaledY) {
                 break;
             }
@@ -2155,7 +2170,7 @@ var Telegraph = function (ctxId, config) {
             var _chart = charts[_i];
             _chart.calculateMainFactors(startIndex, endIndex);
             if (globalStackedBarMode || needUpdateFilterFactor) {
-                _chart.calculateFilterFactors(fParseInt(filterStartIndexFloat), fParseInt(filterEndIndexFloat));
+                _chart.calculateFilterFactors(filterStartIndexFloat, filterEndIndexFloat);
                 needUpdateFilterFactor = vFalse;
             }
 

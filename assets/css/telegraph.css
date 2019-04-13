@@ -183,11 +183,17 @@ button, button:hover, button:after, button:focus {
     top: 30px;
     cursor: pointer;
     opacity: 1;
-    -webkit-transition: opacity 0.2s ease-in-out;
-    -moz-transition: opacity 0.2s ease-in-out;
-    -ms-transition: opacity 0.2s ease-in-out;
-    -o-transition: opacity 0.2s ease-in-out;
-    transition: opacity 0.2s ease-in-out;
+    -webkit-transition: opacity 0.2s ease-in-out, border 0.2s ease-in-out, width 0.2s ease-in-out;
+    -moz-transition: opacity 0.2s ease-in-out, border 0.2s ease-in-out, width 0.2s ease-in-out;
+    -ms-transition: opacity 0.2s ease-in-out, border 0.2s ease-in-out, width 0.2s ease-in-out;
+    -o-transition: opacity 0.2s ease-in-out, border 0.2s ease-in-out, width 0.2s ease-in-out;
+    transition: opacity 0.2s ease-in-out, border 0.2s ease-in-out, width 0.2s ease-in-out;
+}
+
+.chart-container .tooltip:hover {
+    border: 1px #48AAF0 solid;
+    box-shadow: rgba(72,170,240, 0.67) 0px 0px 4px 0px;
+
 }
 
 .chart-container .tooltip.hidden {
