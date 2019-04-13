@@ -1578,8 +1578,8 @@ var Telegraph = function (ctxId, config) {
     }
 
 
-    function fill(context, param) {
-        context.fill(param);
+    function fill(context) {
+        context.fill();
     }
 
 
@@ -1855,7 +1855,7 @@ var Telegraph = function (ctxId, config) {
         setStrokeStyle(frameContext, uiGlobalTheme.scrollSelectorBorder);
         setFillStyle(frameContext, uiGlobalTheme.scrollSelector);
         drawBalloon(frameContext, zoomStartInt + uiDisplayScaleFactor, navigatorTop, zoomEndInt - zoomStartInt + uIGlobalPadding4 - uiDisplayScaleFactor * 3, navigatorHeight);
-        fill(frameContext, "nonzero");
+        fill(frameContext);
         endPath(frameContext);
     }
 
