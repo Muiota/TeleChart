@@ -5,6 +5,12 @@ var PerfomanceMeter = function () {
     var envSmallTextHeight = parseInt(16 * 0.8 * window.devicePixelRatio);
     var uIGlobalPadding = 5 * window.devicePixelRatio;
 
+    var extLog = [];
+
+    console.error = function (e) {
+        extLog.push(e);
+    }
+
     function measureDurations(context) {
         try {
             performance.measure("total", this.start, this.end);
@@ -12,8 +18,7 @@ var PerfomanceMeter = function () {
             performance.measure("calcSelectionFactors", this.animation, this.calcSelectionFactors);
             performance.measure("drawSeries", this.calcSelectionFactors, this.drawSeries);
             performance.measure("drawFilterLayer", this.drawSeries, this.drawFilterLayer);
-            performance.measure("drawSeriesLegend", this.drawFilterLayer, this.drawSeriesLegend);
-            performance.measure("end", this.drawPressHighlight, this.end);
+            performance.measure("end", this.drawFilterLayer, this.end);
 
             var measures = performance.getEntriesByType("measure");
 
@@ -26,6 +31,13 @@ var PerfomanceMeter = function () {
                 context.fillText(meas.name + " " + meas.duration.toFixed(4), uIBtnRadius2, y);
                 y = y + envSmallTextHeight + uIGlobalPadding;
             }
+
+            for (var i in extLog)
+            {
+                context.fillText(extLog[i], uIBtnRadius2, y);
+                y = y + envSmallTextHeight + uIGlobalPadding;
+            }
+
         } catch (e) {
 
         }
@@ -45,7 +57,6 @@ var PerfomanceMeter = function () {
         calcSelectionFactors: "calcSelectionFactors",
         drawSeries: "drawSeries",
         drawFilterLayer: "drawFilterLayer",
-        drawSeriesLegend: "drawSeriesLegend",
         drawPressHighlight: "drawPressHighlight",
         end: "end"
     };
