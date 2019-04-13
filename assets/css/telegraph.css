@@ -249,7 +249,6 @@ button, button:hover, button:after, button:focus {
     transition: all 0.2s ease-in-out;
     margin: auto;
     align-items: center;
-    float: left;
 }
 
 .chart-container .button.checked .button-icon {
