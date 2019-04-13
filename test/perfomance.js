@@ -11,12 +11,17 @@ var PerfomanceMeter = function () {
     var logsContainer = document.getElementById("logs");
 
 
-    console.error = function (e) {
+    function logError(e) {
         var item = document.createElement("div");
         item.innerHTML = e + "";
         item.style.color = "red";
         logsContainer.appendChild(item);
     }
+
+    console.error = function (e) {
+        logError(e);
+    }
+    window.onerror = logError;
 
 
 

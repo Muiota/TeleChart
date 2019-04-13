@@ -2298,7 +2298,7 @@ var Telegraph = function (ctxId, config) {
     }
 
     function setTheme(theme) {
-        Object.assign(uiGlobalTheme, theme);
+        uiGlobalTheme = theme;
         divZoomOut.style.color = uiGlobalTheme.zoomOutText;
     }
 

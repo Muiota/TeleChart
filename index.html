@@ -41,10 +41,11 @@
         xhr.onload = function () {
             var status = xhr.status;
             if (status === 200) {
-                if (!(xhr.response instanceof Object)) {
-                    xhr.response = JSON.parse(xhr.response);
+                var _data = xhr.response;
+                if (!(_data instanceof Object)) {
+                    _data = JSON.parse(_data);
                 }
-                callback(true, xhr.response);
+                callback(true, _data);
             } else {
                 callback(status, xhr.response);
             }
