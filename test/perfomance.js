@@ -10,10 +10,9 @@ var PerfomanceMeter = function () {
             performance.measure("total", this.start, this.end);
             performance.measure("animation", this.start, this.animation);
             performance.measure("calcSelectionFactors", this.animation, this.calcSelectionFactors);
-            performance.measure("drawNavigatorLayer", this.calcSelectionFactors, this.drawNavigatorLayer);
-            performance.measure("drawSeries", this.drawNavigatorLayer, this.drawSeries);
-            performance.measure("drawNavigatorLayerB", this.drawSeries, this.drawNavigatorLayerB);
-            performance.measure("drawSeriesLegend", this.drawNavigatorLayerB, this.drawSeriesLegend);
+            performance.measure("drawSeries", this.calcSelectionFactors, this.drawSeries);
+            performance.measure("drawFilterLayer", this.drawSeries, this.drawFilterLayer);
+            performance.measure("drawSeriesLegend", this.drawFilterLayer, this.drawSeriesLegend);
             performance.measure("end", this.drawPressHighlight, this.end);
 
             var measures = performance.getEntriesByType("measure");
@@ -44,9 +43,8 @@ var PerfomanceMeter = function () {
         start: "start",
         animation: "animation",
         calcSelectionFactors: "calcSelectionFactors",
-        drawNavigatorLayer: "drawNavigatorLayer",
         drawSeries: "drawSeries",
-        drawNavigatorLayerB: "drawNavigatorLayerB",
+        drawFilterLayer: "drawFilterLayer",
         drawSeriesLegend: "drawSeriesLegend",
         drawPressHighlight: "drawPressHighlight",
         end: "end"

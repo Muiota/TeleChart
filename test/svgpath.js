@@ -11,6 +11,11 @@ const ARG_LENGTH = {
     z: 0,
 };
 
+var logItem = "";
+function log(v) {
+    logItem = logItem.concat(v + ";\r\n");
+
+}
 const SEGMENT_PATTERN = /([astvzqmhlc])([^astvzqmhlc]*)/ig;
 
 const NUMBER = /-?[0-9]*\.?[0-9]+(?:e[-+]?\d+)?/ig;
@@ -39,6 +44,8 @@ function parsePath(path) {
     if (p[0] !== 'M' && p[0] !== 'm') {
         return data;
     }
+
+
 
     p.replace(SEGMENT_PATTERN, (_, command, args) => {
         let type = command.toLowerCase();
@@ -71,22 +78,8 @@ function parsePath(path) {
     return data;
 }
 
-//==============================================================
+//=============================================================
 
-/**
- * Work around for https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/8438884/
- * @ignore
- */
-function supportsSvgPathArgument(window) {
-    const canvas = window.document.createElement('canvas');
-    const g = canvas.getContext('2d');
-    const p = new window.Path2D('M0 0 L1 1');
-    g.strokeStyle = 'red';
-    g.lineWidth = 1;
-    g.stroke(p);
-    const imgData = g.getImageData(0, 0, 1, 1);
-    return imgData.data[0] === 255; // Check if pixel is red
-}
 
 function rotatePoint(point, angle) {
     const nx = (point.x * Math.cos(angle)) - (point.y * Math.sin(angle));
@@ -100,31 +93,23 @@ function translatePoint(point, dx, dy) {
     point.y += dy;
 }
 
-function polyFillPath2D(window) {
-    if (typeof window === 'undefined' || !window.CanvasRenderingContext2D) {
-        return;
-    }
-    if (window.Path2D && supportsSvgPathArgument(window)) {
-        return;
-    }
-
     /**
      * Crates a Path2D polyfill object
      * @constructor
      * @ignore
      * @param {String} path
      */
-    class Path2D {
+    class Path2DPoly {
         constructor(path) {
             this.segments = [];
-            if (path && path instanceof Path2D) {
+            if (path && path instanceof Path2DPoly) {
                 this.segments.push(...path.segments);
             } else if (path) {
                 this.segments = parsePath(path);
             }
         }
         addPath(path) {
-            if (path && path instanceof Path2D) {
+            if (path && path instanceof Path2DPoly) {
                 this.segments.push(...path.segments);
             }
         }
@@ -179,6 +164,10 @@ function polyFillPath2D(window) {
         let qcpx;
         let qcpy;
         let ccw;
+
+         logItem = "";
+        console.error("dsdsd");
+
         const currentPoint = { x: 0, y: 0 };
 
         // Reset control point if command is not cubic
@@ -193,6 +182,7 @@ function polyFillPath2D(window) {
         }
 
         canvas.beginPath();
+        log("frameContext.beginPath()");
         for (let i = 0; i < segments.length; ++i) {
             const s = segments[i];
             pathType = s[0];
@@ -201,37 +191,45 @@ function polyFillPath2D(window) {
                     x += s[1];
                     y += s[2];
                     canvas.moveTo(x, y);
+                    log("frameContext.moveTo(" + x + ", " + y + ")");
                     break;
                 case 'M':
                     x = s[1];
                     y = s[2];
                     canvas.moveTo(x, y);
+                    log("frameContext.moveTo(" + x + ", " + y + ")");
                     break;
                 case 'l':
                     x += s[1];
                     y += s[2];
                     canvas.lineTo(x, y);
+                    log("frameContext.lineTo(" + x + ", " + y + ")");
                     break;
                 case 'L':
                     x = s[1];
                     y = s[2];
                     canvas.lineTo(x, y);
+                    log("frameContext.lineTo(" + x + ", " + y + ")");
                     break;
                 case 'H':
                     x = s[1];
                     canvas.lineTo(x, y);
+                    log("frameContext.lineTo(" + x + ", " + y + ")");
                     break;
                 case 'h':
                     x += s[1];
                     canvas.lineTo(x, y);
+                    log("frameContext.lineTo(" + x + ", " + y + ")");
                     break;
                 case 'V':
                     y = s[1];
                     canvas.lineTo(x, y);
+                    log("frameContext.lineTo(" + x + ", " + y + ")");
                     break;
                 case 'v':
                     y += s[1];
                     canvas.lineTo(x, y);
+                    log("frameContext.lineTo(" + x + ", " + y + ")");
                     break;
                 case 'a':
                 case 'A':
@@ -282,6 +280,7 @@ function polyFillPath2D(window) {
                     translatePoint(centerPoint, currentPoint.x, currentPoint.y);
 
                     canvas.arc(centerPoint.x, centerPoint.y, r, startAngle, endAngle, !sweepFlag);
+                    log("frameContext.arc("+centerPoint.x+", "+ centerPoint.y+", "+ r+", "+ startAngle+", "+ endAngle+", "+ !sweepFlag +")");
                     break;
                 case 'C':
                     cpx = s[3]; // Last control point
@@ -289,6 +288,7 @@ function polyFillPath2D(window) {
                     x = s[5];
                     y = s[6];
                     canvas.bezierCurveTo(s[1], s[2], cpx, cpy, x, y);
+                    log("frameContext.bezierCurveTo(" + s[1] + ", " + s[2] + ", " + cpx + ", " + cpy + ", " + x + ", " + y + ")");
                     break;
                 case 'c':
                     canvas.bezierCurveTo(
@@ -297,8 +297,14 @@ function polyFillPath2D(window) {
                         s[3] + x,
                         s[4] + y,
                         s[5] + x,
-                        s[6] + y,
+                        s[6] + y
                     );
+                    log("frameContext.bezierCurveTo(" +    ( s[1] + x)+ ", "+
+                        (s[2] + y) +", "+
+                        (s[3] + x)+", "+
+                        (s[4] + y)+", "+
+                        (s[5] + x)+", "+
+                        (s[6] + y)+ ")");
                     cpx = s[3] + x; // Last control point
                     cpy = s[4] + y;
                     x += s[5];
@@ -316,8 +322,15 @@ function polyFillPath2D(window) {
                         s[1],
                         s[2],
                         s[3],
-                        s[4],
+                        s[4]
                     );
+                    log("frameContext.bezierCurveTo(" +      ((2 * x) - cpx)+ ", "+
+                        ((2 * y) - cpy)+ ", "+
+                        s[1]+ ", "+
+                        s[2]+ ", "+
+                        s[3]+ ", "+
+                        s[4]+ ")");
+
                     cpx = s[1]; // last control point
                     cpy = s[2];
                     x = s[3];
@@ -335,8 +348,15 @@ function polyFillPath2D(window) {
                         s[1] + x,
                         s[2] + y,
                         s[3] + x,
-                        s[4] + y,
+                        s[4] + y
                     );
+                    log("frameContext.bezierCurveTo(" +   ((2 * x) - cpx)+ ", "+
+                        ((2 * y) - cpy)+ ", "+
+                        (s[1] + x)+ ", "+
+                        (s[2] + y)+ ", "+
+                        (s[3] + x)+ ", "+
+                        (s[4] + y)+")");
+
                     cpx = s[1] + x; // last control point
                     cpy = s[2] + y;
                     x += s[3];
@@ -348,6 +368,7 @@ function polyFillPath2D(window) {
                     x = s[3];
                     y = s[4];
                     canvas.quadraticCurveTo(qcpx, qcpy, x, y);
+                    log("frameContext.quadraticCurveTo(" + qcpx+", "+ qcpy+", "+  x+", "+  y+")");
                     break;
                 case 'q':
                     qcpx = s[1] + x; // last control point
@@ -355,6 +376,7 @@ function polyFillPath2D(window) {
                     x += s[3];
                     y += s[4];
                     canvas.quadraticCurveTo(qcpx, qcpy, x, y);
+                    log("frameContext.quadraticCurveTo(" + qcpx+", "+ qcpy+", "+  x+", "+  y+")");
                     break;
                 case 'T':
                     if (qcpx === null || qcpx === null) {
@@ -366,6 +388,7 @@ function polyFillPath2D(window) {
                     x = s[1];
                     y = s[2];
                     canvas.quadraticCurveTo(qcpx, qcpy, x, y);
+                    log("frameContext.quadraticCurveTo(" + qcpx+", "+ qcpy+", "+  x+", "+  y+")");
                     break;
                 case 't':
                     if (qcpx === null || qcpx === null) {
@@ -377,10 +400,12 @@ function polyFillPath2D(window) {
                     x += s[1];
                     y += s[2];
                     canvas.quadraticCurveTo(qcpx, qcpy, x, y);
+                    log("frameContext.quadraticCurveTo(" + qcpx+", "+ qcpy+", "+  x+", "+  y+")");
                     break;
                 case 'z':
                 case 'Z':
                     canvas.closePath();
+                    log("frameContext.closePath()");
                     break;
                 case 'AC': // arc
                     x = s[1];
@@ -390,6 +415,7 @@ function polyFillPath2D(window) {
                     endAngle = s[5];
                     ccw = s[6];
                     canvas.arc(x, y, r, startAngle, endAngle, ccw);
+                    log("frameContext.arc("+x+", "+ y+", "+ r+", "+ startAngle+", "+ endAngle+", "+ ccw+")");
                     break;
                 case 'AT': // arcTo
                     x1 = s[1];
@@ -398,6 +424,7 @@ function polyFillPath2D(window) {
                     y = s[4];
                     r = s[5];
                     canvas.arcTo(x1, y1, x, y, r);
+                    log("frameContext.arc("+x1+", "+ y1+", "+ x+", "+ y+", "+ r+")");
                     break;
                 case 'R': // rect
                     x = s[1];
@@ -405,6 +432,7 @@ function polyFillPath2D(window) {
                     w = s[3];
                     h = s[4];
                     canvas.rect(x, y, w, h);
+                    log("frameContext.rect(" + x + ", " + y + ", " + w + ", " + h + ")");
                     break;
                 default:
                 // throw new Error(`${pathType} is not implemented`); ?
@@ -413,12 +441,15 @@ function polyFillPath2D(window) {
             currentPoint.x = x;
             currentPoint.y = y;
         }
+
+
     }
 
     window.CanvasRenderingContext2D.prototype.fill = function fill(...args) {
         let fillRule = 'nonzero';
         if (args.length === 0 || (args.length === 1 && typeof args[0] === 'string')) {
             cFill.apply(this, args);
+            log("fill (" + args + ")")
             return;
         }
         if (arguments.length === 2) {
@@ -426,18 +457,23 @@ function polyFillPath2D(window) {
         }
         const path = args[0];
         buildPath(this, path.segments);
+  //  console.error("end");
         cFill.call(this, fillRule);
+    log("fill (" + fillRule + ")")
+    console.warn(logItem);
     };
 
     window.CanvasRenderingContext2D.prototype.stroke = function stroke(path) {
         if (!path) {
             cStroke.call(this);
+
             return;
         }
         buildPath(this, path.segments);
         cStroke.call(this);
+        log("stroke ()");
     };
 
-    window.Path2D = Path2D;
-}
+    window.Path2DPoly = Path2DPoly;
+
 

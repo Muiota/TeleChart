@@ -79,6 +79,7 @@ var Telegraph = function (ctxId, config) {
             {
                 scrollBackground: "#3042599A",
                 scrollSelector: "#56626D",
+                scrollSelectorBorder: "#FFFFFF",
                 gridLines: "#FFFFFF1A",
                 zoomOutText: "#48AAF0",
                 tooltipArrow: "#D2D5D7",
@@ -915,7 +916,7 @@ var Telegraph = function (ctxId, config) {
         uIGlobalPadding2 = uIGlobalPadding * 2;
         uIGlobalPadding3 = uIGlobalPadding * 3;
         uIGlobalPadding4 = uIGlobalPadding * 4;
-        uIBtnRadius = 16 * uiDisplayScaleFactor;
+        uIBtnRadius = 10 * uiDisplayScaleFactor;
         uIBtnRadius2 = uIBtnRadius * 2;
 
         totalWidth = container.clientWidth * uiDisplayScaleFactor;           //main frame width
@@ -1572,13 +1573,13 @@ var Telegraph = function (ctxId, config) {
     }
 
 
-    function quadraticCurveTo(context, cpx, cpy, x, y) {
-        context.quadraticCurveTo(cpx, cpy, x, y);
+    function quadraticCurveTo(context,cp1x, cp1y, cp2x, cp2y, x, y) {
+        context.quadraticCurveTo(cp1x, cp1y, cp2x, cp2y, x, y);
     }
 
 
-    function fill(context) {
-        context.fill();
+    function fill(context, param) {
+        context.fill(param);
     }
 
 
@@ -1595,20 +1596,24 @@ var Telegraph = function (ctxId, config) {
             _yHeight = y + height;
 
         beginPath(context);
-        setLineWidth(context);
-        moveOrLine(context, vTrue, x + uIBtnRadius, y);
-        moveOrLine(context, vFalse, _xWidth - uIBtnRadius, y);
-        quadraticCurveTo(context, _xWidth, y, _xWidth, y + uIBtnRadius);
-        moveOrLine(context, vFalse, _xWidth, _yHeight - uIBtnRadius);
-        quadraticCurveTo(context, _xWidth, _yHeight, _xWidth - uIBtnRadius, _yHeight);
-        moveOrLine(context, vFalse, x + uIBtnRadius, _yHeight);
-        quadraticCurveTo(context, x, _yHeight, x, _yHeight - uIBtnRadius);
-        moveOrLine(context, vFalse, x, y + uIBtnRadius);
-        quadraticCurveTo(context, x, y, x + uIBtnRadius, y);
+        moveOrLine(context, vTrue, x + uIGlobalPadding, y);
+        quadraticCurveTo(context, x, y, x, y + uIGlobalPadding);
+        moveOrLine(context, vFalse, x, _yHeight - uIGlobalPadding);
+        quadraticCurveTo(context, x, _yHeight, x + uIGlobalPadding, _yHeight);
+        moveOrLine(context, vFalse, _xWidth - uIGlobalPadding, _yHeight);
+        quadraticCurveTo(context, _xWidth, _yHeight, _xWidth, _yHeight - uIGlobalPadding);
+        moveOrLine(context, vFalse, _xWidth, y + uIGlobalPadding);
+        quadraticCurveTo(context, _xWidth, y, _xWidth - uIGlobalPadding, y);
         closePath(context);
-        setGlobalAlpha(frameContext, arrowTooltipOpacity * 0.9);
-        fill(context);
-        endPath(context);
+
+        var _border = uiDisplayScaleFactor * 2;
+        moveOrLine(context, vTrue, x + uIGlobalPadding2, y + _border);
+        moveOrLine(context, vFalse, _xWidth - uIGlobalPadding2, y + _border);
+        moveOrLine(context, vFalse, _xWidth - uIGlobalPadding2, _yHeight - _border);
+        moveOrLine(context, vFalse, x + uIGlobalPadding2, _yHeight - _border);
+
+        closePath(context);
+
     }
 
     function setStrokeStyle(context, strokeStyle) {
@@ -1839,32 +1844,26 @@ var Telegraph = function (ctxId, config) {
     }
 
 
-    function drawFilterLayer(isBackground) {
-        setFillStyle(frameContext, envColor);
-        if (isBackground) {
-            return;
-            setGlobalAlpha(frameContext, 0.3);
-            fillRect(frameContext, uIGlobalPadding2 + zoomStartInt, navigatorTop, zoomEndInt - zoomStartInt, navigatorHeight);
-            setGlobalAlpha(frameContext, 1);
-            setFillStyle(frameContext, envBgColor);
-            fillRect(frameContext, uIGlobalPadding2 + zoomStartInt + uIGlobalPadding2, navigatorTop + uiGlobalPaddingHalf, zoomEndInt -
-                zoomStartInt - uIGlobalPadding4, navigatorHeight - uIGlobalPadding);
-        } else {
-
-            setFillStyle(frameContext, uiGlobalTheme.scrollBackground);
-            //setGlobalAlpha(frameContext, 0.5);
-            fillRect(frameContext, uIGlobalPadding2, navigatorTop, zoomStartInt, navigatorHeight);
-            fillRect(frameContext, uIGlobalPadding2 + zoomEndInt, navigatorTop, visibleWidth - zoomEndInt + uiDisplayScaleFactor, navigatorHeight);
-        }
+    function drawFilterLayer() {
         setGlobalAlpha(frameContext, 1);
+        setFillStyle(frameContext, uiGlobalTheme.scrollBackground);
+        fillRect(frameContext, 0, navigatorTop, zoomStartInt + uIGlobalPadding2, navigatorHeight);
+        fillRect(frameContext, uIGlobalPadding2 + zoomEndInt, navigatorTop, visibleWidth + uIGlobalPadding2 - zoomEndInt + uiDisplayScaleFactor, navigatorHeight);
+        fillRect(frameContext, 0, navigatorTop, uIGlobalPadding2, navigatorHeight);
+        fillRect(frameContext, visibleWidth + uIGlobalPadding2 + uiDisplayScaleFactor, navigatorTop, uIGlobalPadding2, navigatorHeight);
+        setLineWidth(frameContext, 0.5);
+        setStrokeStyle(frameContext, uiGlobalTheme.scrollSelectorBorder);
+        setFillStyle(frameContext, uiGlobalTheme.scrollSelector);
+        drawBalloon(frameContext, zoomStartInt + uiDisplayScaleFactor, navigatorTop, zoomEndInt - zoomStartInt + uIGlobalPadding4 - uiDisplayScaleFactor * 3, navigatorHeight);
+        fill(frameContext, "nonzero");
+        endPath(frameContext);
     }
 
     function redrawFrame() {
         clearCanvas(frameContext, totalWidth, totalHeight);
         if (charts.length) {
             setFont(frameContext, envRegularSmallFont);
-            drawFilterLayer(vTrue);
-            perf.mark(perf.drawFilterLayer);
+
 
             if (charts[0].getType() === ENUM_CHART_TYPE_LINE) {
                 charts[0].drawHorizontalGrid();
@@ -1877,7 +1876,7 @@ var Telegraph = function (ctxId, config) {
             perf.mark(perf.drawSeries);
 
             drawFilterLayer();
-            perf.mark(perf.drawNavigatorLayerB);
+            perf.mark(perf.drawFilterLayer);
 
             if (seriesMaxOpacity > 0) {
                 if (globalStackedBarMode) {
@@ -1903,8 +1902,114 @@ var Telegraph = function (ctxId, config) {
             drawPressHighlight();
             perf.mark(perf.drawPressHighlight);
 
+            //frameContext.translate(0, -400);
+
+       //var sd = new Path2DPoly("M181 41c-7.854 0-15.665 3.228-21.219 8.781-5.553 5.554-8.78 13.365-8.781 21.219v370c0 7.854 3.228 15.665 8.781 21.219 5.554 5.553 13.365 8.78 21.219 8.781h150c7.854 0 15.665-3.228 21.219-8.781 5.553-5.554 8.78-13.365 8.781-21.219V71c0-7.854-3.228-15.665-8.781-21.219-5.554-5.553-13.365-8.78-21.219-8.781H181zm59.281 20a5.006 5.006 0 0 1 .219 0 5 5 0 0 1 .5 0h30a5 5 0 1 1 0 10h-30a5.013 5.013 0 0 1-.719-10zM161 91h190v325H161V91zm95 335c8.284 0 15 6.716 15 15 0 8.284-6.716 15-15 15-8.284 0-15-6.716-15-15 0-8.284 6.716-15 15-15z");
+
+       //
+
+        //    frameContext.fill(sd);
+       //   dds();
+         //   frameContext.translate(220, 0);
+            //test();
+        //    frameContext.translate(-220, 0);
+        //    fill(frameContext);
+            //frameContext.translate(0, 400);
+
         }
     }
+    
+    function dds() {
+        frameContext.beginPath();
+        frameContext.moveTo(181, 41);
+        frameContext.bezierCurveTo(173.146, 41, 165.335, 44.228, 159.781, 49.781);
+        frameContext.bezierCurveTo(154.228, 55.335, 151.001, 63.146, 151, 71);
+        frameContext.lineTo(151, 441);
+        frameContext.bezierCurveTo(151, 448.854, 154.228, 456.665, 159.781, 462.219);
+        frameContext.bezierCurveTo(165.335, 467.772, 173.14600000000002, 470.99899999999997, 181, 471);
+        frameContext.lineTo(331, 471);
+        frameContext.bezierCurveTo(338.854, 471, 346.665, 467.772, 352.219, 462.219);
+        frameContext.bezierCurveTo(357.772, 456.665, 360.99899999999997, 448.854, 361, 441);
+        frameContext.lineTo(361, 71);
+        frameContext.bezierCurveTo(361, 63.146, 357.772, 55.335, 352.219, 49.781);
+        frameContext.bezierCurveTo(346.665, 44.228, 338.854, 41.001, 331, 41);
+        frameContext.lineTo(181, 41);
+        frameContext.closePath();
+        frameContext.moveTo(240.281, 61);
+        frameContext.arc(240.3905, 66.00480226882142, 5.006, -1.5926718229582832, -1.54892083063151, false);
+        frameContext.arc(240.75, 65.99374608885954, 5, -1.6208171836006666, -1.5207754699891267, false);
+        frameContext.lineTo(271, 61);
+        frameContext.arc(271, 66, 5, 4.71238898038469, 1.5707963267948968, false);
+        frameContext.lineTo(241, 71);
+        frameContext.arc(240.67089693105856, 65.99781446065688, 5.013, -4.778086153637736, -1.6486521226829272, false);
+        frameContext.closePath();
+        frameContext.moveTo(161, 91);
+        frameContext.lineTo(351, 91);
+        frameContext.lineTo(351, 416);
+        frameContext.lineTo(161, 416);
+        frameContext.lineTo(161, 91);
+        frameContext.closePath();
+        frameContext.moveTo(256, 426);
+        frameContext.bezierCurveTo(264.284, 426, 271, 432.716, 271, 441);
+        frameContext.bezierCurveTo(271, 449.284, 264.284, 456, 256, 456);
+        frameContext.bezierCurveTo(247.716, 456, 241, 449.284, 241, 441);
+        frameContext.bezierCurveTo(241, 432.716, 247.716, 426, 256, 426);
+        frameContext.closePath();
+        frameContext.fill ("nonzero");
+        frameContext.stroke ();
+    }
+
+    function test() {
+        if (false) {
+            frameContext.beginPath();
+            frameContext.moveTo(181, 41);
+            frameContext.bezierCurveTo(173.146, 41, 165.335, 44.228, 159.781, 49.781);
+            frameContext.bezierCurveTo(154.228, 55.335, 151.001, 63.146, 151, 71);
+            frameContext.lineTo(151, 441);
+            frameContext.bezierCurveTo(151, 448.854, 154.228, 456.665, 159.781, 462.219);
+            frameContext.bezierCurveTo(165.335, 467.772, 173.14600000000002, 470.99899999999997, 181, 471);
+            frameContext.lineTo(331, 471);
+            frameContext.bezierCurveTo(338.854, 471, 346.665, 467.772, 352.219, 462.219);
+            frameContext.bezierCurveTo(357.772, 456.665, 360.99899999999997, 448.854, 361, 441);
+            frameContext.lineTo(361, 71);
+            frameContext.bezierCurveTo(361, 63.146, 357.772, 55.335, 352.219, 49.781);
+            frameContext.bezierCurveTo(346.665, 44.228, 338.854, 41.001, 331, 41);
+            frameContext.closePath();
+        } else {
+           drawBalloon(frameContext, 151, 41, 211, 420);
+        }
+
+
+        ///=================================
+
+        frameContext.moveTo(240.281, 61);
+        frameContext.lineTo(271, 61);
+        frameContext.arc(271, 66, 5, 4.8, 1.6, false);
+        frameContext.lineTo(241, 71);
+        frameContext.arc(240, 66, 5.013, -4.8, -1.6, false);
+        frameContext.closePath();
+
+        //==================== window
+        frameContext.moveTo(161, 91);
+        frameContext.lineTo(351, 91);
+        frameContext.lineTo(351, 416);
+        frameContext.lineTo(161, 416);
+        frameContext.lineTo(161, 91);
+        frameContext.closePath();
+        //====================
+
+
+        frameContext.moveTo(240.281, 61+365);
+        frameContext.lineTo(271, 61+365);
+        frameContext.arc(271, 66+365, 5, 4.8, 1.6, false);
+        frameContext.lineTo(241, 71+365);
+        frameContext.arc(240, 66+365, 5.013, -4.8, -1.6, false);
+        frameContext.closePath();
+
+        frameContext.fill ("nonzero");
+        frameContext.stroke();
+    }
+    
 
     function calcNavigatorFactors(isReset) {
         if (!charts.length) {
