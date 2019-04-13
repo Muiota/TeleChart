@@ -1289,11 +1289,17 @@ var Telegraph = function (ctxId, config) {
 
     function setFilterStartIndexFloat(val) {
         filterStartIndexFloat = val;
+        needUpdateFilterFactor = vTrue;
+        needUpdateMainFactor = vTrue;
+        navigatorNeedUpdateBuffer = vTrue;
         assignZoomStart(val, 1);
     }
 
     function setFilterEndIndexFloat(val) {
         filterEndIndexFloat = val;
+        needUpdateFilterFactor = vTrue;
+        needUpdateMainFactor = vTrue;
+        navigatorNeedUpdateBuffer = vTrue;
         assignZoomEnd(val, 1);
     }
 
