@@ -7,11 +7,11 @@
 </head>
 <body>
 
-<div id="charts_container">
+<div id="charts-container">
 </div>
 <div class="clearfix"></div>
 <div id="buttons">
-    <button id="btn_dark_mode" onclick="onChangeTheme(event)"></button>
+    <button id="btn-dark-mode" onclick="onChangeTheme(event)"></button>
 </div>
 <hr/>
 <div class="about">
@@ -65,13 +65,13 @@
             return;
         }
 
-        var _container = document.getElementById("charts_container");
+        var _container = document.getElementById("charts-container");
         if (!data) {
             return;
         }
 
         var _innerContainer = document.createElement('div');
-        _innerContainer.id = "chart_" + counter++;
+        _innerContainer.id = "chart-" + counter++;
         _innerContainer.classList.add("chart-container");
         _container.appendChild(_innerContainer);
         var config = {
@@ -104,7 +104,7 @@
         loaded[sn] = true;
 
         if (sn === 5) {
-            switchButton(document.getElementById("btn_dark_mode"));
+            switchButton(document.getElementById("btn-dark-mode"));
         }
     }
 

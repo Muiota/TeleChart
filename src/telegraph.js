@@ -52,7 +52,6 @@ var Telegraph = function (ctxId, config) {
         ENUM_END_SELECTION_HOVER = 3,
         ENUM_ZOOM_HOVER = 4,
         ENUM_SELECTION_HOVER = 5,
-        ENUM_LEGEND_HOVER = 6,
 
         STATE_ZOOM_DAYS = 1,
         STATE_ZOOM_TRANSFORM_TO_HOURS = 2,
@@ -184,7 +183,8 @@ var Telegraph = function (ctxId, config) {
         globalStackedBarMode,
         globalPercentageMode,
         stackedRegister = [],
-        totalPercentageRegister = [];
+        totalPercentageRegister = [],
+        detailCache = {};
 
 
     var AxisInfo = function (alias, xData, yDataList, width, height, lineWidth, isStartFromZero) {
@@ -753,7 +753,7 @@ var Telegraph = function (ctxId, config) {
 
         function createUiElements() {
             var _button = createElement("div",
-                "btn_", ["button", "checked"], {
+                "btn-", ["button", "checked"], {
                     border: "2px " + color + " solid",
                     color: color, backgroundColor: color
                 }, divBtnContainer);
@@ -763,10 +763,10 @@ var Telegraph = function (ctxId, config) {
             });
 
             var _checkBox = createElement("span",
-                "ch_", ["button-icon"], {}, _button);
+                "ch-", ["button-icon"], {}, _button);
 
             _checkBox.innerHTML = "<?xml version=\"1.0\"?>\n" +
-                "<svg  xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"100%\" height=\"100%\" x=\"0px\" y=\"0px\"" +
+                "<svg  xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"100%\" height=\"10px\" x=\"0px\" y=\"0px\"" +
                 " viewBox=\"0 0 17.837 17.837\">" +
                 "<g>" +
                 "<path style=\"fill:#ffffff;\" d=\"M16.145,2.571c-0.272-0.273-0.718-0.273-0.99,0L6.92,10.804l-4.241-4.27" +
@@ -775,7 +775,7 @@ var Telegraph = function (ctxId, config) {
                 "</g>" +
                 "</svg>";
             var _text = createElement("span",
-                "ch_", ["button-text"], {}, _button);
+                "ch-", ["button-text"], {}, _button);
             _text.innerHTML = name;
 
             var _tlpRow = createElement("tr",
@@ -788,7 +788,7 @@ var Telegraph = function (ctxId, config) {
             _tlpTitle.innerHTML = name;
 
             _that.setTlpValDiv(createElement("td",
-                "tlp-title", ["tooltip-value"], {
+                "tlp-val", ["tooltip-value"], {
                     color: color
                 }, _tlpRow));
 
@@ -874,16 +874,18 @@ var Telegraph = function (ctxId, config) {
         container.appendChild(mainCanvas);
 
         divBtnContainer = createElement("div",
-            "btn-cnt", ["buttons"], {}, container);
+            "btn-cnt-", ["buttons"], {}, container);
 
         divTooltipContainer = createElement("div",
-            "tlp", ["tooltip", CONST_HIDDEN_CLASS], {}, container);
+            "tlp-", ["tooltip", CONST_HIDDEN_CLASS], {}, container);
 
         divTooltipDate = createElement("div",
-            "tlp-date", ["tooltip-date"], {}, divTooltipContainer);
+            "tlp-date-", ["tooltip-date"], {}, divTooltipContainer);
 
         divTooltipValues = createElement("table",
-            "tlp-val-cnt", ["tooltip-values"], {}, divTooltipContainer);
+            "tlp-val-cnt-", ["tooltip-values"], {}, divTooltipContainer);
+
+        divTooltipContainer.addEventListener("click", lookupHourData);
 
         mainCanvas.onmousemove = handleMouseMove;
         mainCanvas.ontouchmove = handleMouseMove;
@@ -1167,8 +1169,7 @@ var Telegraph = function (ctxId, config) {
         if (mouseHoveredRegionType !== proposed || force) {
             mouseHoveredRegionType = proposed;
 
-            if (mouseHoveredRegionType !== ENUM_SELECTION_HOVER &&
-                mouseHoveredRegionType !== ENUM_LEGEND_HOVER) {
+            if (mouseHoveredRegionType !== ENUM_SELECTION_HOVER) {
                 selectionCurrentIndexPinned = vFalse;
                 hideTooltip();
             }
@@ -1179,8 +1180,7 @@ var Telegraph = function (ctxId, config) {
                     showTooltip();
                     setCursor(0);
                 }
-            } else if (mouseHoveredRegionType === ENUM_ZOOM_HOVER ||
-                mouseHoveredRegionType === ENUM_LEGEND_HOVER) {
+            } else if (mouseHoveredRegionType === ENUM_ZOOM_HOVER) {
                 setCursor(1);
             } else if (mouseHoveredRegionType === ENUM_START_SELECTION_HOVER ||
                 mouseHoveredRegionType === ENUM_END_SELECTION_HOVER) {
@@ -1202,7 +1202,7 @@ var Telegraph = function (ctxId, config) {
         }
 
         if (_mainFactorX) { //Selection hovered
-            if (mouseY < navigatorTop && ((!force) || !selectionCurrentIndexPinned || mousePressed)) {
+            if (mouseY < navigatorTop && (!force || !selectionCurrentIndexPinned || mousePressed)) {
                 var _position = mouseX / _mainFactorX + selectionStartIndexFloat;
                 var _proposed = (charts[0].getType() === ENUM_CHART_TYPE_BAR) ? fMathCeil(_position - 1) : fMathRound(_position);
                 _proposed = getMin(getMax(1, _proposed), charts[0].getLastIndex());
@@ -1380,6 +1380,7 @@ var Telegraph = function (ctxId, config) {
         }
     }
 
+    
     function zoomInToHours(pData, pTimeStamp) {
         currentZoomState = STATE_ZOOM_TRANSFORM_TO_HOURS;
         updateTitleStatus();
@@ -1396,9 +1397,11 @@ var Telegraph = function (ctxId, config) {
         smartAxisXFrozen = vTrue;
         delete animations[CONST_AXIS_X_LABEL_OPACITY_ANIMATION_KEY];
         setAxisXLabelOpacity(1);
-
-        // associateZoomEnd(dataStore.hours.to - 1, 15);
-        // associateZoomStart(dataStore.hours.from - 1, 15);
+        var _from = fParseInt(selectionCurrentIndexFloat);
+        var _to = _from+1;
+        // dataStore.hours.to = dataStore.hours.from + 1;
+         associateZoomEnd(_to, 15);
+         associateZoomStart(_from, 15);
         animationCounter = 0;
         animate(animationCounter, setAnimationCounter, 1, 15);
         // invalidateInner();
@@ -1425,7 +1428,7 @@ var Telegraph = function (ctxId, config) {
     }
 
     function loadHoursDataSuccess(data, timeStamp) {
-        //xAxisDataRef.detailCache[timeStamp] = data;
+        detailCache[timeStamp] = data;
         zoomInToHours(data, timeStamp);
     }
 
@@ -1436,7 +1439,7 @@ var Telegraph = function (ctxId, config) {
     function lookupHourData() {
         var _currentPosition = fParseInt(selectionCurrentIndexFloat);
         var _currentTimeStamp = charts[0].getXData()[_currentPosition];
-        var _detailCache; // xAxisDataRef.detailCache[_currentTimeStamp];
+        var _detailCache = detailCache[_currentTimeStamp];
         if (_detailCache) {
             zoomInToHours(_detailCache, _currentTimeStamp);
         } else {
@@ -1476,12 +1479,7 @@ var Telegraph = function (ctxId, config) {
                 stopPropagation(e);
                 animate(navigatorPressed, setNavigatorPressed, 1, 15);
                 navigatorPressedRegionType = mouseHoveredRegionType;
-            } else if (mouseHoveredRegionType === ENUM_LEGEND_HOVER) {
-                if (currentZoomState === STATE_ZOOM_DAYS && config.loadCallback) {
-                    hideTooltip();
-                    lookupHourData();
-                }
-            } else if (mouseHoveredRegionType === ENUM_SELECTION_HOVER) {
+            }  else if (mouseHoveredRegionType === ENUM_SELECTION_HOVER) {
                 selectionCurrentIndexPinned = isMobile ? vFalse : !selectionCurrentIndexPinned;
                 isSelectionCurrentIndexChanged = vFalse;
             }
@@ -2126,16 +2124,16 @@ var Telegraph = function (ctxId, config) {
 
     function createTitleLabels() {
         var _titleContainer = createElement("div",
-            "title_cnt_", ["title-container"], {}, container);
+            "title-cnt-", ["title-container"], {}, container);
 
         divDayRange = createElement("div",
-            "day_range_", ["day-range"], {}, _titleContainer);
+            "day-range-", ["day-range"], {}, _titleContainer);
 
         divZoomOut = createElement("div",
-            "zoom_out_", ["zoom-out", "animate", CONST_HIDDEN_CLASS], {}, _titleContainer);
+            "zoom-out-", ["zoom-out", "animate", CONST_HIDDEN_CLASS], {}, _titleContainer);
 
         var sd = createElement("span",
-            "zoom_out_svg_", [], {}, divZoomOut);
+            "zoom-out-svg-", ["zoom-out-svg"], {}, divZoomOut);
         sd.innerHTML = "<svg xmlns=\"http://www.w3.org/2000/svg\"  x=\"0px\" y=\"0px\" width=\"11px\" viewBox=\"0 0 483.083 483.083\">\n" +
             "\t<g>\n" +
             "\t\t<path d=\"M195.04,375.7c42.217,0,81.033-13.883,112.483-37.4l139.683,139.683c3.4,3.4,7.65,5.1,11.9,5.1s8.783-1.7,11.9-5.1\n" +
@@ -2150,10 +2148,10 @@ var Telegraph = function (ctxId, config) {
 
         divZoomOut.addEventListener("click", zoomOutToDays);
         var zoomOutText = createElement("span",
-            "zoom_out_text_", [], {}, divZoomOut);
+            "zoom-out-text-", [], {}, divZoomOut);
         zoomOutText.innerHTML = "Zoom out";
         divTitle = createElement("div",
-            "title_", ["title", "animate", "top"], {}, _titleContainer);
+            "title-", ["title", "animate", "top"], {}, _titleContainer);
         divTitle.innerHTML = config.title || "";
     }
 
