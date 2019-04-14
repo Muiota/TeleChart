@@ -176,6 +176,7 @@ button, button:hover, button:after, button:focus {
 }
 
 .chart-container .tooltip {
+    font-size: 85%;
     position: absolute;
     background: rgba(255, 255, 255, 0.9);
     border-radius: 10px;
@@ -188,11 +189,12 @@ button, button:hover, button:after, button:focus {
     -ms-transition: opacity 0.2s ease-in-out, border 0.2s ease-in-out, width 0.2s ease-in-out;
     -o-transition: opacity 0.2s ease-in-out, border 0.2s ease-in-out, width 0.2s ease-in-out;
     transition: opacity 0.2s ease-in-out, border 0.2s ease-in-out, width 0.2s ease-in-out;
+    white-space: nowrap;
 }
 
 .chart-container .tooltip:hover {
     border: 1px #48AAF0 solid;
-    box-shadow: rgba(72,170,240, 0.67) 0px 0px 4px 0px;
+    box-shadow: rgba(72, 170, 240, 0.67) 0px 0px 4px 0px;
 
 }
 
@@ -208,11 +210,13 @@ button, button:hover, button:after, button:focus {
 }
 
 .chart-container .tooltip .tooltip-date {
+
     margin: 10px 15px 5px;
     font-weight: bold;
 }
 
 .chart-container .tooltip .tooltip-values {
+
     margin: 10px;
 }
 
@@ -221,21 +225,33 @@ button, button:hover, button:after, button:focus {
     clear: both;
     display: inherit;
     width: 100%;
+    line-height: 20px;
+    height: 20px;
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+.chart-container .background {
+    display: none !important;
+    opacity: 0 !important;
 }
 
 .chart-container .button.hidden,
-.chart-container .tooltip .tooltip-row.hidden {
-    display: none;
+.chart-container .tooltip .tooltip-row.background {
+    display: none !important;
+    opacity: 0 !important;
 }
 
 .chart-container .tooltip .tooltip-values .tooltip-title {
+    float: left;
     padding-right: 5px;
 
 }
 
 .chart-container .tooltip .tooltip-values .tooltip-value {
+
     float: right;
-    padding-left: 5px;
+    margin-right: 10px;
 }
 
 .chart-container .button.hidden {

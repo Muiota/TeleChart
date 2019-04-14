@@ -42,6 +42,8 @@ var Telegraph = function (ctxId, config) {
         CONST_WIDTH = "width",
         CONST_HEIGHT = "height",
         CONST_HIDDEN_CLASS = "hidden",
+        CONST_BACKGROUND_CLASS = "background",
+
         CONST_ZOOM_ANIMATION_SPEED = 15,
         CONST_AXIS_X_LABEL_OPACITY_ANIMATION_KEY = getFunctionName(setAxisXLabelOpacity),
         CONST_SET_ZOOM_START_ANIMATION_KEY = getFunctionName(setZoomStart),
@@ -405,6 +407,7 @@ var Telegraph = function (ctxId, config) {
             lastIndex = xData.length - 1,
             divTlpRow,
             divLegendVal,
+            divButton,
             opacity = 1,
 
             enabled = vTrue,
@@ -433,6 +436,11 @@ var Telegraph = function (ctxId, config) {
 
         function getEnabled() {
             return enabled;
+        }
+
+        function setEnabled(val) {
+            enabled = val;
+            updateButtonStatus(this);
         }
 
         function getPercentageData() {
@@ -475,7 +483,7 @@ var Telegraph = function (ctxId, config) {
 
         function setOpacity(val) {
             opacity = val;
-            needUpdateMainFactor = vTrue; //todo
+            needUpdateMainFactor = vTrue;
             filterNeedUpdateBuffer = vTrue;
         }
 
@@ -660,8 +668,7 @@ var Telegraph = function (ctxId, config) {
         }
 
         function drawMainSeries(isChild, offset, exOpacity) {
-            var _inTransition = inTransition();
-            if (_inTransition && !isChild) {
+            if (inTransition() && !isChild) {
                 setGlobalAlpha(frameContext, opacity * (1 - animationCounter));
             } else {
                 setGlobalAlpha(frameContext, opacity * (exOpacity || 1));
@@ -710,7 +717,7 @@ var Telegraph = function (ctxId, config) {
             }
             divTooltipContainer.style.left = _proposedTooltipLeft + CONST_PIXEL; //todo optimize
             updateLegendValue(_value);
-            divTooltipDate.innerHTML = formatDate(xData[_from], vTrue);
+            divTooltipDate.innerHTML = formatDate(xData[_from], vTrue, vTrue);
 
             switch (type) {
                 case ENUM_CHART_TYPE_LINE:
@@ -752,18 +759,22 @@ var Telegraph = function (ctxId, config) {
 
         }
 
-        function handleButtonPress(e, owner) {
-            enabled = !enabled
+        function updateButtonStatus(owner) {
             if (enabled) {
-                addClass(e.currentTarget, "checked");
-                removeClass(divTlpRow, CONST_HIDDEN_CLASS);
+                addClass(divButton, "checked");
+                removeClass(divTlpRow, CONST_BACKGROUND_CLASS);
 
             } else {
-                removeClass(e.currentTarget, "checked");
-                addClass(divTlpRow, CONST_HIDDEN_CLASS);
+                removeClass(divButton, "checked");
+                addClass(divTlpRow, CONST_BACKGROUND_CLASS);
             }
             animate.apply(owner, [opacity, setOpacity, enabled ? 1 : 0, 10]);
             needUpdateMainFactor = vTrue;
+        }
+
+        function handleButtonPress(owner) {
+            enabled = !enabled
+            updateButtonStatus(owner);
         }
 
         function createUiElements(cls, hidden) {
@@ -773,12 +784,13 @@ var Telegraph = function (ctxId, config) {
                     color: color, backgroundColor: color
                 }, divBtnContainer);
             if (hidden) {
-                addClass(_button, CONST_HIDDEN_CLASS);
+                addClass(_button, CONST_BACKGROUND_CLASS);
             }
             var _that = this;
             _button.addEventListener("click", function (e) {
-                handleButtonPress(e, _that);
+                handleButtonPress(_that);
             });
+            _that.setButtonDiv(_button);
 
             var _checkBox = createElement("span",
                 "ch-", ["button-icon"], {}, _button);
@@ -796,19 +808,18 @@ var Telegraph = function (ctxId, config) {
                 "ch-", ["button-text"], {}, _button);
             _text.innerHTML = name;
 
-            var _tlpRow = createElement("tr",
+            var _tlpRow = createElement("div",
                 "tlp-title", ["tooltip-row", cls], {}, divTooltipValues);
             _that.setTlpRowDiv(_tlpRow);
-
             if (hidden) {
-                addClass(_tlpRow, CONST_HIDDEN_CLASS);
+                addClass(_tlpRow, CONST_BACKGROUND_CLASS);
             }
 
-            var _tlpTitle = createElement("td",
+            var _tlpTitle = createElement("span",
                 "tlp-title", ["tooltip-title"], {}, _tlpRow);
             _tlpTitle.innerHTML = name;
 
-            _that.setTlpValDiv(createElement("td",
+            _that.setTlpValDiv(createElement("span",
                 "tlp-val", ["tooltip-value"], {
                     color: color
                 }, _tlpRow));
@@ -836,6 +847,11 @@ var Telegraph = function (ctxId, config) {
             divTlpRow = val;
         }
 
+        function setButtonDiv(val) {
+            divButton = val;
+        }
+
+
         function updateLegendValue(val) {
             divLegendVal.innerHTML = val;
         }
@@ -857,6 +873,7 @@ var Telegraph = function (ctxId, config) {
             getYData: getYData,
             getXData: getXData,
             getEnabled: getEnabled,
+            setEnabled: setEnabled,
             calculateSmartAxisY: calculateSmartAxisY,
             drawYAxisLabels: drawYAxisLabels,
             calculateMainFactors: calculateMainFactors,
@@ -873,7 +890,8 @@ var Telegraph = function (ctxId, config) {
             getPercentageData: getPercentageData,
             drawTooltipArrow: drawTooltipArrow,
             setTlpValDiv: setTlpValDiv,
-            setTlpRowDiv: setTlpRowDiv
+            setTlpRowDiv: setTlpRowDiv,
+            setButtonDiv: setButtonDiv
         };
     };
 
@@ -898,12 +916,12 @@ var Telegraph = function (ctxId, config) {
             "btn-cnt-", ["buttons"], {}, container);
 
         divTooltipContainer = createElement("div",
-            "tlp-", ["tooltip", CONST_HIDDEN_CLASS], {}, container);
+            "tlp-", ["tooltip", CONST_BACKGROUND_CLASS], {}, container);
 
         divTooltipDate = createElement("div",
             "tlp-date-", ["tooltip-date"], {}, divTooltipContainer);
 
-        divTooltipValues = createElement("table",
+        divTooltipValues = createElement("div",
             "tlp-val-cnt-", ["tooltip-values"], {}, divTooltipContainer);
 
         divTooltipContainer.addEventListener("click", zoomInToHourData);
@@ -1152,12 +1170,12 @@ var Telegraph = function (ctxId, config) {
     }
 
 
-    function formatDate(timestamp, withDay) {  //Jan 29
+    function formatDate(timestamp, withDay, withYear) {  //Jan 29
         dateSingleton.setTime(timestamp + timeZoneOffset);
         var _result = (withDay ? CONST_DAY_NAMES_SHORT[dateSingleton.getDay()] + ", " : "" ) +
             CONST_MONTH_NAMES_SHORT[dateSingleton.getMonth()] + " " + dateSingleton.getDate();
-        if (withDay && config.withYearLabel) {
-            _result = dateSingleton.getFullYear() + ", " + _result;
+        if (withDay && withYear) {
+            _result = _result + " " + dateSingleton.getFullYear();
         }
         return _result;
     }
@@ -1455,9 +1473,10 @@ var Telegraph = function (ctxId, config) {
             _childChart,
             _localCharts,
             _parentChart;
-
+       hideTooltip();
         clearDetailElements();
         _localCharts = createChartObjects(pData, CONST_CHART_DETAIL);
+        consistSettings(charts, _localCharts);
         _parentChart = charts[0];
         var _parentXData = _parentChart.getXData();
         var _parentLastIndex = _parentChart.getLastIndex();
@@ -1487,7 +1506,7 @@ var Telegraph = function (ctxId, config) {
         }
 
         currentZoomState = STATE_ZOOM_TRANSFORM_TO_HOURS;
-        hideTooltip();
+
         updateTitleStatus();
         detailCharts = _localCharts;
         storeZoomPosition(_parentFromIndex);
@@ -1509,7 +1528,10 @@ var Telegraph = function (ctxId, config) {
         }
 
         currentZoomState = STATE_ZOOM_TRANSFORM_TO_DAYS;
+        changeChildClass(CONST_CHART_DETAIL);
+        changeChildClass(CONST_CHART_MASTER, vTrue);
         swapMasterDetailCharts();
+        consistSettings(detailCharts, charts);
         setFilterStartIndexFloat(storedFilterStartIndexFloat);
         setFilterEndIndexFloat(storedFilterEndIndexFloat);
 
@@ -1555,13 +1577,13 @@ var Telegraph = function (ctxId, config) {
 
     function hideTooltip() {
         animate(arrowTooltipOpacity, setArrowTooltipOpacity, 0);
-        addClass(divTooltipContainer, CONST_HIDDEN_CLASS);
+        addClass(divTooltipContainer, CONST_BACKGROUND_CLASS);
         invalidateInner();
     }
 
     function showTooltip() {
         animate(arrowTooltipOpacity, setArrowTooltipOpacity, 1);
-        removeClass(divTooltipContainer, CONST_HIDDEN_CLASS);
+        removeClass(divTooltipContainer, CONST_BACKGROUND_CLASS);
         invalidateInner();
     }
 
@@ -1884,7 +1906,10 @@ var Telegraph = function (ctxId, config) {
             if (inTransition() && detailCharts) {
                 var _xOffset = (detailChartOffset - filterStartIndexFloat) * charts[0].getFilterAxis().getFactorX();
                 for (_i in detailCharts) {
-                    detailCharts[_i].drawFilterSeries(vTrue, _xOffset, animationCounter);
+                    var _detailChart = detailCharts[_i];
+                    if (_detailChart.getEnabled()) {
+                        _detailChart.drawFilterSeries(vTrue, _xOffset, animationCounter);
+                    }
                 }
             }
 
@@ -1907,8 +1932,10 @@ var Telegraph = function (ctxId, config) {
             var _xOffset = (detailChartOffset - selectionStartIndexFloat) * charts[0].getMainAxis().getFactorX();
             for (_i in detailCharts) {
                 _axisY = detailCharts[_i];
-                seriesMaxOpacity = getMax(_axisY.getOpacity(), seriesMaxOpacity);
-                _axisY.drawMainSeries(vTrue, _xOffset, animationCounter);
+                if (_axisY.getEnabled()) {
+                    seriesMaxOpacity = getMax(_axisY.getOpacity(), seriesMaxOpacity);
+                    _axisY.drawMainSeries(vTrue, _xOffset, animationCounter);
+                }
             }
         }
 
@@ -2167,6 +2194,15 @@ var Telegraph = function (ctxId, config) {
     function removeClass(el, cls) {
         el.classList.remove(cls);
     }
+    
+    function changeChildClass(cls, isRemove) {
+        var _i,
+            _existing = container.getElementsByClassName(cls);
+        for (_i = 0; _i < _existing.length; _i++) {
+            isRemove? removeClass(_existing[_i], CONST_BACKGROUND_CLASS) :
+                addClass(_existing[_i], CONST_BACKGROUND_CLASS);
+        }
+    }
 
     function createElement(tagName, prefix, classes, styles, parent) {
         var _el = vDocument.createElement(tagName),
@@ -2333,6 +2369,18 @@ var Telegraph = function (ctxId, config) {
         }
     }
 
+    function consistSettings(source, target) {
+        for (var _s in source) {
+            var _source = source[_s];
+            for (var _t in target) {
+                var _target = target[_t];
+                if (_target.getAlias() === _source.getAlias()) {
+                    _target.setEnabled(_source.getEnabled());
+                }
+            }
+        }
+    }
+
     function swapMasterDetailCharts() {
         var _forStoreCharts = charts;
         charts = detailCharts;
@@ -2348,6 +2396,8 @@ var Telegraph = function (ctxId, config) {
             "}\r\n");
     }
 
+
+
     function switchToDetailChart() {
 
         var _i,
@@ -2362,16 +2412,8 @@ var Telegraph = function (ctxId, config) {
 
         assignZoomStart(start);
         assignZoomEnd(end);
-
-
-        var _existing = container.getElementsByClassName(CONST_CHART_MASTER);
-        for (_i = 0; _i < _existing.length; _i++) {
-            addClass(_existing[_i], CONST_HIDDEN_CLASS);
-        }
-        _existing = container.getElementsByClassName(CONST_CHART_DETAIL);
-        for (_i = 0; _i < _existing.length; _i++) {
-            removeClass(_existing[_i], CONST_HIDDEN_CLASS);
-        }
+        changeChildClass(CONST_CHART_MASTER);
+        changeChildClass(CONST_CHART_DETAIL, vTrue);
     }
 
     function switchToMainChart() {
@@ -2385,11 +2427,11 @@ var Telegraph = function (ctxId, config) {
         //  assignZoomEnd(charts[0].getLastIndex());
         var _existing = vDocument.getElementsByClassName(CONST_CHART_DETAIL);
         for (var _i = 0; _i < _existing.length; _i++) {
-            addClass(_existing[_i], CONST_HIDDEN_CLASS);
+            addClass(_existing[_i], CONST_BACKGROUND_CLASS);
         }
         _existing = vDocument.getElementsByClassName(CONST_CHART_MASTER);
         for (var _i = 0; _i < _existing.length; _i++) {
-            removeClass(_existing[_i], CONST_HIDDEN_CLASS);
+            removeClass(_existing[_i], CONST_BACKGROUND_CLASS);
         }
     }
 
