@@ -43,10 +43,18 @@ var Telegraph = function (ctxId, config) {
         CONST_WIDTH = "width",
         CONST_HEIGHT = "height",
         CONST_HIDDEN_CLASS = "hidden",
-        CONST_ZOOM_ANIMATION_SPEED = 150,
+        CONST_ZOOM_ANIMATION_SPEED = 15,
         CONST_AXIS_X_LABEL_OPACITY_ANIMATION_KEY = getFunctionName(setAxisXLabelOpacity),
         CONST_SET_ZOOM_START_ANIMATION_KEY = getFunctionName(setZoomStart),
         CONST_SET_ZOOM_END_ANIMATION_KEY = getFunctionName(setZoomEnd),
+
+        CONST_CHART_MASTER = "master",
+        CONST_CHART_DETAIL = "detail",
+        CONST_HOUR_SHIFT_RATIO = 1 / 24,
+        CONST_ZOOM_START_POSITION = "zoomStartPosition",
+        CONST_ZOOM_END_POSITION = "zoomEndPosition",
+        CONST_FILTER_START_INDEX = "filterStartIndex",
+        CONST_FILTER_END_INDEX = "filterEndIndex",
 
         ENUM_NAVIGATOR_HOVER = 1,
         ENUM_START_SELECTION_HOVER = 2,
@@ -62,6 +70,25 @@ var Telegraph = function (ctxId, config) {
         ENUM_CHART_TYPE_LINE = "line",
         ENUM_CHART_TYPE_BAR = "bar",
         ENUM_CHART_TYPE_AREA = "area";
+
+    var ParamsStorage = function () {
+        var dataStore = {};
+
+        function put(key, value) {
+            //localStorage.setItem(key, value);
+            dataStore[key] = value;
+        }
+
+        function get(key) {
+            //localStorage.getItem(key))
+            return dataStore[key];
+        }
+
+        return {
+            put: put,
+            get: get
+        };
+    }
 
     var container = vDocument.getElementById(ctxId),                               //canvases container
         isMobile = ("ontouchstart" in vWindow),
@@ -84,7 +111,7 @@ var Telegraph = function (ctxId, config) {
                 zoomOutText: "#48AAF0",
                 tooltipArrow: "#D2D5D7",
                 axisText: "#8E8E93",
-                barMask: "rgba(36, 47, 62, 1)"
+                barMask: "rgba(36, 47, 62, 0.5)"
             },
 
         totalWidth,
@@ -98,6 +125,7 @@ var Telegraph = function (ctxId, config) {
         navigatorBottom,
         totalHeight,
         needRedraw,
+
         mainCanvas,
         bufferNavigatorCanvas,
         frameContext,
@@ -124,13 +152,9 @@ var Telegraph = function (ctxId, config) {
         selectionStartIndexInt,
         selectionEndIndexInt,
 
-        storedSelectionStartIndexFloat,
-        storedSelectionEndIndexFloat,
-
         selectionCurrentIndexFloat,
         selectionCurrentIndexPinned,
         isSelectionCurrentIndexChanged,
-
 
         filterStartIndexFloat,
         filterEndIndexFloat,
@@ -153,9 +177,7 @@ var Telegraph = function (ctxId, config) {
         navigatorNeedUpdateBuffer,      //@type {Boolean} navigators buffer invalidated need repaint
 
         seriesMaxOpacity,               //@type {Number} max opacity of series for animations
-
         arrowTooltipOpacity = 0,
-
 
         envSmallTextHeight,
         envDefaultTextHeight,
@@ -193,7 +215,7 @@ var Telegraph = function (ctxId, config) {
         globalPercentageMode,
         stackedRegister = [],
         totalPercentageRegister = [],
-        detailCache = {};
+        paramsStorage = new ParamsStorage();
 
 
     var AxisInfo = function (alias, xData, yDataList, width, height, lineWidth, isStartFromZero) {
@@ -392,8 +414,8 @@ var Telegraph = function (ctxId, config) {
             smartAxisYRangeInt,
             smartAxisYRangeFloat,
             lastIndex = xData.length - 1,
-            divLegendVal,
             divTlpRow,
+            divLegendVal,
             opacity = 1,
 
             enabled = vTrue,
@@ -594,12 +616,12 @@ var Telegraph = function (ctxId, config) {
                 case ENUM_CHART_TYPE_BAR:
                     setFillStyle(context, color);
                     startIndexInt = getMax(startIndexInt - _extendBounds, 1);
-                    _xPos = uIGlobalPadding2 + (startIndexInt - offsetIndex) * _factorX;
+                    _xPos = offset + uIGlobalPadding2 + (startIndexInt - offsetIndex) * _factorX;
                     moveOrLine(context, vTrue, _xPos, bottom);
                     endIndexInt = getMin(endIndexInt + _extendBounds, lastIndex);
 
                     for (_k = startIndexInt; _k <= endIndexInt; _k++) {
-                        _xPos = uIGlobalPadding2 + (_k - offsetIndex) * _factorX;
+                        _xPos = offset + uIGlobalPadding2 + (_k - offsetIndex) * _factorX;
                         if (_yPos) {
                             moveOrLine(context, vFalse, _xPos, _yPos);
                         }
@@ -621,11 +643,11 @@ var Telegraph = function (ctxId, config) {
                 case ENUM_CHART_TYPE_AREA:
                     setFillStyle(context, color);
                     startIndexInt = getMax(startIndexInt - _extendBounds, 1);
-                    _xPos = uIGlobalPadding2 + (startIndexInt - offsetIndex) * _factorX;
+                    _xPos = offset + uIGlobalPadding2 + (startIndexInt - offsetIndex) * _factorX;
                     moveOrLine(context, vTrue, _xPos, bottom);
                     endIndexInt = getMin(endIndexInt + _extendBounds, lastIndex);
                     for (_k = startIndexInt; _k <= endIndexInt; _k++) {
-                        _xPos = uIGlobalPadding2 + (_k - offsetIndex) * _factorX;
+                        _xPos = offset + uIGlobalPadding2 + (_k - offsetIndex) * _factorX;
                         _yValue = _yData[_k] * opacity;
 
                         if (globalStackedBarMode) {
@@ -647,41 +669,39 @@ var Telegraph = function (ctxId, config) {
         }
 
         function drawMainSeries(isChild, offset, exOpacity) {
-
-            if (isChild || currentZoomState !== STATE_ZOOM_HOURS) {
-                if (currentZoomState !== STATE_ZOOM_DAYS && !isChild) {
-                    setGlobalAlpha(frameContext, opacity * (1 - animationCounter));
-                } else {
-                    setGlobalAlpha(frameContext, opacity * (exOpacity || 1));
-                }
-                drawSeriesCore(frameContext, mainAxis,
-                    isChild ? 0 : selectionStartIndexFloat,
-                    isChild ? 1 : selectionStartIndexInt,
-                    isChild ? lastIndex : selectionEndIndexInt,
-                    selectionBottom, offset, opacity);
+            var _inTransition = inTransition();
+            if (_inTransition && !isChild) {
+                setGlobalAlpha(frameContext, opacity * (1 - animationCounter));
+            } else {
+                setGlobalAlpha(frameContext, opacity * (exOpacity || 1));
             }
-            if (childChartInstance && currentZoomState !== STATE_ZOOM_DAYS) {
+            drawSeriesCore(frameContext, mainAxis,
+                isChild ? 0 : selectionStartIndexFloat,
+                isChild ? 1 : selectionStartIndexInt,
+                isChild ? lastIndex : selectionEndIndexInt,
+                selectionBottom, offset, opacity);
+
+            if (childChartInstance && _inTransition) {
                 var _xOffset = (childChartOffset - selectionStartIndexFloat) * mainAxis.getFactorX();
                 childChartInstance.drawMainSeries(vTrue, _xOffset, animationCounter);
             }
         }
 
         function drawFilterSeries(isChild, offset, exOpacity) {
-            setGlobalAlpha(bufferNavigatorContext, opacity);
-            if (isChild || currentZoomState !== STATE_ZOOM_HOURS) {
-                if (currentZoomState !== STATE_ZOOM_DAYS && !isChild) {
-                    setGlobalAlpha(bufferNavigatorContext, opacity * (1 - animationCounter));
-                } else {
-                    setGlobalAlpha(bufferNavigatorContext, opacity * (exOpacity || 1));
-                }
-                drawSeriesCore(bufferNavigatorContext, filterAxis,
-                    isChild ? 0 : filterStartIndexFloat,
-                    isChild ? 1 : fParseInt(filterStartIndexFloat),
-                    isChild ? lastIndex : fParseInt(filterEndIndexFloat),
-                    navigatorHeight, offset);
+            var _inTransition = inTransition();
+            if (_inTransition && !isChild) {
+                setGlobalAlpha(bufferNavigatorContext, opacity * (1 - animationCounter));
+            } else {
+                setGlobalAlpha(bufferNavigatorContext, opacity * (exOpacity || 1));
             }
-            if (currentZoomState !== STATE_ZOOM_DAYS && childChartInstance) {
-                var _xOffset = (childChartOffset - filterStartIndexFloat) * filterAxis.getFactorX();
+            drawSeriesCore(bufferNavigatorContext, filterAxis,
+                isChild ? 0 : filterStartIndexFloat,
+                isChild ? 1 : fParseInt(filterStartIndexFloat),
+                isChild ? lastIndex : fParseInt(filterEndIndexFloat),
+                navigatorHeight, offset);
+
+            if (childChartInstance && _inTransition) {
+                var _xOffset = (childChartOffset - filterStartIndexFloat - CONST_HOUR_SHIFT_RATIO) * filterAxis.getFactorX();
                 childChartInstance.drawFilterSeries(vTrue, _xOffset, animationCounter);
             }
         }
@@ -693,7 +713,7 @@ var Telegraph = function (ctxId, config) {
 
             var _proposedTooltipLeft = (_posX / uiDisplayScaleFactor);
 
-            if (type !== ENUM_CHART_TYPE_LINE) {
+            if (type !== ENUM_CHART_TYPE_LINE && isMobile) {
                 _proposedTooltipLeft = _proposedTooltipLeft + 15;
             } else {
                 _proposedTooltipLeft = _proposedTooltipLeft - 15;
@@ -850,23 +870,35 @@ var Telegraph = function (ctxId, config) {
 
         function calculateMainFactors(startIndex, endIndex, withoutAnimations) {
             mainAxis.calculateFactors(startIndex, endIndex, withoutAnimations);
-            if (currentZoomState !== STATE_ZOOM_DAYS && childChartInstance) {
-                var startIndex2 = fParseInt((startIndex - childChartOffset) * 24);
-                var endIndex2 = fParseInt((endIndex - childChartOffset) * 24);
-                childChartInstance.calculateMainFactors(startIndex2,
-                    endIndex2, withoutAnimations);
+            if (inTransition() && childChartInstance) {
+                childChartInstance.calculateMainFactors(calcChildIndex(startIndex),
+                    calcChildIndex(endIndex), withoutAnimations);
             }
-
         }
 
         function calculateFilterFactors(startIndex, endIndex, withoutAnimations) {
             filterAxis.calculateFactors(startIndex, endIndex, withoutAnimations);
-            if (currentZoomState !== STATE_ZOOM_DAYS && childChartInstance) {
-                var startIndex2 = fParseInt((startIndex - childChartOffset) * 24);
-                var endIndex2 = fParseInt((endIndex - childChartOffset) * 24);
-                childChartInstance.calculateFilterFactors(startIndex2, endIndex2, withoutAnimations);
+            if (inTransition() && childChartInstance) {
+                childChartInstance.calculateFilterFactors(calcChildIndex(startIndex),
+                    calcChildIndex(endIndex), withoutAnimations);
             }
             navigatorNeedUpdateBuffer = vTrue;
+        }
+
+        function calcChildIndex(index) {
+            return (index - childChartOffset) * 24 + 1;
+        }
+
+        function calcParentIndex(index) {
+            return (index - 1) / 24 + childChartOffset;
+        }
+
+        function getDivLegendVal() {
+            return divLegendVal;
+        }
+
+        function setDivLegendVal(val) {
+            divLegendVal = val;
         }
 
         return {
@@ -894,6 +926,10 @@ var Telegraph = function (ctxId, config) {
             setTlpValDiv: setTlpValDiv,
             setTlpRowDiv: setTlpRowDiv,
             setDetailChart: setDetailChart,
+            setDivLegendVal: setDivLegendVal,
+            getDivLegendVal: getDivLegendVal,
+            calcChildIndex: calcChildIndex,
+            calcParentIndex: calcParentIndex,
             toString: toString
         };
     };
@@ -1237,7 +1273,7 @@ var Telegraph = function (ctxId, config) {
             _filterFactorX = charts[0].getFilterAxis().getFactorX(),
             _mainFactorX = charts[0].getMainAxis().getFactorX();
 
-        if (!_filterFactorX) {
+        if (!_filterFactorX || inTransition()) {
             return;
         }
 
@@ -1258,7 +1294,7 @@ var Telegraph = function (ctxId, config) {
             else if (mouseY > navigatorTop && mouseY < navigatorBottom) { //Navigator hovered
                 _result = ENUM_NAVIGATOR_HOVER;
                 var _startZoom = ( zoomStartFloat - filterStartIndexFloat) * _filterFactorX,
-                    _endZoom = ( zoomEndFloat- filterStartIndexFloat) * _filterFactorX,
+                    _endZoom = ( zoomEndFloat - filterStartIndexFloat) * _filterFactorX,
                     _startZShift = _startZoom - mouseX,
                     _endZShift = _endZoom - mouseX;
 
@@ -1434,8 +1470,8 @@ var Telegraph = function (ctxId, config) {
 
 
     function storeSelection() {
-        storedSelectionStartIndexFloat = selectionStartIndexFloat;
-        storedSelectionEndIndexFloat = selectionEndIndexFloat;
+        paramsStorage.put(CONST_SET_ZOOM_START_ANIMATION_KEY, selectionStartIndexFloat);
+        paramsStorage.put(CONST_SET_ZOOM_END_ANIMATION_KEY, selectionEndIndexFloat);
     }
 
     function restoreSelection() {
@@ -1443,8 +1479,9 @@ var Telegraph = function (ctxId, config) {
         animate(filterEndIndexFloat, setFilterEndIndexFloat, charts[0].getLastIndex(), CONST_ZOOM_ANIMATION_SPEED);
         animate(filterStartIndexFloat, setFilterStartIndexFloat, 1, CONST_ZOOM_ANIMATION_SPEED);
 
-        animate(zoomEndFloat, assignZoomEnd, storedSelectionEndIndexFloat, CONST_ZOOM_ANIMATION_SPEED);
-        animate(zoomStartFloat, assignZoomStart, storedSelectionStartIndexFloat, CONST_ZOOM_ANIMATION_SPEED);
+
+        animate(zoomEndFloat, assignZoomEnd, paramsStorage.get(CONST_SET_ZOOM_END_ANIMATION_KEY), CONST_ZOOM_ANIMATION_SPEED);
+        animate(zoomStartFloat, assignZoomStart, paramsStorage.get(CONST_SET_ZOOM_START_ANIMATION_KEY), CONST_ZOOM_ANIMATION_SPEED);
 
 
     }
@@ -1479,7 +1516,7 @@ var Telegraph = function (ctxId, config) {
                 _localCharts[_i].initAxis(_localMainAxis, _localFilterAxis);
             }
         }
-        var _parentFromIndex = fParseInt(selectionCurrentIndexFloat);
+        var _parentFromIndex = fMathFloor(selectionCurrentIndexFloat);
         var _parentToIndex = _parentFromIndex + 1;
         var _parentXData = charts[0].getXData();
         var _parentLastIndex = charts[0].getLastIndex();
@@ -1500,6 +1537,7 @@ var Telegraph = function (ctxId, config) {
                         if (!_filterStartIndex && _parentXData[_j] >= _childStart) {
                             _filterStartIndex = _j;
                             _parentChart.setDetailChart(_childChart, _j);
+                            _childChart.setDivLegendVal(_parentChart.getDivLegendVal());
                         } else if (!_filterEndIndex && _parentXData[_j] >= _childEnd) {
                             _filterEndIndex = _j;
                         }
@@ -1507,6 +1545,9 @@ var Telegraph = function (ctxId, config) {
                 }
             }
         }
+        paramsStorage.put(CONST_CHART_DETAIL, _localCharts);
+        paramsStorage.put(CONST_ZOOM_START_POSITION, zoomStartPosition);
+        paramsStorage.put(CONST_ZOOM_END_POSITION, zoomEndPosition);
 
         freezeAxis();
         updateHoveredInfo(vNull);
@@ -1526,29 +1567,28 @@ var Telegraph = function (ctxId, config) {
         if (currentZoomState !== STATE_ZOOM_HOURS) {
             return;
         }
-        var _avigatorFactorX = charts[0].getFilterAxis().getFactorX();
+
         currentZoomState = STATE_ZOOM_TRANSFORM_TO_DAYS;
+        charts = paramsStorage.get(CONST_CHART_MASTER);
+        setFilterStartIndexFloat(paramsStorage.get(CONST_FILTER_START_INDEX));
+        setFilterEndIndexFloat(paramsStorage.get(CONST_FILTER_END_INDEX));
+
+        var _start = fParseInt(charts[0].calcParentIndex(zoomStartPosition));
+        assignZoomStart(paramsStorage.get(CONST_FILTER_START_INDEX), 1);
+        setZoomStart(paramsStorage.get(CONST_FILTER_START_INDEX), 1);
+        assignZoomEnd(paramsStorage.get(CONST_FILTER_END_INDEX) , 1);
+        setZoomEnd(paramsStorage.get(CONST_FILTER_END_INDEX), 1);
+     //   assignSelectionFactors();
+
         freezeAxis();
-        //xAxisDataRef = dataStore.days.xAxisData;
-        //yAxisDataRefs = dataStore.days.yAxisData;
-        //selectionFactorY = dataStore.days.factorY;
-        //zoomStartInt = dataStore.days.startIndexOff * _avigatorFactorX;
-        // zoomEndInt = dataStore.days.endIndexOff * _avigatorFactorX;
-        //   zoomStartFloat = dataStore.days.startIndexOff;
-        //   zoomEndFloat = dataStore.days.endIndexOff;
-        //dataStore.hours.from = zoomStartFloat + 1;
-        // dataStore.hours.to = zoomEndFloat + 1;
-        calcNavigatorFactors();
-        // associateZoomStart(dataStore.days.startIndex, 15);
-        //  associateZoomEnd(dataStore.days.endIndex, 15);
         animationCounter = 1;
         restoreSelection();
-        animate(animationCounter, setAnimationCounter, 0, CONST_ZOOM_ANIMATION_SPEED);
+        animate(animationCounter, setAnimationCounter, 0.01, CONST_ZOOM_ANIMATION_SPEED);
         updateTitleStatus();
     }
 
     function loadHoursDataSuccess(data, timeStamp) {
-        detailCache[timeStamp] = data;
+        paramsStorage.put("h" + timeStamp, data);
         zoomInToHours(data, timeStamp);
     }
 
@@ -1563,7 +1603,7 @@ var Telegraph = function (ctxId, config) {
 
         var _currentPosition = fParseInt(selectionCurrentIndexFloat);
         var _currentTimeStamp = charts[0].getXData()[_currentPosition];
-        var _detailCache = detailCache[_currentTimeStamp];
+        var _detailCache = paramsStorage.get["h" + _currentTimeStamp];
         if (_detailCache) {
             zoomInToHours(_detailCache, _currentTimeStamp);
         } else {
@@ -1588,7 +1628,7 @@ var Telegraph = function (ctxId, config) {
         return currentZoomState === STATE_ZOOM_TRANSFORM_TO_DAYS ||
             currentZoomState === STATE_ZOOM_TRANSFORM_TO_HOURS;
     }
-    
+
     function unfreezeAxis() {
         if (smartAxisXFrozen && !inTransition()) {
             if (smartAxisXFrozenStart !== selectionStartIndexFloat ||
@@ -2416,6 +2456,37 @@ var Telegraph = function (ctxId, config) {
         }
     }
 
+    function switchToDetailChart() {
+
+        var start = charts[0].calcChildIndex(selectionStartIndexFloat);
+        var end = charts[0].calcChildIndex(selectionEndIndexFloat);
+
+        paramsStorage.put(CONST_CHART_MASTER, charts);
+        paramsStorage.put(CONST_FILTER_START_INDEX, filterStartIndexFloat);
+        paramsStorage.put(CONST_FILTER_END_INDEX, filterEndIndexFloat);
+
+        charts = paramsStorage.get(CONST_CHART_DETAIL);
+
+
+        setFilterStartIndexFloat(1);
+        setFilterEndIndexFloat(charts[0].getLastIndex());
+
+        assignZoomStart(start);
+        assignZoomEnd(end);
+    }
+
+    function switchToMainChart() {
+
+        // paramsStorage.put(CONST_CHART_MASTER, charts);
+        // charts = paramsStorage.get(CONST_CHART_DETAIL);
+        //  setFilterStartIndexFloat(1);
+        //  setFilterEndIndexFloat(charts[0].getLastIndex());
+
+        //   assignZoomStart(1);
+        //  assignZoomEnd(charts[0].getLastIndex());
+    }
+
+
     function animationComplete(animationKey) {
         if (animationKey === CONST_AXIS_X_LABEL_OPACITY_ANIMATION_KEY && smartAxisXFrozen) {
             unfreezeAxis();
@@ -2426,10 +2497,15 @@ var Telegraph = function (ctxId, config) {
                 !animations[CONST_SET_ZOOM_END_ANIMATION_KEY]) {
                 if (currentZoomState === STATE_ZOOM_TRANSFORM_TO_HOURS) {
                     currentZoomState = STATE_ZOOM_HOURS;
+                    unfreezeAxis();
+                    switchToDetailChart();
                 } else if (currentZoomState === STATE_ZOOM_TRANSFORM_TO_DAYS) {
                     currentZoomState = STATE_ZOOM_DAYS;
+                    unfreezeAxis();
+                    switchToMainChart();
                 }
-                unfreezeAxis();
+
+
             }
         }
     }
@@ -2462,7 +2538,7 @@ var Telegraph = function (ctxId, config) {
         lastPerformance = _proposed;
         perf.mark(perf.end);
 
-        perf.measureDurations(frameContext, charts);
+  //      perf.measureDurations(frameContext, charts);
         requestAnimationFrame(render);
     }
 
