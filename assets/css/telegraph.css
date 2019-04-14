@@ -116,6 +116,7 @@ button, button:hover, button:after, button:focus {
 
 .chart-container .title-container .day-range {
     float: right;
+    right: 5px;
 }
 
 .chart-container .title-container .title {
@@ -125,6 +126,7 @@ button, button:hover, button:after, button:focus {
 .chart-container .title-container .zoom-out {
     float: left;
     cursor: pointer;
+    position: absolute;
 }
 
 .chart-container .title-container .zoom-out .zoom-out-svg {
@@ -137,9 +139,25 @@ button, button:hover, button:after, button:focus {
 
 .chart-container .animate {
     top: 0px;
-    left: 5px;
     opacity: 1;
     position: absolute;
+    -webkit-transition: opacity 0.2s ease-in-out, top 0.2s ease-in-out;
+    -moz-transition: opacity 0.2s ease-in-out, top 0.2s ease-in-out;
+    -ms-transition: opacity 0.2s ease-in-out, top 0.2s ease-in-out;
+    -o-transition: opacity 0.2s ease-in-out, top 0.2s ease-in-out;
+    transition: opacity 0.2s ease-in-out, top 0.2s ease-in-out;
+}
+
+.chart-container .animate.hidden {
+    top: 10px;
+    opacity: 0;
+}
+
+
+.chart-container .animate {
+    top: 0px;
+    opacity: 1;
+    position: relative;
     -webkit-transition: opacity 0.2s ease-in-out, top 0.2s ease-in-out;
     -moz-transition: opacity 0.2s ease-in-out, top 0.2s ease-in-out;
     -ms-transition: opacity 0.2s ease-in-out, top 0.2s ease-in-out;
@@ -155,6 +173,15 @@ button, button:hover, button:after, button:focus {
 .chart-container .animate.hidden.top {
     top: -10px;
     opacity: 0;
+}
+
+.chart-container .value-animate
+{
+    position: relative;
+}
+
+.chart-container .value-animate span {
+    position: absolute;
 }
 
 .chart-container svg {

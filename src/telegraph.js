@@ -83,7 +83,34 @@ var Telegraph = function (ctxId, config) {
             put: put,
             get: get
         };
-    }
+    };
+
+    var DomValueAnimator = function (element) {
+        element.classList.add("value-animate");
+
+        var timeOut;
+        var currentValue;
+        var proposedValue;
+
+        function updateValue() {
+            element.innerHTML = proposedValue;
+        }
+
+        function setValue(value) {
+            if (value !== currentValue) {
+                proposedValue = value;
+                if (timeOut) {
+                    clearTimeout(timeOut);
+                }
+                timeOut = setTimeout(updateValue, 100);
+            }
+        }
+
+        return {
+            setValue: setValue
+        };
+    };
+
 
     var container = vDocument.getElementById(ctxId),                               //canvases container
         isMobile = ("ontouchstart" in vWindow),
@@ -208,9 +235,6 @@ var Telegraph = function (ctxId, config) {
         divTooltipValues,
 
         currentZoomState,
-
-        updateDateRangeTextTimer,
-
         animationCounter,
         globalScaledY,
         globalStackedBarMode,
@@ -717,7 +741,9 @@ var Telegraph = function (ctxId, config) {
             }
             divTooltipContainer.style.left = _proposedTooltipLeft + CONST_PIXEL; //todo optimize
             updateLegendValue(_value);
-            divTooltipDate.innerHTML = formatDate(xData[_from], vTrue, vTrue);
+            divTooltipDate.innerHTML = currentZoomState === STATE_ZOOM_HOURS ?
+                formatTime(xData[_from], vTrue, vTrue) :
+                formatDate(xData[_from], vTrue, vTrue);
 
             switch (type) {
                 case ENUM_CHART_TYPE_LINE:
@@ -944,9 +970,9 @@ var Telegraph = function (ctxId, config) {
         if (charts.length) {
             var from = formatDateFull(charts[0].getXData()[selectionStartIndexInt + 1]);
             var to = formatDateFull(charts[0].getXData()[selectionEndIndexInt - 2]);
-            result = from + " - " + to;
+            result = from === to ? from : from + " - " + to;
         }
-        divDayRange.innerHTML = result;
+        divDayRange.setValue(result);
     }
 
     function recalculateBounds() {
@@ -970,8 +996,8 @@ var Telegraph = function (ctxId, config) {
         filterBottom = filterTop + filterHeight;                          //navigator bottom
         totalHeight = filterBottom + uIGlobalPadding; //main frame height
 
-        mainCanvas[CONST_WIDTH] = totalWidth || 2;
-        mainCanvas[CONST_HEIGHT] = totalHeight || 2;
+        mainCanvas[CONST_WIDTH] = totalWidth || 256;
+        mainCanvas[CONST_HEIGHT] = totalHeight || 256;
 
         bufferNavigatorCanvas[CONST_WIDTH] = totalWidth || 2;
         bufferNavigatorCanvas[CONST_HEIGHT] = filterHeight || 2;
@@ -1473,7 +1499,7 @@ var Telegraph = function (ctxId, config) {
             _childChart,
             _localCharts,
             _parentChart;
-       hideTooltip();
+        hideTooltip();
         clearDetailElements();
         _localCharts = createChartObjects(pData, CONST_CHART_DETAIL);
         consistSettings(charts, _localCharts);
@@ -2180,11 +2206,7 @@ var Telegraph = function (ctxId, config) {
         }
 
         calcSmartAxisY();
-
-        if (updateDateRangeTextTimer) {
-            clearTimeout(updateDateRangeTextTimer);
-        }
-        updateDateRangeTextTimer = setTimeout(updateDateRangeText, 20);
+        updateDateRangeText();
     }
 
     function addClass(el, cls) {
@@ -2194,12 +2216,12 @@ var Telegraph = function (ctxId, config) {
     function removeClass(el, cls) {
         el.classList.remove(cls);
     }
-    
+
     function changeChildClass(cls, isRemove) {
         var _i,
             _existing = container.getElementsByClassName(cls);
         for (_i = 0; _i < _existing.length; _i++) {
-            isRemove? removeClass(_existing[_i], CONST_BACKGROUND_CLASS) :
+            isRemove ? removeClass(_existing[_i], CONST_BACKGROUND_CLASS) :
                 addClass(_existing[_i], CONST_BACKGROUND_CLASS);
         }
     }
@@ -2225,8 +2247,8 @@ var Telegraph = function (ctxId, config) {
         var _titleContainer = createElement("div",
             "title-cnt-", ["title-container"], {}, container);
 
-        divDayRange = createElement("div",
-            "day-range-", ["day-range"], {}, _titleContainer);
+        divDayRange = new DomValueAnimator(createElement("div",
+            "day-range-", ["day-range"], {}, _titleContainer));
 
         divZoomOut = createElement("div",
             "zoom-out-", ["zoom-out", "animate", CONST_HIDDEN_CLASS], {}, _titleContainer);
@@ -2395,7 +2417,6 @@ var Telegraph = function (ctxId, config) {
             "storedFilterEndIndexFloat=" + storedFilterEndIndexFloat + ";\r\n" +
             "}\r\n");
     }
-
 
 
     function switchToDetailChart() {
