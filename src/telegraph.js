@@ -5,7 +5,6 @@ var Telegraph = function (ctxId, config) {
 
     var perf = new PerfomanceMeter();
 
-
     /**
      * External functions & variables (maybe need polyfills)
      */
@@ -43,18 +42,13 @@ var Telegraph = function (ctxId, config) {
         CONST_WIDTH = "width",
         CONST_HEIGHT = "height",
         CONST_HIDDEN_CLASS = "hidden",
-        CONST_ZOOM_ANIMATION_SPEED = 20,
+        CONST_ZOOM_ANIMATION_SPEED = 15,
         CONST_AXIS_X_LABEL_OPACITY_ANIMATION_KEY = getFunctionName(setAxisXLabelOpacity),
         CONST_SET_ZOOM_START_ANIMATION_KEY = getFunctionName(setZoomStart),
         CONST_SET_ZOOM_END_ANIMATION_KEY = getFunctionName(setZoomEnd),
 
         CONST_CHART_MASTER = "master",
         CONST_CHART_DETAIL = "detail",
-        CONST_HOUR_SHIFT_RATIO = 1 / 24,
-        CONST_ZOOM_START_POSITION = "zoomStartPosition",
-        CONST_ZOOM_END_POSITION = "zoomEndPosition",
-        CONST_FILTER_START_INDEX = "filterStartIndex",
-        CONST_FILTER_END_INDEX = "filterEndIndex",
 
         ENUM_NAVIGATOR_HOVER = 1,
         ENUM_START_SELECTION_HOVER = 2,
@@ -69,18 +63,17 @@ var Telegraph = function (ctxId, config) {
 
         ENUM_CHART_TYPE_LINE = "line",
         ENUM_CHART_TYPE_BAR = "bar",
-        ENUM_CHART_TYPE_AREA = "area";
+        ENUM_CHART_TYPE_AREA = "area",
+        ENUM_CHART_TYPE_PIE = "pie";
 
     var ParamsStorage = function () {
         var dataStore = {};
 
         function put(key, value) {
-            //localStorage.setItem(key, value);
             dataStore[key] = value;
         }
 
         function get(key) {
-            //localStorage.getItem(key))
             return dataStore[key];
         }
 
@@ -147,6 +140,13 @@ var Telegraph = function (ctxId, config) {
         zoomEndFloat,
         zoomStartPosition,
         zoomEndPosition,
+
+        storedZoomStartFloat,
+        storedZoomEndFloat,
+        storedProposedPosition,
+
+        storedFilterStartIndexFloat,
+        storedFilterEndIndexFloat,
 
         selectionStartIndexFloat,
         selectionEndIndexFloat,
@@ -215,7 +215,8 @@ var Telegraph = function (ctxId, config) {
         globalPercentageMode,
         stackedRegister = [],
         totalPercentageRegister = [],
-        childChartOffset,
+        detailChartOffset,
+        detailAxisQuality = 24,
         paramsStorage = new ParamsStorage();
 
 
@@ -377,18 +378,6 @@ var Telegraph = function (ctxId, config) {
             height = val;
         }
 
-        function getWidth() {
-            return width;
-        }
-
-        function getHeight() {
-            return height;
-        }
-
-        function toString() {
-            return "";
-        }
-
 
         return {
             getAlias: getAlias,
@@ -400,8 +389,7 @@ var Telegraph = function (ctxId, config) {
             getFactorY: getFactorY,
             getFactorX: getFactorX,
             calculateFactors: calculateFactors,
-            getLineWidth: getLineWidth,
-            toString: toString
+            getLineWidth: getLineWidth
         };
     };
 
@@ -662,6 +650,10 @@ var Telegraph = function (ctxId, config) {
                     closePath(context);
                     fill(context);
                     break;
+
+                case ENUM_CHART_TYPE_PIE:
+                    //todo pie chart
+                    break;
             }
 
 
@@ -823,17 +815,6 @@ var Telegraph = function (ctxId, config) {
 
         }
 
-
-        function toString() {
-            return "Chart " + name + " {\n" +
-                "\ttype: " + type + ",\n" +
-                "\tcolor: " + color + ",\n" +
-                "\tmainAxis: " + mainAxis.toString() + ",\n" +
-                "\tfilterAxis: " + filterAxis.toString() + ",\n" +
-                "\tismartAxisYRangeInt: " + smartAxisYRangeInt + ",\n" +
-                "}";
-        }
-
         function getMainAxis() {
             return mainAxis;
         }
@@ -892,8 +873,7 @@ var Telegraph = function (ctxId, config) {
             getPercentageData: getPercentageData,
             drawTooltipArrow: drawTooltipArrow,
             setTlpValDiv: setTlpValDiv,
-            setTlpRowDiv: setTlpRowDiv,
-            toString: toString
+            setTlpRowDiv: setTlpRowDiv
         };
     };
 
@@ -944,8 +924,8 @@ var Telegraph = function (ctxId, config) {
     function updateDateRangeText() { //        "1 April 2019 - 30 April 2019";
         var result = "-";
         if (charts.length) {
-            var from = formatDateFull(charts[0].getXData()[selectionStartIndexInt]);
-            var to = formatDateFull(charts[0].getXData()[selectionEndIndexInt]);
+            var from = formatDateFull(charts[0].getXData()[selectionStartIndexInt + 1]);
+            var to = formatDateFull(charts[0].getXData()[selectionEndIndexInt - 2]);
             result = from + " - " + to;
         }
         divDayRange.innerHTML = result;
@@ -1062,11 +1042,11 @@ var Telegraph = function (ctxId, config) {
     }
 
     function calcChildIndex(index) {
-        return (index - childChartOffset) * 24 + 1;
+        return (index - detailChartOffset) * detailAxisQuality + 1;
     }
 
     function calcParentIndex(index) {
-        return (index - 1) / 24 + childChartOffset;
+        return (index - 1) / detailAxisQuality + detailChartOffset;
     }
 
     /**
@@ -1135,6 +1115,7 @@ var Telegraph = function (ctxId, config) {
             if (globalScaledY) {
                 _chartInfo.initAxis();
             }
+            _chartInfo.alias = globalAlias;
             _charts.push(_chartInfo);
         }
         if (!globalScaledY) {
@@ -1289,13 +1270,14 @@ var Telegraph = function (ctxId, config) {
 
 
     function assignZoomStart(val, frameCount) {
-        var _proposed = (val - filterStartIndexFloat) * charts[0].getFilterAxis().getFactorX();
-        zoomStartPosition = _proposed;
+        val = getMax(1, val);
+        zoomStartPosition = (val - filterStartIndexFloat) * charts[0].getFilterAxis().getFactorX();
         animate(zoomStartFloat, setZoomStart, val, frameCount);
     }
 
 
     function assignZoomEnd(val, frameCount) {
+        val = getMin(val, charts[0].getLastIndex());
         zoomEndPosition = (val - filterStartIndexFloat) * charts[0].getFilterAxis().getFactorX();
         animate(zoomEndFloat, setZoomEnd, val, frameCount);
     }
@@ -1434,21 +1416,13 @@ var Telegraph = function (ctxId, config) {
         }
     }
 
-
-    function storeSelection() {
-        paramsStorage.put(CONST_SET_ZOOM_START_ANIMATION_KEY, selectionStartIndexFloat);
-        paramsStorage.put(CONST_SET_ZOOM_END_ANIMATION_KEY, selectionEndIndexFloat);
-    }
-
     function restoreSelection() {
 
         animate(filterEndIndexFloat, setFilterEndIndexFloat, charts[0].getLastIndex(), CONST_ZOOM_ANIMATION_SPEED);
         animate(filterStartIndexFloat, setFilterStartIndexFloat, 1, CONST_ZOOM_ANIMATION_SPEED);
 
-
-        animate(zoomEndFloat, assignZoomEnd, paramsStorage.get(CONST_SET_ZOOM_END_ANIMATION_KEY), CONST_ZOOM_ANIMATION_SPEED);
-        animate(zoomStartFloat, assignZoomStart, paramsStorage.get(CONST_SET_ZOOM_START_ANIMATION_KEY), CONST_ZOOM_ANIMATION_SPEED);
-
+        animate(zoomStartFloat, assignZoomStart, storedZoomStartFloat, CONST_ZOOM_ANIMATION_SPEED + 2);
+        animate(zoomEndFloat, assignZoomEnd, storedZoomEndFloat, CONST_ZOOM_ANIMATION_SPEED + 2);
 
     }
 
@@ -1466,6 +1440,16 @@ var Telegraph = function (ctxId, config) {
         }
     }
 
+    function storeZoomPosition(index) {
+        storedZoomStartFloat = zoomStartFloat;
+        storedZoomEndFloat = zoomEndFloat;
+        storedProposedPosition = index;
+
+        console.log("storeZoomPosition {storedZoomStartFloat=" + storedZoomStartFloat + ";\r\n" +
+            "storedZoomEndFloat=" + storedZoomEndFloat + ";\r\n" +
+            "storedProposedPosition=" + storedProposedPosition + ";}\r\n");
+    }
+
     function zoomInToHours(pData, timeStamp) {
         var _j,
             _childChart,
@@ -1480,6 +1464,8 @@ var Telegraph = function (ctxId, config) {
         var _parentFromIndex;
 
         _childChart = _localCharts[0];
+        detailAxisQuality = 3600000 * 24 / (_childChart.getXData()[2] - _childChart.getXData()[1]);
+
         var _childStart = _childChart.getXData()[1];
         var _childEnd = _childChart.getXData()[_childChart.getLastIndex()];
         var _filterStartIndex;
@@ -1490,7 +1476,7 @@ var Telegraph = function (ctxId, config) {
             }
             if (!_filterStartIndex && _parentXData[_j] >= _childStart) {
                 _filterStartIndex = _j;
-                childChartOffset = _j;
+                detailChartOffset = _j;
             } else if (!_filterEndIndex && _parentXData[_j] >= _childEnd) {
                 _filterEndIndex = _j;
             }
@@ -1501,25 +1487,20 @@ var Telegraph = function (ctxId, config) {
         }
 
         currentZoomState = STATE_ZOOM_TRANSFORM_TO_HOURS;
+        hideTooltip();
         updateTitleStatus();
         detailCharts = _localCharts;
-
-
-        paramsStorage.put(CONST_ZOOM_START_POSITION, zoomStartPosition);
-        paramsStorage.put(CONST_ZOOM_END_POSITION, zoomEndPosition);
+        storeZoomPosition(_parentFromIndex);
 
         freezeAxis();
         updateHoveredInfo(vNull);
 
-        storeSelection();
         animate(filterEndIndexFloat, setFilterEndIndexFloat, _filterEndIndex, CONST_ZOOM_ANIMATION_SPEED);
         animate(filterStartIndexFloat, setFilterStartIndexFloat, _filterStartIndex, CONST_ZOOM_ANIMATION_SPEED);
-        //assignZoomStart(val, 1);
-        animate(zoomEndFloat, assignZoomEnd, _parentToIndex, CONST_ZOOM_ANIMATION_SPEED);
-        animate(zoomStartFloat, assignZoomStart, _parentFromIndex, CONST_ZOOM_ANIMATION_SPEED);
+        animate(zoomEndFloat, assignZoomEnd, _parentToIndex, CONST_ZOOM_ANIMATION_SPEED + 2);
+        animate(zoomStartFloat, assignZoomStart, _parentFromIndex, CONST_ZOOM_ANIMATION_SPEED + 2);
         animationCounter = 0;
         animate(animationCounter, setAnimationCounter, 1, CONST_ZOOM_ANIMATION_SPEED);
-        // invalidateInner();
     }
 
     function zoomOutToDays() {
@@ -1528,15 +1509,15 @@ var Telegraph = function (ctxId, config) {
         }
 
         currentZoomState = STATE_ZOOM_TRANSFORM_TO_DAYS;
-        charts = paramsStorage.get(CONST_CHART_MASTER);
-        setFilterStartIndexFloat(paramsStorage.get(CONST_FILTER_START_INDEX));
-        setFilterEndIndexFloat(paramsStorage.get(CONST_FILTER_END_INDEX));
+        swapMasterDetailCharts();
+        setFilterStartIndexFloat(storedFilterStartIndexFloat);
+        setFilterEndIndexFloat(storedFilterEndIndexFloat);
 
         var _start = calcParentIndex(zoomStartPosition);
-        assignZoomStart(paramsStorage.get(CONST_FILTER_START_INDEX), 1);
-        setZoomStart(paramsStorage.get(CONST_FILTER_START_INDEX), 1);
-        assignZoomEnd(paramsStorage.get(CONST_FILTER_START_INDEX) + 1, 1);
-        setZoomEnd(paramsStorage.get(CONST_FILTER_START_INDEX) + 1, 1);
+        assignZoomStart(storedProposedPosition, 1);
+        setZoomStart(storedProposedPosition, 1);
+        assignZoomEnd(storedProposedPosition + 1, 1);
+        setZoomEnd(storedProposedPosition + 1, 1);
         //   assignSelectionFactors();
 
         freezeAxis();
@@ -1901,7 +1882,7 @@ var Telegraph = function (ctxId, config) {
             }
 
             if (inTransition() && detailCharts) {
-                var _xOffset = (childChartOffset - filterStartIndexFloat - CONST_HOUR_SHIFT_RATIO) * charts[0].getFilterAxis().getFactorX();
+                var _xOffset = (detailChartOffset - filterStartIndexFloat) * charts[0].getFilterAxis().getFactorX();
                 for (_i in detailCharts) {
                     detailCharts[_i].drawFilterSeries(vTrue, _xOffset, animationCounter);
                 }
@@ -1923,7 +1904,7 @@ var Telegraph = function (ctxId, config) {
         }
 
         if (inTransition() && detailCharts) {
-            var _xOffset = (childChartOffset - selectionStartIndexFloat) * charts[0].getMainAxis().getFactorX();
+            var _xOffset = (detailChartOffset - selectionStartIndexFloat) * charts[0].getMainAxis().getFactorX();
             for (_i in detailCharts) {
                 _axisY = detailCharts[_i];
                 seriesMaxOpacity = getMax(_axisY.getOpacity(), seriesMaxOpacity);
@@ -2352,18 +2333,29 @@ var Telegraph = function (ctxId, config) {
         }
     }
 
+    function swapMasterDetailCharts() {
+        var _forStoreCharts = charts;
+        charts = detailCharts;
+        detailCharts = _forStoreCharts;
+    }
+
+    function storeFilterRange() {
+        storedFilterStartIndexFloat = filterStartIndexFloat;
+        storedFilterEndIndexFloat = filterEndIndexFloat;
+
+        console.log("storeFilterRange {storedFilterStartIndexFloat=" + storedFilterStartIndexFloat + ";\r\n" +
+            "storedFilterEndIndexFloat=" + storedFilterEndIndexFloat + ";\r\n" +
+            "}\r\n");
+    }
+
     function switchToDetailChart() {
 
         var _i,
-            start = calcChildIndex(selectionStartIndexFloat),
-            end = calcChildIndex(selectionEndIndexFloat);
+            start = calcChildIndex(storedProposedPosition),
+            end = calcChildIndex(storedProposedPosition + 1);
 
-        paramsStorage.put(CONST_CHART_MASTER, charts);
-        paramsStorage.put(CONST_FILTER_START_INDEX, filterStartIndexFloat);
-        paramsStorage.put(CONST_FILTER_END_INDEX, filterEndIndexFloat);
-
-        charts = detailCharts;
-
+        storeFilterRange();
+        swapMasterDetailCharts();
 
         setFilterStartIndexFloat(1);
         setFilterEndIndexFloat(charts[0].getLastIndex());
