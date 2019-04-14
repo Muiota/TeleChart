@@ -32,6 +32,7 @@
     var instances = [],
         loaded = {},
         counter = 0,
+        theme,
         darkMode = isMobile();
 
     function getJSON(url, callback) {
@@ -99,14 +100,15 @@
         }
 
         var tc = new Telegraph(_innerContainer.id, config);
+        tc.setTheme(theme);
         tc.draw(data);
         instances.push(tc);
         loaded[sn] = true;
 
-        if (sn === 5) {
-            switchButton(document.getElementById("btn-dark-mode"));
-        }
+
     }
+
+    switchButton(document.getElementById("btn-dark-mode"));
 
     function loadChart(sn, subUrl, title) {
         getJSON(BASE_URL + subUrl + "/overview.json", function (success, resp) {
@@ -163,7 +165,7 @@
 
 
     function updateTheme() {
-        var theme;
+
         if (darkMode) {
             theme =
                 {
