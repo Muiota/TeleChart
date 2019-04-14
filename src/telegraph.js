@@ -713,7 +713,7 @@ var Telegraph = function (ctxId, config) {
 
             var _proposedTooltipLeft = (_posX / uiDisplayScaleFactor);
 
-            if (type !== ENUM_CHART_TYPE_LINE && isMobile) {
+            if (type !== ENUM_CHART_TYPE_LINE) {
                 _proposedTooltipLeft = _proposedTooltipLeft + 15;
             } else {
                 _proposedTooltipLeft = _proposedTooltipLeft - 15;
@@ -1957,7 +1957,7 @@ var Telegraph = function (ctxId, config) {
             returnOrder(frameContext);
         }
         if (charts[0].getType() === ENUM_CHART_TYPE_BAR) {
-            setGlobalAlpha(frameContext, 1);
+            setGlobalAlpha(frameContext, 1* arrowTooltipOpacity);
             setFillStyle(frameContext, uiGlobalTheme.barMask);
             fillRect(frameContext, 0, 0, totalWidth, selectionHeight + navigatorHeightHalf);
         }
