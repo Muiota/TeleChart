@@ -105,7 +105,11 @@
         instances.push(tc);
         loaded[sn] = true;
 
-
+        if (sn === 5) {
+            setTimeout(function () {
+                invalidateCharts(true);
+            }, 100);
+        }
     }
 
     switchButton(document.getElementById("btn-dark-mode"));
@@ -165,7 +169,6 @@
 
 
     function updateTheme() {
-
         if (darkMode) {
             theme =
                 {

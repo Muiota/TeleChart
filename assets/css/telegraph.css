@@ -223,9 +223,9 @@ button, button:hover, button:after, button:focus {
     width: 100%;
 }
 
+.chart-container .button.hidden,
 .chart-container .tooltip .tooltip-row.hidden {
     display: none;
-
 }
 
 .chart-container .tooltip .tooltip-values .tooltip-title {
@@ -236,6 +236,10 @@ button, button:hover, button:after, button:focus {
 .chart-container .tooltip .tooltip-values .tooltip-value {
     float: right;
     padding-left: 5px;
+}
+
+.chart-container .button.hidden {
+    display: none;
 }
 
 .chart-container .button:not(.checked) {
