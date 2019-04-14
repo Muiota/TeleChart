@@ -1257,8 +1257,8 @@ var Telegraph = function (ctxId, config) {
             }
             else if (mouseY > navigatorTop && mouseY < navigatorBottom) { //Navigator hovered
                 _result = ENUM_NAVIGATOR_HOVER;
-                var _startZoom = ( zoomStartFloat) * _filterFactorX,
-                    _endZoom = ( zoomEndFloat) * _filterFactorX,
+                var _startZoom = ( zoomStartFloat - filterStartIndexFloat) * _filterFactorX,
+                    _endZoom = ( zoomEndFloat- filterStartIndexFloat) * _filterFactorX,
                     _startZShift = _startZoom - mouseX,
                     _endZShift = _endZoom - mouseX;
 
@@ -1284,13 +1284,14 @@ var Telegraph = function (ctxId, config) {
 
 
     function assignZoomStart(val, frameCount) {
-        zoomStartPosition = val * charts[0].getFilterAxis().getFactorX();
+        var _proposed = (val - filterStartIndexFloat) * charts[0].getFilterAxis().getFactorX();
+        zoomStartPosition = _proposed;
         animate(zoomStartFloat, setZoomStart, val, frameCount);
     }
 
 
     function assignZoomEnd(val, frameCount) {
-        zoomEndPosition = val * charts[0].getFilterAxis().getFactorX();
+        zoomEndPosition = (val - filterStartIndexFloat) * charts[0].getFilterAxis().getFactorX();
         animate(zoomEndFloat, setZoomEnd, val, frameCount);
     }
 
@@ -1542,7 +1543,7 @@ var Telegraph = function (ctxId, config) {
         //  associateZoomEnd(dataStore.days.endIndex, 15);
         animationCounter = 1;
         restoreSelection();
-        animate(animationCounter, setAnimationCounter, 0, 15);
+        animate(animationCounter, setAnimationCounter, 0, CONST_ZOOM_ANIMATION_SPEED);
         updateTitleStatus();
     }
 
@@ -1583,9 +1584,13 @@ var Telegraph = function (ctxId, config) {
         invalidateInner();
     }
 
+    function inTransition() {
+        return currentZoomState === STATE_ZOOM_TRANSFORM_TO_DAYS ||
+            currentZoomState === STATE_ZOOM_TRANSFORM_TO_HOURS;
+    }
+    
     function unfreezeAxis() {
-        if (smartAxisXFrozen && currentZoomState !== STATE_ZOOM_TRANSFORM_TO_DAYS &&
-            currentZoomState !== STATE_ZOOM_TRANSFORM_TO_HOURS) {
+        if (smartAxisXFrozen && !inTransition()) {
             if (smartAxisXFrozenStart !== selectionStartIndexFloat ||
                 smartAxisXFrozenEnd !== selectionEndIndexFloat) {
             } else {
@@ -1991,7 +1996,7 @@ var Telegraph = function (ctxId, config) {
         setLineWidth(frameContext, 0.5);
         setStrokeStyle(frameContext, uiGlobalTheme.scrollSelectorBorder);
         setFillStyle(frameContext, uiGlobalTheme.scrollSelector);
-        drawNavigator(frameContext, zoomStartPosition + uiDisplayScaleFactor, navigatorTop,
+        drawNavigator(frameContext, zoomStartPosition + uiDisplayScaleFactor * 2, navigatorTop,
             zoomEndPosition - zoomStartPosition + uIGlobalPadding4 - uiDisplayScaleFactor * 3, navigatorHeight);
 
     }
@@ -2421,10 +2426,10 @@ var Telegraph = function (ctxId, config) {
                 !animations[CONST_SET_ZOOM_END_ANIMATION_KEY]) {
                 if (currentZoomState === STATE_ZOOM_TRANSFORM_TO_HOURS) {
                     currentZoomState = STATE_ZOOM_HOURS;
-                    unfreezeAxis();
                 } else if (currentZoomState === STATE_ZOOM_TRANSFORM_TO_DAYS) {
                     currentZoomState = STATE_ZOOM_DAYS;
                 }
+                unfreezeAxis();
             }
         }
     }
