@@ -115,7 +115,7 @@ button, button:hover, button:after, button:focus {
 }
 
 .chart-container .title-container .day-range {
-    position: absolute;
+    float: right;
     right: 5px;
 }
 

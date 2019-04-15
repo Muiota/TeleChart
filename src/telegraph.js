@@ -1555,7 +1555,9 @@ var Telegraph = function (ctxId, config) {
             if (currentZoomState !== STATE_ZOOM_TRANSFORM_TO_HOURS &&
                 (selectionCurrentIndexPinned || isMobile)) {
                 if (isMobile) {
-                    handleWaitDelayTouch(vFalse, e);
+                    if (globalPieMode) {
+                        handleWaitDelayTouch(vFalse, e);
+                    }
                     selectionCurrentIndexPinned = vFalse;
                 }
             }
@@ -1573,7 +1575,7 @@ var Telegraph = function (ctxId, config) {
 
     function updateTitleStatus() {
         if (currentZoomState === STATE_ZOOM_HOURS ||
-            currentZoomState === STATE_ZOOM_TRANSFORM_TO_HOURS) {
+            currentZoomState === STATE_ZOOM_TRANSFORM_TO_HOURS || globalPieMode) {
             removeClass(divZoomOut, CONST_HIDDEN_CLASS);
             addClass(divTitle, CONST_HIDDEN_CLASS);
         } else {
@@ -1643,6 +1645,7 @@ var Telegraph = function (ctxId, config) {
         }
         var _parentToIndex = _parentFromIndex + 1;
         if (!_parentToIndex || !_filterEndIndex) {
+            clearDetailElements();
             return;
         }
 
@@ -1663,10 +1666,16 @@ var Telegraph = function (ctxId, config) {
         animate(animationCounter, setAnimationCounter, 1, CONST_ZOOM_ANIMATION_SPEED);
     }
 
-    function zoomOutToDays() {
+    function zoomOutToDays(e) {
+        if (globalPieMode) {
+            zoomInToHourData(e);
+            return;
+        }
         if (currentZoomState !== STATE_ZOOM_HOURS) {
             return;
         }
+
+
 
         currentZoomState = STATE_ZOOM_TRANSFORM_TO_DAYS;
         changeChildClass(CONST_CHART_DETAIL);
@@ -1720,6 +1729,7 @@ var Telegraph = function (ctxId, config) {
                     break;
             }
             needUpdateMainFactor = vTrue;
+            updateTitleStatus();
             hideTooltip();
             invalidateInner();
             return;
@@ -2637,6 +2647,7 @@ var Telegraph = function (ctxId, config) {
                         globalPieMode = vFalse;
                         break;
                 }
+                updateTitleStatus();
             }
         }
     }
