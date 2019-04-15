@@ -115,7 +115,7 @@ button, button:hover, button:after, button:focus {
 }
 
 .chart-container .title-container .day-range {
-    float: right;
+    position: absolute;
     right: 5px;
 }
 
@@ -153,7 +153,6 @@ button, button:hover, button:after, button:focus {
     opacity: 0;
 }
 
-
 .chart-container .animate {
     top: 0px;
     opacity: 1;
@@ -173,15 +172,6 @@ button, button:hover, button:after, button:focus {
 .chart-container .animate.hidden.top {
     top: -10px;
     opacity: 0;
-}
-
-.chart-container .value-animate
-{
-    position: relative;
-}
-
-.chart-container .value-animate span {
-    position: absolute;
 }
 
 .chart-container svg {
@@ -335,4 +325,24 @@ button, button:hover, button:after, button:focus {
     margin-left: 5px;
 }
 
+.chart-container .value-animate {
+    white-space: nowrap;
+    flex-direction: column;
+    display: flex;
+}
 
+.chart-container .value-animate .animated {
+    text-align: right;
+    -webkit-transition: all 2.4s ease-in-out;
+    -moz-transition: all 2.4s ease-in-out;
+    -ms-transition: all 2.4s ease-in-out;
+    -o-transition: all 2.4s ease-in-out;
+    transition: all 2.4s ease-in-out;
+    height: 20px;
+    opacity: 1;
+}
+
+.chart-container .value-animate > .swap.animated {
+    opacity: 0;
+    height: 0px;
+}

@@ -42,7 +42,7 @@ public class Obfuscator {
         result = obfuscatePart(result, "color", "_c", swaps);
         result = obfuscatePart(result, "name", "_n", swaps);
         result = obfuscatePart(result, "data", "_d", swaps);
-        result = obfuscatePart(result, "!==", "_s", swaps);
+        result = obfuscatePart(result, "!==", "_j", swaps);
         result = obfuscatePart(result, "===", "_q", swaps);
 
 

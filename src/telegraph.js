@@ -719,10 +719,10 @@ var Telegraph = function (ctxId, config) {
                 _textYPos = _centerY + _yShift * _halfRadius,
                 _selectedX,
                 _selectedY,
-                _text = (value * 100).toFixed(0)+"%",
-                _vectorX = _centerY-mouseY  ,
+                _text = (value * 100).toFixed(0) + "%",
+                _vectorX = _centerY - mouseY,
                 _vectorY = _centerX - mouseX - uIGlobalPadding2,
-                _selectedAngle = Math.atan2(_vectorX, _vectorY) + CONST_TWO_PI/2;
+                _selectedAngle = Math.atan2(_vectorX, _vectorY) + CONST_TWO_PI / 2;
             stackedRegister[1] = _nextVal;
             if (_vectorX * _vectorX + _vectorY * _vectorY < _radius * _radius &&
                 _selectedAngle > _startAngle && _selectedAngle < _endAngle) {
@@ -760,8 +760,6 @@ var Telegraph = function (ctxId, config) {
             }
 
 
-
-
         }
 
         function drawMainSeries(isChild, offset, exOpacity) {
@@ -770,8 +768,11 @@ var Telegraph = function (ctxId, config) {
                 return;
             }
             if (globalPieMode && !isChild) {
-                setGlobalAlpha(frameContext, opacity * animationCounter - totalPieSelection * 0.3);
-                this.drawPieCore(frameContext, getPercentage());
+                _opacity = opacity * animationCounter - totalPieSelection * 0.3;
+                if (_opacity > 0) {
+                    setGlobalAlpha(frameContext, _opacity);
+                    this.drawPieCore(frameContext, getPercentage());
+                }
             } else {
                 if (inTransition() && !isChild) {
                     _opacity = setGlobalAlpha(frameContext, opacity * (1 - animationCounter));
@@ -1382,8 +1383,6 @@ var Telegraph = function (ctxId, config) {
     }
 
 
-    
-
     function calcHoveredElement(force) {
         var _result = vNull,
             _filterFactorX = defaultChart.getFilterAxis().getFactorX(),
@@ -1779,21 +1778,24 @@ var Telegraph = function (ctxId, config) {
     }
 
     function handleWaitDelayTouch(pressed, e) {
+        if (!isMobile) {
+            return;
+        }
         if (touchTimeout) {
             clearTimeout(touchTimeout);
         }
         if (pressed) {
             touchTimeout = setTimeout(function () {
-                if (globalPieMode) {
-                    if (totalPieSelection < 0.5) {
+                if (!inTransition()) {
+                    if (globalPieMode) {
                         hideTooltip();
                         zoomInToHourData(e);
+                    } else if (currentZoomState !== STATE_ZOOM_DAYS) {
+                        hideTooltip();
+                        zoomOutToDays(e);
                     }
-                } else if (!inTransition() && currentZoomState !== STATE_ZOOM_DAYS) {
-                    hideTooltip();
-                    zoomOutToDays(e);
                 }
-            }, 1000);
+            }, 1500);
         }
     }
 

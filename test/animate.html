@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<style>
+
+    .conainer
+    {
+        display: inline-block;
+    }
+    .conainer div {
+        -webkit-transition: all 0.4s ease-in-out;
+        -moz-transition: all 0.4s ease-in-out;
+        -ms-transition: all 0.4s ease-in-out;
+        -o-transition: all 0.4s ease-in-out;
+        transition: all 0.4s ease-in-out;
+    }
+
+    .conainer > .f {
+        transform: scaleY(0);
+        height: 0px;
+        opacity: 0;
+        position: absolute;
+    }
+
+    .conainer > .s {
+        transform: scaleY(1);
+        height: 20px;
+        opacity: 1;
+    }
+
+    .conainer.swap > .f {
+        transform: scaleY(1);
+        height: 20px;
+        opacity: 1;
+    }
+
+    .conainer.swap > .s {
+        transform: scaleY(0);
+        height: 0px;
+        opacity: 0;
+    }
+
+</style>
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <div class="conainer">
+        <div class="f">Text1</div>
+        <div class="s">TextA</div>
+    </div>
+    <div class="conainer">
+        <div class="f">Text2</div>
+        <div class="s">TextB</div>
+    </div>
+    <div class="conainer">
+        <div class="f">Text3</div>
+        <div class="s">TextC</div>
+    </div>
+    <div class="conainer">
+        <div class="f">Text4</div>
+        <div class="l">TextD</div>
+    </div>
+    <div class="conainer">
+        <div class="f">Text5</div>
+        <div class="s">TextE</div>
+    </div>
+
+</head>
+<body>
+
+</body>
+</html>
