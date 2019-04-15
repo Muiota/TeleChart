@@ -775,7 +775,7 @@ var Telegraph = function (ctxId, config) {
                 }
             } else {
                 if (inTransition() && !isChild) {
-                    _opacity = setGlobalAlpha(frameContext, opacity * (1 - animationCounter));
+                    _opacity = opacity * (1 - animationCounter);
                 } else {
                     _opacity = opacity * (exOpacity || 1);
                 }
@@ -1506,6 +1506,7 @@ var Telegraph = function (ctxId, config) {
     }
 
     function moveHoveredElement() {
+
         if (charts.length) {
             if (mouseHoveredRegionType !== ENUM_SELECTION_HOVER) {
                 navigateChart();
@@ -1554,6 +1555,7 @@ var Telegraph = function (ctxId, config) {
             if (currentZoomState !== STATE_ZOOM_TRANSFORM_TO_HOURS &&
                 (selectionCurrentIndexPinned || isMobile)) {
                 if (isMobile) {
+                    handleWaitDelayTouch(vFalse, e);
                     selectionCurrentIndexPinned = vFalse;
                 }
             }
@@ -2583,8 +2585,9 @@ var Telegraph = function (ctxId, config) {
         setFilterStartIndexFloat(1);
         setFilterEndIndexFloat(defaultChart.getLastIndex());
 
-        assignZoomStart(start);
-        assignZoomEnd(end);
+        animate(zoomStartFloat, assignZoomStart, start, 3);
+        animate(zoomEndFloat, assignZoomEnd, end, 3);
+        needUpdateFilterFactor = vFalse;
         changeChildClass(CONST_CHART_MASTER);
         changeChildClass(CONST_CHART_DETAIL, vTrue);
     }
@@ -2598,6 +2601,8 @@ var Telegraph = function (ctxId, config) {
         for (var _i = 0; _i < _existing.length; _i++) {
             removeClass(_existing[_i], CONST_BACKGROUND_CLASS);
         }
+        needUpdateFilterFactor = vFalse;
+        animate(zoomEndFloat - 1, assignZoomEnd, zoomEndFloat, 5);
     }
 
 
