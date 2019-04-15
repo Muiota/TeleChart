@@ -2496,7 +2496,7 @@ var Telegraph = function (ctxId, config) {
             _frameCount,
             _exAnimationFrames;
         if (initial !== proposed && setter) { //no need animation
-            if (this) {
+            if (this && this.getAlias) {
                 _key += this.getAlias();
             }
 

@@ -324,25 +324,3 @@ button, button:hover, button:after, button:focus {
 .chart-container .button.checked .button-text {
     margin-left: 5px;
 }
-
-.chart-container .value-animate {
-    white-space: nowrap;
-    flex-direction: column;
-    display: flex;
-}
-
-.chart-container .value-animate .animated {
-    text-align: right;
-    -webkit-transition: all 2.4s ease-in-out;
-    -moz-transition: all 2.4s ease-in-out;
-    -ms-transition: all 2.4s ease-in-out;
-    -o-transition: all 2.4s ease-in-out;
-    transition: all 2.4s ease-in-out;
-    height: 20px;
-    opacity: 1;
-}
-
-.chart-container .value-animate > .swap.animated {
-    opacity: 0;
-    height: 0px;
-}
