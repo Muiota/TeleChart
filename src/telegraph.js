@@ -44,7 +44,7 @@ var Telegraph = function (ctxId, config) {
         CONST_HIDDEN_CLASS = "hidden",
         CONST_BACKGROUND_CLASS = "background",
 
-        CONST_ZOOM_ANIMATION_SPEED = 15,
+        CONST_ZOOM_ANIMATION_SPEED = 20,
         CONST_AXIS_X_LABEL_OPACITY_ANIMATION_KEY = getFunctionName(setAxisXLabelOpacity),
         CONST_SET_ZOOM_START_ANIMATION_KEY = getFunctionName(setZoomStart),
         CONST_SET_ZOOM_END_ANIMATION_KEY = getFunctionName(setZoomEnd),
@@ -244,8 +244,10 @@ var Telegraph = function (ctxId, config) {
         globalPercentageMode,
         stackedRegister = [],
         totalPercentageRegister = [],
+        totalPieSelection,
         detailChartOffset,
         detailAxisQuality = 24,
+        touchTimeout,
         paramsStorage = new ParamsStorage();
 
 
@@ -437,18 +439,18 @@ var Telegraph = function (ctxId, config) {
             divLegendVal,
             divButton,
             opacity = 1,
-
             enabled = vTrue,
             filterAxis,
             mainAxis,
             percentageValue,
+            pieSelected = 0,
             percentageData = [];
 
         function initAxis(globalMainAxis, globalFilterAxis) {
             if (globalScaledY) {
-                filterAxis = new AxisInfo(alias + "f", xData, [this], visibleWidth, filterHeight, 1, vTrue);
+                filterAxis = new AxisInfo(alias + "f", xData, [this], visibleWidth, filterHeight, 1, !config.startFromLowest);
                 mainAxis = new AxisInfo(alias + "m", xData, [this], visibleWidth, selectionHeight,
-                    config.lineWidth || 1.5, vTrue);
+                    config.lineWidth || 1.5, !config.startFromLowest);
                 filterAxis.calculateFactors(fParseInt(filterStartIndexFloat), fParseInt(filterEndIndexFloat));
             } else {
                 mainAxis = globalMainAxis;
@@ -558,6 +560,9 @@ var Telegraph = function (ctxId, config) {
         }
 
         function drawTooltipArrow(currentIndex, startIndex) {
+            if (globalPieMode) {
+                return;
+            }
             var _shift = currentIndex - startIndex;
             var _xPos = uIGlobalPadding2 + (_shift) * mainAxis.getFactorX(),
                 _yPos,
@@ -594,6 +599,9 @@ var Telegraph = function (ctxId, config) {
         }
 
         function drawHorizontalGrid() {
+            if (globalPieMode) {
+                return;
+            }
             var _nextScaleLevel = selectionBottom,
                 _yCoordinate;
             beginPath(frameContext);
@@ -694,7 +702,6 @@ var Telegraph = function (ctxId, config) {
         }
 
         function drawPieCore(context, value) {
-
             var _prevVal = stackedRegister[1],
                 _nextVal = _prevVal + value,
                 _startAngle = degreeToRadians(_prevVal),
@@ -704,11 +711,36 @@ var Telegraph = function (ctxId, config) {
                 _centerY = selectionBottom - _halfHeight,
                 _centerX = _halfWidth,
                 _middleAngle = _startAngle + (_endAngle - _startAngle) * 0.5,
-                _halfRadius = _halfHeight * 0.75,
-                _textXPos = _centerX + Math.cos(_middleAngle) * _halfRadius,
-                _textYPos = _centerY + Math.sin(_middleAngle) * _halfRadius,
-                _text = (value * 100).toFixed(0);
-            stackedRegister[1] = _nextVal
+                _radius = _halfHeight - uIBtnRadius,
+                _halfRadius = _radius * 0.75,
+                _xShift = Math.cos(_middleAngle),
+                _yShift = Math.sin(_middleAngle),
+                _textXPos = _centerX + _xShift * _halfRadius,
+                _textYPos = _centerY + _yShift * _halfRadius,
+                _selectedX,
+                _selectedY,
+                _text = (value * 100).toFixed(0)+"%",
+                _vectorX = _centerY-mouseY  ,
+                _vectorY = _centerX - mouseX - uIGlobalPadding2,
+                _selectedAngle = Math.atan2(_vectorX, _vectorY) + CONST_TWO_PI/2;
+            stackedRegister[1] = _nextVal;
+            if (_vectorX * _vectorX + _vectorY * _vectorY < _radius * _radius &&
+                _selectedAngle > _startAngle && _selectedAngle < _endAngle) {
+                setGlobalAlpha(frameContext, opacity * animationCounter);
+                if (!pieSelected) {
+                    animate.apply(this, [pieSelected, setPieSelected, 1]);
+                }
+            } else {
+                if (pieSelected) {
+                    animate.apply(this, [pieSelected, setPieSelected, 0]);
+                }
+            }
+
+            if (pieSelected) {
+                _selectedX = _xShift * uIGlobalPadding * pieSelected;
+                _selectedY = _yShift * uIGlobalPadding * pieSelected;
+                context.translate(_selectedX, _selectedY);
+            }
             setFillStyle(context, uiGlobalTheme.scrollSelectorBorder);
             var _textWidth = getTextWidth(context, _text);
             fillText(context, _text, _textXPos - _textWidth * 0.5, _textYPos + envDefaultTextHeight * 0.5);
@@ -716,8 +748,20 @@ var Telegraph = function (ctxId, config) {
             beginPath(context);
             setFillStyle(context, color);
             moveOrLine(context, vTrue, _centerX, _centerY);
-            context.arc(_centerX, _centerY, _halfHeight, _startAngle, _endAngle);
+            context.arc(_centerX, _centerY, _radius, _startAngle, _endAngle);
             fill(context);
+
+            beginPath(context);
+            moveOrLine(context, vTrue, _centerX, _centerY);
+            moveOrLine(context, vTrue, _centerX + _xShift * uIBtnRadius, _centerY + _yShift * selectionHeight);
+            endPath(context);
+            if (_selectedX || _selectedY) {
+                context.translate(-_selectedX, -_selectedY);
+            }
+
+
+
+
         }
 
         function drawMainSeries(isChild, offset, exOpacity) {
@@ -726,8 +770,8 @@ var Telegraph = function (ctxId, config) {
                 return;
             }
             if (globalPieMode && !isChild) {
-                setGlobalAlpha(frameContext, opacity * animationCounter);
-                drawPieCore(frameContext, getPercentage());
+                setGlobalAlpha(frameContext, opacity * animationCounter - totalPieSelection * 0.3);
+                this.drawPieCore(frameContext, getPercentage());
             } else {
                 if (inTransition() && !isChild) {
                     _opacity = setGlobalAlpha(frameContext, opacity * (1 - animationCounter));
@@ -764,6 +808,10 @@ var Telegraph = function (ctxId, config) {
         }
 
         function drawArrowPoint() {
+
+            if (globalPieMode) {
+                return;
+            }
             var _posX = uIGlobalPadding2 + (selectionCurrentIndexFloat - selectionStartIndexFloat  ) *
                 mainAxis.getFactorX(),
                 _from = fMathFloor(selectionCurrentIndexFloat),
@@ -945,6 +993,15 @@ var Telegraph = function (ctxId, config) {
             return percentageValue;
         }
 
+        function setPieSelected(val) {
+            pieSelected = val;
+            invalidateInner();
+        }
+
+        function getPieSelected() {
+            return pieSelected;
+        }
+
         return {
             initAxis: initAxis,
             getAlias: getAlias,
@@ -959,6 +1016,7 @@ var Telegraph = function (ctxId, config) {
             calculateFilterFactors: calculateFilterFactors,
             drawHorizontalGrid: drawHorizontalGrid,
             drawMainSeries: drawMainSeries,
+            drawPieCore: drawPieCore,
             drawFilterSeries: drawFilterSeries,
             drawArrowPoint: drawArrowPoint,
             getMainAxis: getMainAxis,
@@ -972,6 +1030,7 @@ var Telegraph = function (ctxId, config) {
             setTlpRowDiv: setTlpRowDiv,
             setButtonDiv: setButtonDiv,
             setPercentage: setPercentage,
+            getPieSelected: getPieSelected,
             getPercentage: getPercentage
         };
     };
@@ -1131,6 +1190,10 @@ var Telegraph = function (ctxId, config) {
         arrowTooltipOpacity = val;
     }
 
+    function setTotalPieSelection(val) {
+        totalPieSelection = val;
+    }
+
     function setAxisXLabelOpacity(val) {
         smartAxisXOpacity = val;
     }
@@ -1217,8 +1280,8 @@ var Telegraph = function (ctxId, config) {
             _charts.push(_chartInfo);
         }
         if (!globalScaledY) {
-            var _globalFilterAxis = new AxisInfo(globalAlias + "-f", _data.x, _charts, visibleWidth, filterHeight, 1, vTrue);
-            var _globalMainAxis = new AxisInfo(globalAlias + "-m", _data.x, _charts, visibleWidth, selectionHeight, config.lineWidth || 2, vTrue);
+            var _globalFilterAxis = new AxisInfo(globalAlias + "-f", _data.x, _charts, visibleWidth, filterHeight, 1, !config.startFromLowest);
+            var _globalMainAxis = new AxisInfo(globalAlias + "-m", _data.x, _charts, visibleWidth, selectionHeight, config.lineWidth || 2, !config.startFromLowest);
             _globalFilterAxis.calculateFactors(filterStartIndexFloat, filterEndIndexFloat);
             for (_i in _charts) {
                 _charts[_i].initAxis(_globalMainAxis, _globalFilterAxis);
@@ -1302,8 +1365,10 @@ var Telegraph = function (ctxId, config) {
             //Set cursor
             if (mouseHoveredRegionType === ENUM_SELECTION_HOVER) { //most likely
                 if (currentZoomState !== STATE_ZOOM_TRANSFORM_TO_HOURS) {
-                    showTooltip();
-                    setCursor(0);
+                    if (!globalPieMode) {
+                        showTooltip();
+                        setCursor(0);
+                    }
                 }
             } else if (mouseHoveredRegionType === ENUM_ZOOM_HOVER) {
                 setCursor(1);
@@ -1316,6 +1381,8 @@ var Telegraph = function (ctxId, config) {
         }
     }
 
+
+    
 
     function calcHoveredElement(force) {
         var _result = vNull,
@@ -1336,7 +1403,6 @@ var Telegraph = function (ctxId, config) {
                 mouseFrame.tS = zoomStartFloat;
                 mouseFrame.tE = zoomEndFloat;
                 mouseFrame.tF = mouseX;
-
                 _result = ENUM_SELECTION_HOVER;
                 invalidateInner();
             }
@@ -1369,26 +1435,30 @@ var Telegraph = function (ctxId, config) {
 
 
     function assignZoomStart(val, frameCount) {
-        val = getMax(getMin(val, zoomEndFloat - 2), 1);
-        zoomStartPosition = (val - filterStartIndexFloat) * defaultChart.getFilterAxis().getFactorX();
-        animate(zoomStartFloat, setZoomStart, val, frameCount);
+        if (defaultChart) {
+            val = getMax(val, 1);
+            zoomStartPosition = (val - filterStartIndexFloat) * defaultChart.getFilterAxis().getFactorX();
+            animate(zoomStartFloat, setZoomStart, val, frameCount);
+        }
     }
 
 
     function assignZoomEnd(val, frameCount) {
-        val = getMin(getMax(val, zoomStartFloat + 2), defaultChart.getLastIndex());
-        zoomEndPosition = (val - filterStartIndexFloat) * defaultChart.getFilterAxis().getFactorX();
-        animate(zoomEndFloat, setZoomEnd, val, frameCount);
+        if (defaultChart) {
+            val = getMin(val, defaultChart.getLastIndex());
+            zoomEndPosition = (val - filterStartIndexFloat) * defaultChart.getFilterAxis().getFactorX();
+            animate(zoomEndFloat, setZoomEnd, val, frameCount);
+        }
     }
 
     function setFilterStartIndexFloat(val) {
-        filterStartIndexFloat = getMin(val, filterEndIndexFloat - 2);
+        filterStartIndexFloat = getMin(val, filterEndIndexFloat);
         needUpdateFilterFactor = vTrue;
         needUpdateMainFactor = vTrue;
     }
 
     function setFilterEndIndexFloat(val) {
-        filterEndIndexFloat = getMax(val, filterStartIndexFloat + 2);
+        filterEndIndexFloat = getMax(val, filterStartIndexFloat);
         needUpdateFilterFactor = vTrue;
         needUpdateMainFactor = vTrue;
     }
@@ -1649,6 +1719,7 @@ var Telegraph = function (ctxId, config) {
                     break;
             }
             needUpdateMainFactor = vTrue;
+            hideTooltip();
             invalidateInner();
             return;
         }
@@ -1707,7 +1778,27 @@ var Telegraph = function (ctxId, config) {
         }
     }
 
+    function handleWaitDelayTouch(pressed, e) {
+        if (touchTimeout) {
+            clearTimeout(touchTimeout);
+        }
+        if (pressed) {
+            touchTimeout = setTimeout(function () {
+                if (globalPieMode) {
+                    if (totalPieSelection < 0.5) {
+                        hideTooltip();
+                        zoomInToHourData(e);
+                    }
+                } else if (!inTransition() && currentZoomState !== STATE_ZOOM_DAYS) {
+                    hideTooltip();
+                    zoomOutToDays(e);
+                }
+            }, 1000);
+        }
+    }
+
     function handleMouseClick(e, pressed) {
+        handleWaitDelayTouch(pressed, e);
         if (!handleMouseMove(e, vTrue)) {
             pressed = vFalse;
         }
@@ -1725,7 +1816,7 @@ var Telegraph = function (ctxId, config) {
             } else if (mouseHoveredRegionType === ENUM_SELECTION_HOVER) {
                 selectionCurrentIndexPinned = isMobile ? vFalse : !selectionCurrentIndexPinned;
                 isSelectionCurrentIndexChanged = vFalse;
-                if (!isMobile) {
+                if (!isMobile || (globalPieMode && totalPieSelection < 0.5)) {
                     zoomInToHourData(e);
                 }
             }
@@ -1981,6 +2072,19 @@ var Telegraph = function (ctxId, config) {
             _axisY.drawMainSeries();
         }
 
+        if (globalPieMode) {
+            var _proposed = 0;
+            for (_i in charts) {
+                if (charts[_i].getPieSelected() > 0.3) {
+                    _proposed = 1;
+                    break;
+                }
+            }
+            if (_proposed !== totalPieSelection) {
+                animate(totalPieSelection, setTotalPieSelection, _proposed);
+            }
+        }
+
         if (inTransition()) {
             if (globalPieMode) {
                 for (_i in charts) {
@@ -2188,17 +2292,16 @@ var Telegraph = function (ctxId, config) {
 
         if (globalPieMode && chartItems.length) {
             var _totalSum = 0,
-                _opacity = _chart.getOpacity(),
-                _sum = 0,
                 _startIndex = fMathFloor(startIndex),
                 _endIndex = fMathCeil(endIndex);
-
             for (_i in chartItems) {
+                var _sum = 0;
                 _chart = chartItems[_i];
                 _data = _chart.getYData();
                 for (var _k = _startIndex; _k <= _endIndex; _k++) {
-                    _sum += _data[_k] * _opacity;
+                    _sum += _data[_k];
                 }
+                _sum *= _chart.getOpacity();
                 _totalSum += _sum;
                 _chart.setPercentage(_sum);
             }
